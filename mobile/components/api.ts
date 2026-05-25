@@ -3,7 +3,7 @@
  * Pointe vers l'API FastAPI (port 8002) et le bridge Longonia.
  */
 
-export const API_URL    = 'http://localhost:8002';
+export const API_URL    = 'https://santedirect.kolongono.org';
 export const SANTE_URL  = API_URL;
 
 class ApiClient {

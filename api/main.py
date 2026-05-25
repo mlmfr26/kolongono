@@ -656,6 +656,12 @@ app.include_router(rh_router)
 app.include_router(pharmacie_ean_router)
 app.include_router(notifications_router)
 
+# ── Interface web navigateur ──────────────────────────────────────────────────
+from fastapi.staticfiles import StaticFiles as _StaticFiles
+import os as _os
+if _os.path.exists("web"):
+    app.mount("/web", _StaticFiles(directory="web", html=True), name="web")
+
 
 if __name__ == "__main__":
     import uvicorn
