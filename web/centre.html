@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <script>!function(){var t=localStorage.getItem('sd_token');if(!t){location.replace('/');return;}try{var p=JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));if(p.exp&&Date.now()/1000>p.exp){localStorage.removeItem('sd_token');localStorage.removeItem('sd_user');location.replace('/')}}catch(e){localStorage.removeItem('sd_token');localStorage.removeItem('sd_user');location.replace('/')}}();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Centre — SantéDirect Kolongono</title>
   <link rel="stylesheet" href="design-system.css">
@@ -4249,9 +4250,9 @@ document.addEventListener('click', e => {
 
 function deconnecter() {
   if (confirm('Se déconnecter de l\'application ?')) {
-    // En production : appel API /auth/logout + effacement JWT
-    // Pour la démo, redirection vers la page d\'accueil
-    window.location.href = 'index.html';
+    localStorage.removeItem('sd_token');
+    localStorage.removeItem('sd_user');
+    location.replace('/');
   }
 }
 
