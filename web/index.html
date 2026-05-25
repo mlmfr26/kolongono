@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SantéDirect Kolongono — Accès</title>
+  <link rel="stylesheet" href="design-system.css">
+  <style>
+    body {
+      min-height: 100vh;
+      background: #F4F6FA;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-xl);
+      overflow: hidden;
+      position: relative;
+    }
+    /* Blobs décoratifs pastels */
+    .blob { position: fixed; border-radius: 50%; pointer-events: none; }
+    .blob-blue   { width: 480px; height: 480px; background: var(--blue);   opacity: .35; top: -160px; right: -120px; }
+    .blob-purple { width: 320px; height: 320px; background: var(--purple); opacity: .30; bottom: -100px; left: -80px; }
+    .blob-green  { width: 200px; height: 200px; background: var(--green);  opacity: .28; top: 40%; left: 5%; }
+
+    .hub { max-width: 900px; width: 100%; position: relative; z-index: 1; }
+
+    /* Header */
+    .hub-header { text-align: center; margin-bottom: var(--space-xxxl); }
+    .hub-logo-wrap { display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; border-radius: 24px; background: var(--dark); margin-bottom: var(--space-lg); box-shadow: var(--shadow-nav); }
+    .hub-logo-wrap svg { width: 40px; height: 40px; }
+    .hub-title { color: var(--color-text); font-size: var(--font-xxxl); font-weight: 900; letter-spacing: -.5px; }
+    .hub-sub   { color: var(--color-text-muted); font-size: var(--font-md); margin-top: 8px; }
+
+    /* Grille des rôles */
+    .role-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-lg); margin-bottom: var(--space-xxxl); }
+    .role-card {
+      border-radius: var(--radius-xxl);
+      padding: var(--space-xl);
+      text-align: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all .2s;
+      display: block;
+      box-shadow: var(--shadow-sm);
+    }
+    .role-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .role-card-blue   { background: var(--blue); }
+    .role-card-purple { background: var(--purple); }
+    .role-card-green  { background: var(--green); }
+    .role-card-dark   { background: var(--dark); }
+    .role-icon-wrap {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.55);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto var(--space-md);
+      font-size: 28px;
+    }
+    .role-name { font-size: var(--font-lg); font-weight: 900; }
+    .role-card-blue   .role-name,
+    .role-card-purple .role-name,
+    .role-card-green  .role-name { color: var(--dark); }
+    .role-card-dark   .role-name { color: #fff; }
+    .role-desc { font-size: var(--font-xs); margin-top: 6px; }
+    .role-card-blue   .role-desc { color: var(--blue-deep); }
+    .role-card-purple .role-desc { color: var(--purple-deep); }
+    .role-card-green  .role-desc { color: var(--green-deep); }
+    .role-card-dark   .role-desc { color: rgba(255,255,255,.55); }
+    .role-badge {
+      display: inline-block;
+      border-radius: var(--radius-full);
+      padding: 3px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-top: 10px;
+      background: rgba(255,255,255,.45);
+    }
+    .role-card-blue   .role-badge { color: var(--blue-deep); }
+    .role-card-purple .role-badge { color: var(--purple-deep); }
+    .role-card-green  .role-badge { color: var(--green-deep); }
+    .role-card-dark   .role-badge { background: rgba(255,255,255,.15); color: rgba(255,255,255,.7); }
+
+    /* Info bar */
+    .info-bar {
+      background: #fff;
+      border-radius: var(--radius-xl);
+      padding: var(--space-lg) var(--space-xl);
+      display: flex; align-items: center; gap: var(--space-xl); flex-wrap: wrap;
+      justify-content: center;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      margin-bottom: var(--space-lg);
+    }
+    .info-item { text-align: center; }
+    .info-val { color: var(--color-text); font-size: var(--font-xl); font-weight: 900; }
+    .info-lbl { color: var(--color-text-light); font-size: 10px; margin-top: 2px; }
+    .api-link { display: block; text-align: center; color: var(--color-text-muted); font-size: var(--font-xs); }
+    .api-link a { color: var(--blue-deep); text-decoration: underline; }
+
+    @media(max-width: 600px) {
+      .hub-title { font-size: var(--font-xxl); }
+      .role-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="blob blob-blue"></div>
+  <div class="blob blob-purple"></div>
+  <div class="blob blob-green"></div>
+
+  <div class="hub">
+    <div class="hub-header">
+      <div class="hub-logo-wrap">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="16" y="4" width="8" height="32" rx="4" fill="white"/>
+          <rect x="4" y="16" width="32" height="8" rx="4" fill="white"/>
+        </svg>
+      </div>
+      <div class="hub-title">SantéDirect Kolongono</div>
+      <div class="hub-sub">Système de santé communautaire · Interface de test</div>
+    </div>
+
+    <div class="role-grid">
+      <a href="adherent.html" class="role-card role-card-blue">
+        <div class="role-icon-wrap">👤</div>
+        <div class="role-name">Adhérent</div>
+        <div class="role-desc">Espace patient — Prendre RDV, pharmacie, dossier médical</div>
+        <div class="role-badge">Marie KABONGO · ADH-001</div>
+      </a>
+      <a href="auxiliaire.html" class="role-card role-card-green">
+        <div class="role-icon-wrap">🏥</div>
+        <div class="role-name">Auxiliaire</div>
+        <div class="role-desc">Pré-consultation, signes vitaux, suivi terrain</div>
+        <div class="role-badge">Jean BOLAMBA</div>
+      </a>
+      <a href="medecin.html" class="role-card role-card-purple">
+        <div class="role-icon-wrap">🩺</div>
+        <div class="role-name">Médecin</div>
+        <div class="role-desc">Téléconsultation, ordonnances, suivi patients</div>
+        <div class="role-badge">Dr. Béatrice MWAMBA</div>
+      </a>
+      <a href="admin.html" class="role-card role-card-dark">
+        <div class="role-icon-wrap">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <div class="role-name">Super Admin</div>
+        <div class="role-desc">Réseau complet — tous centres, médecins, abonnements</div>
+        <div class="role-badge">Admin KOLONGONO · ADM-001</div>
+      </a>
+      <a href="reseau.html" class="role-card" style="background:#0D9488">
+        <div class="role-icon-wrap" style="background:rgba(255,255,255,.20)">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="rgba(255,255,255,.95)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/></svg>
+        </div>
+        <div class="role-name" style="color:#fff">Réseau</div>
+        <div class="role-desc" style="color:rgba(255,255,255,.70)">Centres partenaires, organismes et structures du réseau Kolongono</div>
+        <div class="role-badge" style="background:rgba(255,255,255,.18);color:rgba(255,255,255,.85)">3 centres médicaux</div>
+      </a>
+    </div>
+
+    <div class="info-bar">
+      <div class="info-item"><div class="info-val">342</div><div class="info-lbl">Adhérents actifs</div></div>
+      <div class="info-item"><div class="info-val">12</div><div class="info-lbl">Médecins</div></div>
+      <div class="info-item"><div class="info-val">1,2M FC</div><div class="info-lbl">Revenus/mois</div></div>
+      <div class="info-item"><div class="info-val" style="color:var(--green-deep)">:8002</div><div class="info-lbl">API FastAPI</div></div>
+      <div class="info-item"><div class="info-val" style="color:var(--blue-deep)">:8000</div><div class="info-lbl">Longonia bridge</div></div>
+    </div>
+
+    <div class="api-link">
+      Documentation API : <a href="http://localhost:8002/docs" target="_blank">http://localhost:8002/docs</a>
+      &nbsp;·&nbsp; <a href="http://localhost:8002/redoc" target="_blank">ReDoc</a>
+    </div>
+  </div>
+</body>
+</html>

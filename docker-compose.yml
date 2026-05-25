@@ -1,0 +1,20 @@
+version: '3.8'
+
+# Déploiement SantéDirect sur serveur partagé Hetzner CX23
+# S'intègre dans l'infrastructure existante (longonia-postgres, longonia-nginx)
+# Ne crée PAS de nouvelle DB ni de nouveau nginx — utilise ceux de Longonia
+
+services:
+  santesd-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: santesd-api
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - longonia_longonia
+
+networks:
+  longonia_longonia:
+    external: true

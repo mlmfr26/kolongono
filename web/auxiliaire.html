@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espace Auxiliaire — SantéDirect Kolongono</title>
+  <link rel="stylesheet" href="design-system.css">
+  <style>
+    .page-hidden { display: none !important; }
+    :root { --color-primary: #0891B2; --color-primary-dark: #0C4A6E; --color-primary-light: #E0F2FE; --color-primary-mid: #0369A1; }
+    .sidebar { background: var(--color-primary-dark) !important; }
+    .countdown { font-size: var(--font-xl); font-weight: 800; color: var(--color-danger); font-variant-numeric: tabular-nums; }
+    .checklist-item { display:flex;align-items:center;gap:var(--space-md);padding:var(--space-md);border-radius:var(--radius-lg);margin-bottom:var(--space-sm);cursor:pointer;border:1.5px solid var(--color-border);background:var(--color-card);transition:all .15s; }
+    .checklist-item.done { background:var(--color-primary-light);border-color:var(--color-primary); }
+    .checklist-item.done .check-circle { background:var(--color-primary);border-color:var(--color-primary);color:#fff; }
+    .check-circle { width:24px;height:24px;border-radius:var(--radius-full);border:2px solid var(--color-border);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0; }
+    .urgency-high   { border-left:4px solid var(--color-danger)  !important; }
+    .urgency-medium { border-left:4px solid var(--color-warning) !important; }
+    /* Types de consultation */
+    .consult-type { display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:var(--radius-full);border:1px solid;white-space:nowrap; }
+    .ct-tc  { background:#EDE9FE;color:#6D28D9;border-color:#C4B5FD; }
+    .ct-pre { background:#E0F2FE;color:#0369A1;border-color:#7DD3FC; }
+    /* Modal patient */
+    .patient-modal { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center; }
+    .patient-modal.hidden { display:none; }
+    .patient-modal-card { background:var(--color-card);border-radius:var(--radius-xl) var(--radius-xl) 0 0;width:100%;max-width:700px;max-height:92vh;overflow-y:auto;padding:var(--space-xl); }
+    .pmt-bar { display:flex;gap:4px;border-bottom:2px solid var(--color-border);margin-bottom:var(--space-lg); }
+    .pmt { padding:8px 16px;font-size:var(--font-sm);font-weight:700;color:var(--color-text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;transition:all .15s; }
+    .pmt.active { color:var(--color-primary);border-bottom-color:var(--color-primary);background:var(--color-primary-light); }
+    .pm-pane { display:none; }
+    .pm-pane.active { display:block; }
+    /* Pharmacie — contexte ordonnance */
+    .ordo-banner { background:#F5F3FF;border:1.5px solid #C4B5FD;border-radius:var(--radius-xl);padding:var(--space-md) var(--space-lg);margin-bottom:var(--space-lg);display:flex;align-items:flex-start;gap:var(--space-md);flex-wrap:wrap; }
+    .ordo-tag { display:inline-flex;align-items:center;gap:5px;background:#7C3AED;color:#fff;border-radius:var(--radius-full);padding:2px 10px;font-size:11px;font-weight:700;white-space:nowrap; }
+    .ordo-med { display:inline-flex;align-items:center;gap:4px;background:#EDE9FE;color:#6D28D9;border:1px solid #C4B5FD;border-radius:var(--radius-full);padding:2px 10px;font-size:11px;font-weight:600; }
+    /* RDV page */
+    .rdv-day-hdr { font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--color-text-muted);margin:var(--space-lg) 0 var(--space-sm); }
+    .rdv-row { display:flex;align-items:center;gap:var(--space-md);padding:var(--space-md) var(--space-lg);border-radius:var(--radius-lg);border:1.5px solid var(--color-border);background:var(--color-card);margin-bottom:var(--space-sm);cursor:pointer;transition:border-color .15s; }
+    .rdv-row:hover { border-color:var(--color-primary); }
+    .rdv-heure { font-weight:800;font-size:var(--font-sm);color:var(--color-primary);min-width:44px; }
+    .rdv-sep { width:1px;height:32px;background:var(--color-border);flex-shrink:0; }
+    /* Logout */
+    .sidebar-logout { display:flex;align-items:center;gap:8px;width:100%;margin-top:10px;padding:8px 12px;background:none;border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-lg);cursor:pointer;color:rgba(255,255,255,.7);font-size:var(--font-sm);font-weight:600;transition:all .2s; }
+    .sidebar-logout:hover { background:rgba(239,68,68,.15);border-color:#EF4444;color:#FCA5A5; }
+    /* Catégories auxiliaires */
+    .aux-cat-a { display:inline-flex;align-items:center;gap:4px;background:#CCFBF1;color:#0F766E;border:1.5px solid #5EEAD4;border-radius:var(--radius-full);padding:2px 10px;font-size:10px;font-weight:800;white-space:nowrap; }
+    .aux-cat-b { display:inline-flex;align-items:center;gap:4px;background:#FEF3C7;color:#92400E;border:1.5px solid #FCD34D;border-radius:var(--radius-full);padding:2px 10px;font-size:10px;font-weight:800;white-space:nowrap; }
+    /* Recommandation IA RDV */
+    .ia-reco { border-radius:var(--radius-lg);padding:var(--space-sm) var(--space-md);font-size:11px;line-height:1.6;margin-top:var(--space-sm);display:none; }
+    .ia-reco.visible { display:block; }
+    .ia-reco-a { background:#E0F2FE;border-left:3px solid #0369A1;color:#0C4A6E; }
+    .ia-reco-b { background:#F0FDF4;border-left:3px solid #16A34A;color:#14532D; }
+    .ia-reco-u { background:#FEF9C3;border-left:3px solid #CA8A04;color:#713F12; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+      <div class="sidebar-logo-name">SantéDirect</div>
+      <div class="sidebar-logo-sub">Kolongono · Auxiliaire</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-page="dashboard">
+        <span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span> Tableau de bord
+      </div>
+      <div class="nav-item" data-page="rdv">
+        <span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Prises de rendez-vous
+      </div>
+      <div class="nav-item" data-page="signes-vitaux">
+        <span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Saisie signes vitaux
+      </div>
+      <div class="nav-item" data-page="suivi">
+        <span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span> Suivi consultation
+      </div>
+      <div class="nav-item" data-page="pharmacie">
+        <span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg></span> Pharmacie
+      </div>
+      <div class="nav-item" data-page="protocole">
+        <span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> Protocole
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">A</div>
+        <div>
+          <div class="sidebar-user-name">Aux. Jean BOLAMBA</div>
+          <div class="sidebar-user-role">Auxiliaire de santé</div>
+          <div style="margin-top:5px"><span class="aux-cat-a">Cat. A — Qualifié</span></div>
+        </div>
+      </div>
+      <button class="sidebar-logout" onclick="deconnecter()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Se déconnecter
+      </button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="btn btn-icon btn-outline" id="menuToggle" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <span class="topbar-title" id="topbar-title">Tableau de bord</span>
+      <div class="topbar-actions">
+        <span style="cursor:pointer;display:inline-flex;align-items:center" onclick="openNotifPanel()" title="Notifications"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+        <span class="topbar-badge" id="notif-badge" style="display:none">0</span>
+        <button class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:6px" onclick="alert('Urgence médicale — appel lancé')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Urgence</button>
+      </div>
+    </header>
+
+    <!-- ══════════════════════════════════════
+         DASHBOARD
+    ══════════════════════════════════════ -->
+    <div class="page" id="page-dashboard">
+
+      <div class="alert alert-warning mb-lg">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span><strong>1 consultation dans <span id="countdown1">12:43</span></strong> — Claire TSHIABA · Pré-consultation à compléter <strong>maintenant</strong>.</span>
+      </div>
+
+      <div class="stats-grid mb-xl">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#DCFCE7"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div><div class="stat-val" style="color:var(--color-primary)">12</div><div class="stat-label">Consultations — 23 mai</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#FEF3C7"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div><div class="stat-val" style="color:var(--color-warning)">3</div><div class="stat-label">Signes vitaux à saisir</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#E0F2FE"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <div><div class="stat-val" style="color:var(--color-primary)">47</div><div class="stat-label">Patients vus ce mois</div></div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-md)">
+        <div class="section-label" style="margin:0">File de consultations — 23 mai 2026</div>
+        <div style="display:flex;align-items:center;gap:var(--space-sm)">
+          <span class="badge badge-info">12 patients</span>
+          <button class="btn btn-outline btn-sm" onclick="showPage('rdv')">Voir planning</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-sm)" id="consult-file"></div>
+
+      <div class="mt-lg">
+        <button class="btn btn-primary" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px" onclick="accueilSansRDV()">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Accueillir un patient sans RDV
+        </button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         SIGNES VITAUX
+    ══════════════════════════════════════ -->
+    <div class="page page-hidden" id="page-signes-vitaux">
+      <div class="mb-xl"><div class="section-label">Pré-consultation</div><h1 class="text-lg font-black">Saisie des signes vitaux</h1></div>
+
+      <div class="card mb-lg" style="background:var(--color-primary-light);border:1.5px solid var(--color-primary)">
+        <div class="card-body flex items-center gap-lg">
+          <div class="avatar avatar-lg">C</div>
+          <div>
+            <div class="font-bold">Claire TSHIABA</div>
+            <div class="text-sm" style="color:var(--color-primary-mid)">ADH-003 · Douleurs abdominales · Téléconsultation dans 12 min</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2 mb-lg">
+        <div class="card">
+          <div class="card-header"><span class="card-title" style="display:flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Signes vitaux</span></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label>Température (°C)</label>
+              <input class="input" type="number" step="0.1" min="35" max="42" placeholder="ex: 37.8" id="temp-input" oninput="checkTemp(this.value)">
+              <div id="temp-alert" style="display:none" class="alert alert-danger"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Fièvre détectée !</span></div>
+            </div>
+            <div class="form-group">
+              <label>Tension artérielle</label>
+              <div style="display:flex;gap:var(--space-sm);align-items:center">
+                <input class="input" type="number" placeholder="Systolique" style="flex:1">
+                <span class="text-muted">/</span>
+                <input class="input" type="number" placeholder="Diastolique" style="flex:1">
+                <span class="text-muted text-sm">mmHg</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Pouls (bpm)</label>
+              <input class="input" type="number" placeholder="ex: 78">
+            </div>
+            <div class="form-group">
+              <label>SpO2 (%)</label>
+              <input class="input" type="number" placeholder="ex: 98" min="80" max="100">
+            </div>
+            <div class="form-group">
+              <label>Poids (kg)</label>
+              <input class="input" type="number" placeholder="ex: 58" step="0.5">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title" style="display:flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/><path d="M8.5 2h7"/><path d="M14.5 16h-5"/></svg> Tests TDR</span></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label>TDR Paludisme</label>
+              <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap">
+                <button class="chip" onclick="selectTDR(this,'palu','positif')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="8" height="8"><circle cx="12" cy="12" r="10" fill="var(--color-danger)"/></svg> Positif</button>
+                <button class="chip" onclick="selectTDR(this,'palu','negatif')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="8" height="8"><circle cx="12" cy="12" r="10" fill="#16A34A"/></svg> Négatif</button>
+                <button class="chip active" onclick="selectTDR(this,'palu','non_effectue')">— Non effectué</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>TDR Typhoïde</label>
+              <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap">
+                <button class="chip" onclick="selectTDR(this,'typhoide','positif')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="8" height="8"><circle cx="12" cy="12" r="10" fill="var(--color-danger)"/></svg> Positif</button>
+                <button class="chip" onclick="selectTDR(this,'typhoide','negatif')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="8" height="8"><circle cx="12" cy="12" r="10" fill="#16A34A"/></svg> Négatif</button>
+                <button class="chip active" onclick="selectTDR(this,'typhoide','non_effectue')">— Non effectué</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>TDR VIH</label>
+              <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap">
+                <button class="chip" onclick="selectTDR(this,'vih','positif')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="8" height="8"><circle cx="12" cy="12" r="10" fill="var(--color-danger)"/></svg> Positif</button>
+                <button class="chip" onclick="selectTDR(this,'vih','negatif')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="8" height="8"><circle cx="12" cy="12" r="10" fill="#16A34A"/></svg> Négatif</button>
+                <button class="chip active" onclick="selectTDR(this,'vih','non_effectue')">— Non effectué</button>
+              </div>
+            </div>
+            <div class="section-label mt-lg">Observations cliniques</div>
+            <div class="form-group">
+              <label>État général</label>
+              <select class="input"><option>Bon état général</option><option>État altéré</option><option>Critique</option></select>
+            </div>
+            <div class="form-group">
+              <label>Notes libres</label>
+              <textarea class="input" rows="3" placeholder="Observations particulières…"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;padding:var(--space-lg);display:inline-flex;align-items:center;justify-content:center;gap:8px" onclick="submitSignes()">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        Transmettre au médecin
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        Ouvrir la consultation
+      </button>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         SUIVI
+    ══════════════════════════════════════ -->
+    <div class="page page-hidden" id="page-suivi">
+      <div class="mb-xl"><div class="section-label">Consultation en cours</div><h1 class="text-lg font-black">Suivi patient</h1></div>
+
+      <div class="alert alert-info mb-lg">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span><strong>Votre rôle pendant la téléconsultation :</strong> Vous êtes les yeux et les mains du médecin. Exécutez ses demandes en temps réel.</span>
+      </div>
+
+      <div class="section-label">Checklist avant appel</div>
+      <div id="checklist" style="margin-bottom:var(--space-xl)">
+        <div class="checklist-item" onclick="toggleCheck(this)"><div class="check-circle">✓</div><span class="text-sm font-bold">Signes vitaux saisis et transmis</span></div>
+        <div class="checklist-item" onclick="toggleCheck(this)"><div class="check-circle"></div><span class="text-sm font-bold">Patient installé confortablement</span></div>
+        <div class="checklist-item" onclick="toggleCheck(this)"><div class="check-circle"></div><span class="text-sm font-bold">Tablette chargée et connectée</span></div>
+        <div class="checklist-item" onclick="toggleCheck(this)"><div class="check-circle"></div><span class="text-sm font-bold">Trousse médicale à portée</span></div>
+        <div class="checklist-item" onclick="toggleCheck(this)"><div class="check-circle"></div><span class="text-sm font-bold">TDR kits disponibles si demande</span></div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;padding:var(--space-lg);font-size:var(--font-lg);margin-bottom:var(--space-md);display:inline-flex;align-items:center;justify-content:center;gap:8px" onclick="rejoindreJitsi()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Rejoindre la salle Jitsi Meet
+      </button>
+      <button class="btn btn-danger" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px" onclick="alert('Urgence médicale')">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Urgence médicale — Appeler
+      </button>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         PHARMACIE (copie conforme adherent)
+    ══════════════════════════════════════ -->
+    <div class="page page-hidden" id="page-pharmacie">
+      <div class="mb-lg flex justify-between items-center flex-wrap" style="gap:var(--space-sm)">
+        <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="voirOrdoMedecin()" style="display:inline-flex;align-items:center;gap:6px;border-color:#7C3AED;color:#7C3AED">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+            Ordonnance médecin
+          </button>
+          <button class="btn btn-outline" onclick="showCart()" style="display:inline-flex;align-items:center;gap:6px">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            Panier <span id="cart-count" class="topbar-badge" style="margin-left:4px">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Contexte ordonnance auxiliaire -->
+      <div class="ordo-banner">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#7C3AED" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:11px;font-weight:700;color:#7C3AED;margin-bottom:4px">Patient pour cette commande</div>
+          <select class="input" id="ordo-patient-sel" onchange="onPatientOrdoChange()" style="font-size:var(--font-sm);padding:6px 10px;border-color:#C4B5FD">
+            <option value="">-- Sélectionner un patient --</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:11px;font-weight:700;color:#7C3AED;margin-bottom:4px">Médicaments prescrits</div>
+          <div id="ordo-meds" style="display:flex;gap:4px;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--color-text-muted)">Sélectionner un patient avec ordonnance active</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-icon-wrap mb-lg">
+        <span class="input-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+        <input class="input" type="text" placeholder="Rechercher un médicament…" id="pharma-search" oninput="filterPharma(this.value)">
+      </div>
+      <div class="chips mb-lg" id="pharma-chips">
+        <div class="chip active" onclick="filterPharmaChip(this,'')">Tous</div>
+        <div class="chip" onclick="filterPharmaChip(this,'Analgésique')">Analgésiques</div>
+        <div class="chip" onclick="filterPharmaChip(this,'Antibiotique')">Antibiotiques</div>
+        <div class="chip" onclick="filterPharmaChip(this,'Antipaludéen')">Antipaludéens</div>
+        <div class="chip" onclick="filterPharmaChip(this,'Réhydratation')">Réhydratation</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--space-md)" id="pharma-grid"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         PRISES DE RENDEZ-VOUS
+    ══════════════════════════════════════ -->
+    <div class="page page-hidden" id="page-rdv">
+      <div class="mb-xl flex justify-between items-center">
+        <div><div class="section-label">Planning</div><h1 class="text-lg font-black">Prises de rendez-vous</h1></div>
+        <button class="btn btn-primary btn-sm" style="display:inline-flex;align-items:center;gap:6px" onclick="toggleFormRDV()">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nouveau RDV
+        </button>
+      </div>
+
+      <!-- Formulaire nouveau RDV -->
+      <div class="card mb-lg page-hidden" id="form-rdv-wrap">
+        <div class="card-header"><span class="card-title">Planifier un rendez-vous</span><button class="btn btn-icon btn-outline btn-sm" onclick="toggleFormRDV()"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+        <div class="card-body">
+          <div class="grid-2" style="gap:var(--space-md)">
+            <div class="form-group"><label>Nom du patient</label><input class="input" id="rdv-nom" placeholder="Prénom NOM" type="text"></div>
+            <div class="form-group"><label>Code adhérent</label><input class="input" id="rdv-code" placeholder="ADH-XXX" type="text"></div>
+            <div class="form-group">
+              <label>Motif</label>
+              <input class="input" id="rdv-motif" placeholder="Motif de consultation" type="text" oninput="onRdvMotifChange()">
+              <div class="ia-reco ia-reco-a" id="ia-reco-a">
+                <strong>IA Kolongono :</strong> Ce cas semble urgent. Un <strong>auxiliaire qualifié (Cat. A)</strong> est recommandé pour assister le médecin — capacité d'actes infirmiers et d'interprétation clinique requise.
+              </div>
+              <div class="ia-reco ia-reco-b" id="ia-reco-b">
+                <strong>IA Kolongono :</strong> Cas standard. Un <strong>auxiliaire qualifié (Cat. A)</strong> est souhaitable pour optimiser la pré-consultation et le suivi.
+              </div>
+              <div class="ia-reco ia-reco-u" id="ia-reco-u">
+                <strong>IA Kolongono :</strong> Cas non urgent. Un <strong>auxiliaire de proximité (Cat. B)</strong> est suffisant pour la prise de signes vitaux et l'accompagnement du patient.
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Type de consultation</label>
+              <select class="input" id="rdv-type" onchange="onRdvTypeChange()">
+                <option value="preconsult">Pré-diagnostic IA (15 min)</option>
+                <option value="teleconsult">Téléconsultation médecin (30 min)</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Date</label><input class="input" id="rdv-date" type="date"></div>
+            <div class="form-group"><label>Heure</label><input class="input" id="rdv-heure" type="time"></div>
+            <div class="form-group" id="rdv-medecin-wrap">
+              <label>Médecin (téléconsultation)</label>
+              <select class="input" id="rdv-medecin">
+                <option value="">-- Sélectionner --</option>
+                <option>Dr. MWAMBA</option>
+                <option>Dr. KASONGO</option>
+                <option>Dr. NGANDU</option>
+                <option>Dr. LUKUSA</option>
+              </select>
+            </div>
+            <div class="form-group" style="display:flex;align-items:flex-end">
+              <button class="btn btn-primary" style="width:100%" onclick="enregistrerRDV()">Enregistrer le RDV</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rdv-day-hdr">Aujourd'hui — 23 mai 2026</div>
+      <div id="rdv-aujourd-hui"></div>
+
+      <div class="rdv-day-hdr">Demain — 24 mai 2026</div>
+      <div id="rdv-demain"></div>
+
+      <div class="rdv-day-hdr">Cette semaine</div>
+      <div id="rdv-semaine"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         PROTOCOLE
+    ══════════════════════════════════════ -->
+    <div class="page page-hidden" id="page-protocole">
+      <div class="mb-xl"><div class="section-label">Guide</div><h1 class="text-lg font-black">Protocole auxiliaire</h1></div>
+      <div class="card">
+        <div class="card-body">
+          <div class="section-label mb-lg">5 étapes de la pré-consultation</div>
+          <ul class="timeline">
+            <li class="timeline-item"><div class="timeline-dot">1</div><div class="timeline-content"><div class="timeline-text font-bold">Accueil du patient</div><div class="timeline-time">Vérifier l'identité · Prendre le motif · Rassurer</div></div></li>
+            <li class="timeline-item"><div class="timeline-dot">2</div><div class="timeline-content"><div class="timeline-text font-bold">Mesure des signes vitaux</div><div class="timeline-time">Température · Tension artérielle · Pouls · SpO2 · Poids</div></div></li>
+            <li class="timeline-item"><div class="timeline-dot">3</div><div class="timeline-content"><div class="timeline-text font-bold">Tests TDR si indiqué</div><div class="timeline-time">Paludisme (fièvre) · Typhoïde (fièvre persistante) · VIH si demandé</div></div></li>
+            <li class="timeline-item"><div class="timeline-dot">4</div><div class="timeline-content"><div class="timeline-text font-bold">Saisie et transmission</div><div class="timeline-time">Compléter la fiche dans l'app · Envoyer au médecin avant l'appel</div></div></li>
+            <li class="timeline-item"><div class="timeline-dot">5</div><div class="timeline-content"><div class="timeline-text font-bold">Suivi pendant la consultation</div><div class="timeline-time">Exécuter les demandes du médecin · Prendre l'ordonnance · Commander les médicaments</div></div></li>
+          </ul>
+          <div class="section-label mt-xl mb-md">Durées de consultation</div>
+          <div style="display:flex;gap:var(--space-md);flex-wrap:wrap">
+            <div class="card card-body" style="flex:1;min-width:200px;border:1.5px solid #C4B5FD">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="consult-type ct-pre">Pré-diagnostic IA</span></div>
+              <div style="font-size:var(--font-xxl);font-weight:800;color:#0369A1">15 min</div>
+              <div class="text-xs text-muted mt-md">Prise de rendez-vous · Collecte signes vitaux · Analyse IA · Orientation médecin si nécessaire</div>
+            </div>
+            <div class="card card-body" style="flex:1;min-width:200px;border:1.5px solid #C4B5FD">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="consult-type ct-tc">Téléconsultation</span></div>
+              <div style="font-size:var(--font-xxl);font-weight:800;color:#6D28D9">30 min</div>
+              <div class="text-xs text-muted mt-md">Pré-consultation auxiliaire · Vidéo Jitsi Meet avec médecin · Ordonnance numérique · Pharmacie</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ══════════════════════════════════════
+     MODAL PATIENT
+══════════════════════════════════════ -->
+<div class="patient-modal hidden" id="patient-modal" onclick="if(event.target===this)closePatientModal()">
+  <div class="patient-modal-card" id="patient-modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-lg)">
+      <div style="display:flex;align-items:center;gap:var(--space-md)">
+        <div class="avatar avatar-lg" id="pm-avatar">?</div>
+        <div>
+          <div class="font-bold" style="font-size:var(--font-lg)" id="pm-nom">Patient</div>
+          <div class="text-sm text-muted" id="pm-meta"></div>
+          <div id="pm-badges" style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap"></div>
+        </div>
+      </div>
+      <button class="btn btn-icon btn-outline" onclick="closePatientModal()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="pmt-bar">
+      <div class="pmt active" onclick="switchPmTab('dossier',this)">Dossier patient</div>
+      <div class="pmt" onclick="switchPmTab('signes',this)">Signes vitaux</div>
+      <div class="pmt" onclick="switchPmTab('rdv',this)">Rendez-vous</div>
+    </div>
+
+    <!-- Tab: Dossier -->
+    <div class="pm-pane active" id="pm-pane-dossier">
+      <div id="pm-dossier-content"></div>
+      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);flex-wrap:wrap">
+        <button class="btn btn-primary" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px" onclick="goSignesFromModal()">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Saisir signes vitaux
+        </button>
+        <button class="btn btn-outline" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px" onclick="switchPmTab('rdv',document.querySelector('.pmt:last-child'))">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Prise de RDV
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab: Signes vitaux -->
+    <div class="pm-pane" id="pm-pane-signes">
+      <div class="grid-2" style="gap:var(--space-md)">
+        <div class="form-group"><label>Température (°C)</label><input class="input" type="number" step="0.1" placeholder="ex: 37.8" id="pm-temp" oninput="checkTempModal(this.value)"><div id="pm-temp-alert" style="display:none;margin-top:4px;padding:6px 10px;background:#FEE2E2;color:#991B1B;border-radius:var(--radius-md);font-size:11px;font-weight:700">Fièvre détectée !</div></div>
+        <div class="form-group"><label>Tension artérielle</label><div style="display:flex;gap:6px;align-items:center"><input class="input" type="number" placeholder="Sys." style="flex:1"><span class="text-muted">/</span><input class="input" type="number" placeholder="Dia." style="flex:1"><span class="text-muted text-xs">mmHg</span></div></div>
+        <div class="form-group"><label>Pouls (bpm)</label><input class="input" type="number" placeholder="ex: 78" id="pm-pouls"></div>
+        <div class="form-group"><label>SpO2 (%)</label><input class="input" type="number" placeholder="ex: 98" id="pm-spo2"></div>
+        <div class="form-group"><label>Poids (kg)</label><input class="input" type="number" placeholder="ex: 58" step="0.5"></div>
+        <div class="form-group"><label>État général</label><select class="input"><option>Bon état général</option><option>État altéré</option><option>Critique</option></select></div>
+      </div>
+      <div class="form-group"><label>Notes cliniques</label><textarea class="input" rows="2" placeholder="Observations…"></textarea></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:var(--space-md);display:inline-flex;align-items:center;justify-content:center;gap:6px" onclick="submitSignesModal()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        Transmettre au médecin
+      </button>
+    </div>
+
+    <!-- Tab: Rendez-vous -->
+    <div class="pm-pane" id="pm-pane-rdv">
+      <div id="pm-rdv-content"></div>
+      <div class="card mt-lg" style="border:1.5px dashed var(--color-border)">
+        <div class="card-body">
+          <div class="section-label mb-md">Planifier un nouveau RDV pour ce patient</div>
+          <div class="grid-2" style="gap:var(--space-sm)">
+            <div class="form-group"><label>Type</label><select class="input" id="pm-rdv-type"><option value="preconsult">Pré-diagnostic IA (15 min)</option><option value="teleconsult">Téléconsultation (30 min)</option></select></div>
+            <div class="form-group"><label>Médecin</label><select class="input" id="pm-rdv-med"><option value="">—</option><option>Dr. MWAMBA</option><option>Dr. KASONGO</option><option>Dr. NGANDU</option></select></div>
+            <div class="form-group"><label>Date</label><input class="input" type="date" id="pm-rdv-date"></div>
+            <div class="form-group"><label>Heure</label><input class="input" type="time" id="pm-rdv-heure"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:5px" onclick="enregistrerRDVModal()">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Confirmer le RDV
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CART / CHECKOUT MODAL -->
+<div id="cart-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:700;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--color-card);border-radius:var(--radius-xxl);width:100%;max-width:540px;max-height:92vh;overflow-y:auto;padding:var(--space-xl);position:relative;animation:fadeIn .2s ease">
+    <button class="btn btn-icon btn-outline" onclick="document.getElementById('cart-modal').style.display='none'" style="position:absolute;top:16px;right:16px;width:32px;height:32px">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+
+    <div style="margin-bottom:var(--space-lg);padding-right:40px">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--color-pharmacie);margin-bottom:4px">Pharmacie en ligne</div>
+      <div class="font-bold" style="font-size:var(--font-lg)">Récapitulatif de commande</div>
+      <div class="text-sm text-muted" style="margin-top:2px" id="cart-patient-header">Jean BOLAMBA — Auxiliaire Cat. A</div>
+    </div>
+
+    <!-- Patient -->
+    <div style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-md);margin-bottom:var(--space-lg)">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Patient</div>
+      <div id="cart-patient-name" style="font-weight:700;color:var(--dark)">—</div>
+      <div id="cart-patient-code" style="font-size:11px;color:var(--color-text-muted)">—</div>
+    </div>
+
+    <!-- Items -->
+    <div style="border:1.5px solid var(--color-border);border-radius:var(--radius-xl);overflow:hidden;margin-bottom:var(--space-lg)">
+      <div style="padding:var(--space-sm) var(--space-lg);background:var(--color-bg);border-bottom:1px solid var(--color-border);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px">Médicaments commandés</div>
+      <div id="cart-items" style="padding:var(--space-sm) var(--space-lg)"></div>
+      <div style="padding:var(--space-md) var(--space-lg);background:var(--color-pharmacie-light);border-top:2px solid var(--color-pharmacie);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:700;color:var(--color-pharmacie)">Total commande</span>
+        <span id="cart-total" style="font-size:var(--font-xl);font-weight:900;color:var(--color-pharmacie)">0 FC</span>
+      </div>
+    </div>
+
+    <!-- Mode paiement -->
+    <div style="border:1.5px solid var(--color-border);border-radius:var(--radius-xl);overflow:hidden;margin-bottom:var(--space-lg)">
+      <div style="padding:var(--space-sm) var(--space-lg);background:var(--color-bg);border-bottom:1px solid var(--color-border);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px">Mode de paiement</div>
+      <div style="padding:var(--space-md) var(--space-lg);display:flex;flex-direction:column;gap:8px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="radio" name="aux-pmt" value="M-Pesa" checked style="accent-color:var(--color-pharmacie)">
+          <div><div class="font-bold" style="font-size:var(--font-sm)">M-Pesa</div><div style="font-size:10px;color:var(--color-text-muted)">Vodacom · Paiement mobile instantané</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="radio" name="aux-pmt" value="Orange Money" style="accent-color:var(--color-pharmacie)">
+          <div><div class="font-bold" style="font-size:var(--font-sm)">Orange Money</div><div style="font-size:10px;color:var(--color-text-muted)">Orange · Paiement mobile</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="radio" name="aux-pmt" value="Mutuelle Kolongono" style="accent-color:var(--color-pharmacie)">
+          <div><div class="font-bold" style="font-size:var(--font-sm)">Mutuelle Kolongono</div><div style="font-size:10px;color:var(--color-text-muted)">Déduction automatique sur solde adhérent</div></div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Livraison info -->
+    <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:var(--radius-lg);padding:var(--space-sm) var(--space-md);display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-lg)">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#166534" stroke-width="2" style="flex-shrink:0"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      <span style="font-size:11px;color:#166534">Livraison à domicile incluse. SMS de confirmation envoyé au patient. Délai : <strong>24–48 h</strong>.</span>
+    </div>
+
+    <div style="display:flex;gap:var(--space-sm)">
+      <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('cart-modal').style.display='none'">Annuler</button>
+      <button class="btn btn-primary" style="flex:2;background:var(--color-pharmacie);border-color:var(--color-pharmacie);display:inline-flex;align-items:center;justify-content:center;gap:8px" onclick="passerCommande()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Confirmer la commande
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ORDONNANCE MÉDECIN REÇUE -->
+<div id="ordo-med-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:700;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--color-card);border-radius:var(--radius-xxl);width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:var(--space-xl);position:relative;animation:fadeIn .2s ease">
+    <button onclick="document.getElementById('ordo-med-modal').style.display='none'" style="position:absolute;top:16px;right:16px;background:var(--color-bg);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px">×</button>
+    <div style="margin-bottom:var(--space-lg);padding-right:40px">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#7C3AED;margin-bottom:4px">Ordonnance numérique</div>
+      <div class="font-bold" style="font-size:var(--font-lg)">Commande reçue du médecin</div>
+    </div>
+    <div id="ordo-med-modal-content"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:var(--space-lg);background:var(--color-pharmacie);border-color:var(--color-pharmacie)" onclick="commanderDepuisOrdoMed()">
+      Commander pour ce patient via Mobile Money
+    </button>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   DONNÉES
+══════════════════════════════════════════════ */
+const CONSULT_FILE = [
+  { id:'C-00', nom:'Marie KABONGO',      code:'ADH-001', motif:'Paludisme simple',         type:'teleconsult', medecin:'Dr. MWAMBA',  heure:'08:30', duree:30, statut:'termine',  signesFaits:true,  ordonnances:['Artéméther-Luméfantrine 40/240mg','Paracétamol 1000mg'] },
+  { id:'C-01', nom:'Claire TSHIABA',     code:'ADH-003', motif:'Douleurs abdominales',     type:'teleconsult', medecin:'Dr. MWAMBA',  heure:'09:30', duree:30, statut:'urgent',   signesFaits:false, ordonnances:[] },
+  { id:'C-02', nom:'Paul NKEMBA',        code:'ADH-004', motif:'Suivi hypertension',       type:'preconsult',  medecin:null,          heure:'10:00', duree:15, statut:'attente',  signesFaits:false, ordonnances:[] },
+  { id:'C-03', nom:'Beatrice MWANGI',    code:'ADH-007', motif:'Fièvre et frissons',       type:'teleconsult', medecin:'Dr. KASONGO', heure:'10:30', duree:30, statut:'programme', signesFaits:false, ordonnances:[] },
+  { id:'C-04', nom:'Robert TSHIMANGA',   code:'ADH-009', motif:'Toux persistante',         type:'preconsult',  medecin:null,          heure:'11:00', duree:15, statut:'programme', signesFaits:false, ordonnances:[] },
+  { id:'C-05', nom:'Nadine KABILA',      code:'ADH-012', motif:'Consultation prénatale',   type:'teleconsult', medecin:'Dr. NGANDU',  heure:'11:30', duree:30, statut:'programme', signesFaits:false, ordonnances:[] },
+  { id:'C-06', nom:'Joseph LUMUMBA',     code:'ADH-015', motif:'Diabète — suivi',           type:'preconsult',  medecin:null,          heure:'12:00', duree:15, statut:'programme', signesFaits:false, ordonnances:[] },
+  { id:'C-07', nom:'Sœur Marie BANZA',   code:'ADH-018', motif:'Douleurs articulaires',    type:'teleconsult', medecin:'Dr. MWAMBA',  heure:'14:00', duree:30, statut:'programme', signesFaits:false, ordonnances:[] },
+  { id:'C-08', nom:'Emmanuel KATUMBI',   code:'ADH-021', motif:'Asthme — exacerbation',   type:'teleconsult', medecin:'Dr. KASONGO', heure:'14:30', duree:30, statut:'programme', signesFaits:false, ordonnances:[] },
+  { id:'C-09', nom:'Joséphine MUKEBA',   code:'ADH-024', motif:'Céphalées sévères',        type:'preconsult',  medecin:null,          heure:'15:00', duree:15, statut:'programme', signesFaits:false, ordonnances:[] },
+  { id:'C-10', nom:'Victor NTUMBA',      code:'ADH-027', motif:'Suivi post-traitement',    type:'preconsult',  medecin:null,          heure:'15:30', duree:15, statut:'programme', signesFaits:false, ordonnances:[] },
+  { id:'C-11', nom:'Grace ILUNGA',       code:'ADH-031', motif:'Céphalée soudaine',        type:'preconsult',  medecin:null,          heure:'16:00', duree:15, statut:'programme', signesFaits:false, ordonnances:[] },
+];
+
+const RDV_DEMAIN = [
+  { nom:'Sylvie MUKEBA',   code:'ADH-035', motif:'Suivi paludisme',     type:'preconsult', medecin:null,          heure:'08:00', duree:15 },
+  { nom:'Patrick BULAYA',  code:'ADH-038', motif:'Hypertension',        type:'teleconsult', medecin:'Dr. MWAMBA', heure:'09:00', duree:30 },
+  { nom:'Alice MBUYI',     code:'ADH-041', motif:'Consultation enfant', type:'preconsult',  medecin:null,          heure:'10:00', duree:15 },
+  { nom:'Jean LUBOYA',     code:'ADH-044', motif:'Diabète bilan',       type:'teleconsult', medecin:'Dr. LUKUSA',  heure:'11:00', duree:30 },
+];
+
+const RDV_SEMAINE = [
+  { date:'25/05', nom:'Michel KANKU',   code:'ADH-047', motif:'Suivi tension',          type:'teleconsult', medecin:'Dr. KASONGO', heure:'09:30', duree:30 },
+  { date:'25/05', nom:'Rosine TSHALA',  code:'ADH-050', motif:'Prénatal 6 mois',        type:'teleconsult', medecin:'Dr. NGANDU',  heure:'11:00', duree:30 },
+  { date:'26/05', nom:'Cédric BAMBA',   code:'ADH-053', motif:'Toux persistante',       type:'preconsult',  medecin:null,          heure:'08:30', duree:15 },
+  { date:'27/05', nom:'Henriette NKOY', code:'ADH-056', motif:'HTA suivi mensuel',      type:'teleconsult', medecin:'Dr. MWAMBA',  heure:'10:00', duree:30 },
+  { date:'28/05', nom:'David KASONGO',  code:'ADH-059', motif:'Infection respiratoire', type:'preconsult',  medecin:null,          heure:'14:00', duree:15 },
+];
+
+const produits = [
+  { nom:'Paracétamol 500mg',             cat:'Analgésique',      prix:500,  stock:250, ord:false, icon:'pill' },
+  { nom:'ORS (Sels de réhydratation)',   cat:'Réhydratation',    prix:400,  stock:180, ord:false, icon:'drop' },
+  { nom:'Ibuprofène 400mg',              cat:'Analgésique',      prix:700,  stock:0,   ord:false, icon:'pill' },
+  { nom:'Vitamine C 1000mg',             cat:'Supplément',       prix:600,  stock:320, ord:false, icon:'pill' },
+  { nom:'Amoxicilline 500mg',            cat:'Antibiotique',     prix:1200, stock:12,  ord:true,  icon:'pill' },
+  { nom:'Artéméther-Luméfantrine',       cat:'Antipaludéen',     prix:3500, stock:45,  ord:true,  icon:'pill' },
+  { nom:'Métronidazole 250mg',           cat:'Antibiotique',     prix:800,  stock:60,  ord:true,  icon:'pill' },
+  { nom:'Sulfate de Zinc',               cat:'Supplément',       prix:350,  stock:140, ord:false, icon:'drop' },
+  { nom:'Cotrimoxazole 480mg',           cat:'Antibiotique',     prix:950,  stock:0,   ord:true,  icon:'pill' },
+  { nom:'Fer + Acide folique',           cat:'Supplément',       prix:450,  stock:200, ord:false, icon:'pill' },
+];
+
+/* ══════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════ */
+const titles = {
+  dashboard:     'Tableau de bord',
+  rdv:           'Prises de rendez-vous',
+  'signes-vitaux': 'Saisie des signes vitaux',
+  suivi:         'Suivi patient',
+  pharmacie:     'Pharmacie en ligne',
+  protocole:     'Protocole auxiliaire',
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('page-hidden'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const p = document.getElementById('page-' + id);
+  if (p) p.classList.remove('page-hidden');
+  const n = document.querySelector('[data-page="' + id + '"]');
+  if (n) n.classList.add('active');
+  document.getElementById('topbar-title').textContent = titles[id] || id;
+  window.scrollTo(0, 0);
+  if (id === 'pharmacie') renderPharma();
+  if (id === 'rdv')       renderRDVPage();
+}
+document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', () => showPage(item.dataset.page)));
+
+/* ══════════════════════════════════════════════
+   FILE DE CONSULTATIONS
+══════════════════════════════════════════════ */
+const svgTc  = `<svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`;
+const svgPre = `<svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+
+function renderFile() {
+  const wrap = document.getElementById('consult-file');
+  wrap.innerHTML = CONSULT_FILE.map(c => {
+    const isTC  = c.type === 'teleconsult';
+    const typeBadge = `<span class="consult-type ${isTC ? 'ct-tc' : 'ct-pre'}">${isTC ? svgTc + ' Téléconsultation · 30 min' : svgPre + ' Pré-diagnostic · 15 min'}</span>`;
+    const medecinInfo = isTC && c.medecin ? `<span style="font-size:10px;color:var(--color-text-muted)"> · ${c.medecin}</span>` : '';
+
+    let urgencyClass = '';
+    let statusBadge  = '';
+    if (c.statut === 'urgent')    { urgencyClass = 'urgency-high';   statusBadge = '<span class="badge badge-danger" style="margin-left:8px">URGENT</span>'; }
+    if (c.statut === 'attente')   { urgencyClass = 'urgency-medium'; statusBadge = '<span class="badge badge-warning" style="margin-left:8px">En attente</span>'; }
+    if (c.statut === 'termine')   { statusBadge  = '<span class="badge badge-success" style="margin-left:8px">Terminée</span>'; }
+    if (c.statut === 'programme') { statusBadge  = ''; }
+
+    const signesBtn = c.signesFaits
+      ? `<span style="font-size:10px;color:#16A34A;font-weight:700;display:inline-flex;align-items:center;gap:3px"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Signes saisis</span>`
+      : `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPatientModal('${c.id}','signes')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Signes vitaux</button>`;
+
+    const opacity = c.statut === 'termine' ? 'opacity:.65;' : '';
+
+    return `<div class="card ${urgencyClass}" style="cursor:pointer;${opacity}" onclick="openPatientModal('${c.id}','dossier')">
+      <div class="card-body">
+        <div class="flex items-center gap-lg">
+          <div style="text-align:center;min-width:42px">
+            <div style="font-weight:800;font-size:var(--font-sm);color:var(--color-primary)">${c.heure}</div>
+            <div style="font-size:9px;color:var(--color-text-muted);font-weight:600">${c.duree} min</div>
+          </div>
+          <div class="avatar avatar-lg" style="flex-shrink:0">${c.nom[0]}</div>
+          <div class="flex-1" style="min-width:0">
+            <div style="font-weight:700">${c.nom}${statusBadge}</div>
+            <div class="text-sm text-muted">${c.code} · ${c.motif}${medecinInfo}</div>
+            <div style="margin-top:4px">${typeBadge}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:var(--space-sm);align-items:flex-end">
+            ${signesBtn}
+            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPatientModal('${c.id}','dossier')" style="font-size:11px">Ouvrir fiche</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════
+   MODAL PATIENT
+══════════════════════════════════════════════ */
+let currentPatient = null;
+
+function openPatientModal(id, tab) {
+  const c = CONSULT_FILE.find(x => x.id === id);
+  if (!c) return;
+  currentPatient = c;
+
+  document.getElementById('pm-avatar').textContent = c.nom[0];
+  document.getElementById('pm-nom').textContent    = c.nom;
+  document.getElementById('pm-meta').textContent   = c.code + ' · ' + c.motif + ' · ' + c.heure;
+
+  const isTC = c.type === 'teleconsult';
+  const badges = document.getElementById('pm-badges');
+  badges.innerHTML = `<span class="consult-type ${isTC ? 'ct-tc' : 'ct-pre'}">${isTC ? 'Téléconsultation · 30 min' : 'Pré-diagnostic · 15 min'}</span>`
+    + (c.medecin ? `<span style="font-size:10px;font-weight:600;color:var(--color-text-muted)">${c.medecin}</span>` : '');
+
+  // Contenu dossier
+  const medecinRow = c.medecin ? `<div class="detail-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-border)"><span style="font-size:var(--font-sm);color:var(--color-text-muted)">Médecin</span><span style="font-weight:600">${c.medecin}</span></div>` : '';
+  const ordoSection = c.ordonnances.length > 0
+    ? `<div style="margin-top:var(--space-md)"><div class="section-label mb-md">Ordonnance active</div>${c.ordonnances.map(m=>`<div style="display:flex;align-items:center;gap:8px;padding:8px var(--space-md);background:var(--color-bg);border-radius:var(--radius-md);margin-bottom:4px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--color-pharmacie)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg><span style="font-size:var(--font-sm);font-weight:600">${m}</span><button class="btn btn-primary btn-sm" style="margin-left:auto;font-size:10px" onclick="commanderDepuisModal('${m}')">Commander</button></div>`).join('')}</div>`
+    : `<div style="margin-top:var(--space-md);padding:12px;background:var(--color-bg);border-radius:var(--radius-lg);text-align:center;font-size:var(--font-sm);color:var(--color-text-muted)">Pas d'ordonnance active — en attente de consultation</div>`;
+
+  document.getElementById('pm-dossier-content').innerHTML = `
+    <div>
+      <div class="detail-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-border)"><span style="font-size:var(--font-sm);color:var(--color-text-muted)">Motif</span><span style="font-weight:600">${c.motif}</span></div>
+      <div class="detail-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-border)"><span style="font-size:var(--font-sm);color:var(--color-text-muted)">Heure</span><span style="font-weight:600">${c.heure}</span></div>
+      <div class="detail-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-border)"><span style="font-size:var(--font-sm);color:var(--color-text-muted)">Type</span><span style="font-weight:600">${isTC ? 'Téléconsultation (30 min)' : 'Pré-diagnostic IA (15 min)'}</span></div>
+      ${medecinRow}
+      <div class="detail-row" style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:var(--font-sm);color:var(--color-text-muted)">Signes vitaux</span><span style="${c.signesFaits ? 'color:#16A34A;font-weight:700' : 'color:#D97706;font-weight:700'}">${c.signesFaits ? 'Saisis' : 'Non saisis'}</span></div>
+    </div>
+    ${ordoSection}`;
+
+  // Contenu RDV
+  document.getElementById('pm-rdv-content').innerHTML = `
+    <div class="alert alert-info" style="margin-bottom:var(--space-md)">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span>RDV actuel de ce patient : <strong>${c.heure}</strong> — ${c.motif}</span>
+    </div>`;
+
+  // Default date for new RDV
+  document.getElementById('pm-rdv-date').value = new Date().toISOString().split('T')[0];
+
+  document.getElementById('patient-modal').classList.remove('hidden');
+  switchPmTab(tab || 'dossier', document.querySelector('.pmt'));
+}
+
+function closePatientModal() {
+  document.getElementById('patient-modal').classList.add('hidden');
+  currentPatient = null;
+}
+
+function switchPmTab(tab, el) {
+  document.querySelectorAll('.pmt').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.pm-pane').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const pane = document.getElementById('pm-pane-' + tab);
+  if (pane) pane.classList.add('active');
+}
+
+function goSignesFromModal() {
+  closePatientModal();
+  showPage('signes-vitaux');
+}
+
+function submitSignesModal() {
+  if (currentPatient) currentPatient.signesFaits = true;
+  alert('Signes vitaux transmis au médecin !');
+  closePatientModal();
+  renderFile();
+}
+
+function commanderDepuisModal(medicament) {
+  addCartItem(medicament);
+  alert(medicament + ' ajouté au panier.');
+}
+
+function enregistrerRDVModal() {
+  const date  = document.getElementById('pm-rdv-date').value;
+  const heure = document.getElementById('pm-rdv-heure').value;
+  const type  = document.getElementById('pm-rdv-type').value;
+  const med   = document.getElementById('pm-rdv-med').value;
+  if (!date || !heure) { alert('Veuillez renseigner la date et l\'heure.'); return; }
+  alert('RDV confirmé !\n\nPatient : ' + (currentPatient ? currentPatient.nom : '—') + '\nDate : ' + date + ' à ' + heure + '\nType : ' + (type === 'teleconsult' ? 'Téléconsultation' : 'Pré-diagnostic IA') + (med ? '\nMédecin : ' + med : ''));
+  closePatientModal();
+}
+
+/* ══════════════════════════════════════════════
+   PHARMACIE
+══════════════════════════════════════════════ */
+let cart = [];
+let pharmaChipFilter = '';
+
+function populateOrdoSelect() {
+  const sel = document.getElementById('ordo-patient-sel');
+  sel.innerHTML = '<option value="">-- Sélectionner un patient --</option>';
+  CONSULT_FILE.forEach(c => {
+    const ordo = c.ordonnances.length > 0 ? ' — ordo active' : '';
+    const opt  = document.createElement('option');
+    opt.value  = c.id;
+    opt.textContent = c.nom + ordo;
+    sel.appendChild(opt);
+  });
+}
+
+function onPatientOrdoChange() {
+  const id = document.getElementById('ordo-patient-sel').value;
+  const c  = CONSULT_FILE.find(x => x.id === id);
+  const div = document.getElementById('ordo-meds');
+  if (!c || c.ordonnances.length === 0) {
+    div.innerHTML = '<span style="font-size:11px;color:var(--color-text-muted)">Aucune ordonnance active pour ce patient</span>';
+  } else {
+    div.innerHTML = c.ordonnances.map(m => `<span class="ordo-tag"><svg viewBox="0 0 24 24" width="8" height="8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${m}</span>`).join('');
+  }
+  renderPharma();
+}
+
+function filterPharmaChip(el, cat) {
+  document.querySelectorAll('#pharma-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  pharmaChipFilter = cat;
+  renderPharma();
+}
+
+function filterPharma(q) {
+  renderPharma(q);
+}
+
+function renderPharma(search) {
+  const grid    = document.getElementById('pharma-grid');
+  const q       = (search || document.getElementById('pharma-search')?.value || '').toLowerCase();
+  const selId   = document.getElementById('ordo-patient-sel')?.value;
+  const patient = CONSULT_FILE.find(x => x.id === selId);
+  const ordoMeds = patient ? patient.ordonnances.map(m => m.toLowerCase()) : [];
+
+  const pillSvg = `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--color-pharmacie)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg>`;
+  const dropSvg = `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--color-auxiliaire)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`;
+
+  const filtered = produits.filter(p =>
+    (!pharmaChipFilter || p.cat === pharmaChipFilter) &&
+    (!q || p.nom.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q))
+  );
+
+  grid.innerHTML = filtered.map(p => {
+    const rupture = p.stock === 0;
+    const icon    = p.icon === 'drop' ? dropSvg : pillSvg;
+    const surOrdo = ordoMeds.some(m => p.nom.toLowerCase().includes(m.split(' ')[0].toLowerCase()) || m.toLowerCase().includes(p.nom.split(' ')[0].toLowerCase()));
+
+    let action = '';
+    if (rupture) {
+      action = '<span class="badge badge-danger">Rupture de stock</span>';
+    } else if (p.ord) {
+      if (!selId) {
+        action = `<div><div class="badge badge-warning mb-md" style="font-size:10px">Ordonnance requise</div><button class="btn btn-outline btn-sm" style="width:100%;font-size:11px" onclick="showOrdoToast()">Sélectionner un patient</button></div>`;
+      } else if (surOrdo) {
+        action = `<div><div class="badge badge-success mb-md" style="font-size:10px">Prescrit pour ce patient</div><button class="btn btn-primary btn-sm" style="width:100%" onclick="addCart('${p.nom}')">Commander</button></div>`;
+      } else {
+        action = `<div><div class="badge badge-warning mb-md" style="font-size:10px">Non prescrit pour ce patient</div><button class="btn btn-outline btn-sm" style="width:100%;font-size:11px;opacity:.5" disabled>Ordonnance requise</button></div>`;
+      }
+    } else {
+      action = `<button class="btn btn-primary btn-sm" onclick="addCart('${p.nom}')">Ajouter au panier</button>`;
+    }
+
+    return `<div class="card" style="${rupture ? 'border:1.5px solid var(--color-danger)' : ''};${surOrdo && p.ord ? 'border:1.5px solid #16A34A' : ''}">
+      <div class="card-body">
+        <div style="margin-bottom:8px">${icon}</div>
+        <div class="font-bold">${p.nom}</div>
+        <div class="text-xs text-muted mb-md">${p.cat}</div>
+        <div style="font-size:var(--font-lg);font-weight:800;color:var(--color-pharmacie);margin-bottom:var(--space-sm)">${p.prix.toLocaleString()} FC</div>
+        <div style="font-size:10px;color:var(--color-text-muted);margin-bottom:var(--space-sm)">Stock : ${p.stock > 0 ? p.stock + ' unités' : '—'}</div>
+        ${action}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showOrdoToast() {
+  alert('Veuillez sélectionner un patient en haut de la page pour vérifier l\'ordonnance.');
+}
+
+let cartItems = []; // [{nom, prix}]
+
+function addCart(nom) {
+  addCartItem(nom);
+}
+
+function addCartItem(nom) {
+  const prod = produits.find(p => p.nom === nom);
+  const prix = prod ? prod.prix : 0;
+  const existing = cartItems.find(x => x.nom === nom);
+  if (existing) { existing.qte = (existing.qte || 1) + 1; }
+  else { cartItems.push({ nom, prix, qte: 1 }); }
+  document.getElementById('cart-count').textContent = cartItems.reduce((s,i) => s + (i.qte||1), 0);
+}
+
+function showCart() {
+  const selId   = document.getElementById('ordo-patient-sel')?.value;
+  const patient = CONSULT_FILE.find(x => x.id === selId);
+  const pNom    = patient ? patient.nom : '—';
+  const pCode   = patient ? patient.code : '—';
+  document.getElementById('cart-patient-name').textContent = pNom;
+  document.getElementById('cart-patient-code').textContent = pCode;
+  const modal = document.getElementById('cart-modal');
+  const div   = document.getElementById('cart-items');
+  const totEl = document.getElementById('cart-total');
+  if (cartItems.length === 0) {
+    div.innerHTML = '<div class="text-muted text-sm" style="text-align:center;padding:16px">Panier vide — ajoutez des médicaments depuis le catalogue</div>';
+    if (totEl) totEl.textContent = '0 FC';
+  } else {
+    const total = cartItems.reduce((s, i) => s + i.prix * (i.qte||1), 0);
+    if (totEl) totEl.textContent = total.toLocaleString() + ' FC';
+    div.innerHTML = cartItems.map((item, i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-border)">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:var(--font-sm)">${item.nom}</div>
+          <div style="font-size:11px;color:var(--color-text-muted)">${item.prix.toLocaleString()} FC / unité</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button style="width:24px;height:24px;border-radius:50%;border:1.5px solid var(--color-border);background:var(--color-bg);cursor:pointer;font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center" onclick="changeCartQte(${i},-1)">−</button>
+          <span style="font-weight:800;min-width:20px;text-align:center">${item.qte}</span>
+          <button style="width:24px;height:24px;border-radius:50%;border:1.5px solid var(--color-border);background:var(--color-bg);cursor:pointer;font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center" onclick="changeCartQte(${i},1)">+</button>
+        </div>
+        <div style="min-width:60px;text-align:right;font-weight:800;color:var(--color-pharmacie)">${(item.prix * item.qte).toLocaleString()} FC</div>
+        <button onclick="removeCart(${i})" style="background:none;border:none;cursor:pointer;color:#EF4444;padding:4px;display:inline-flex">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>`).join('');
+  }
+  modal.style.display = 'flex';
+}
+
+function changeCartQte(i, delta) {
+  cartItems[i].qte = Math.max(1, cartItems[i].qte + delta);
+  document.getElementById('cart-count').textContent = cartItems.reduce((s,x) => s + x.qte, 0);
+  showCart();
+}
+
+function removeCart(i) {
+  cartItems.splice(i, 1);
+  document.getElementById('cart-count').textContent = cartItems.reduce((s,x) => s + x.qte, 0);
+  showCart();
+}
+
+function passerCommande() {
+  if (cartItems.length === 0) return;
+  const selId   = document.getElementById('ordo-patient-sel')?.value;
+  const patient = CONSULT_FILE.find(x => x.id === selId);
+  const pmt     = document.querySelector('input[name="aux-pmt"]:checked')?.value || 'Mobile Money';
+  const total   = cartItems.reduce((s, i) => s + i.prix * i.qte, 0);
+  const ref     = 'CMD-' + Date.now().toString(36).toUpperCase().slice(-6);
+  document.getElementById('cart-modal').style.display = 'none';
+  cartItems = [];
+  document.getElementById('cart-count').textContent = 0;
+  alert('Commande ' + ref + ' confirmée !\n\nPatient : ' + (patient ? patient.nom : '—') + '\nMontant : ' + total.toLocaleString() + ' FC\nPaiement : ' + pmt + '\n\nLivraison sous 24–48 h. SMS envoyé au patient.');
+}
+
+/* Ordonnance numérique reçue du médecin (depuis localStorage) */
+function voirOrdoMedecin() {
+  let cmd;
+  try { cmd = JSON.parse(localStorage.getItem('sd_last_commande') || 'null'); } catch(_) { cmd = null; }
+  const el = document.getElementById('ordo-med-modal-content');
+  if (!cmd) {
+    if (el) el.innerHTML = '<div class="text-muted text-sm" style="padding:20px;text-align:center">Aucune ordonnance numérique reçue pour le moment.</div>';
+    document.getElementById('ordo-med-modal').style.display = 'flex';
+    return;
+  }
+  const total = cmd.items.reduce((s, i) => s + i.prix * i.qte, 0);
+  const date  = new Date(cmd.date).toLocaleString('fr-FR', { day:'2-digit', month:'long', hour:'2-digit', minute:'2-digit' });
+  if (el) el.innerHTML = `
+    <div style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-md);margin-bottom:var(--space-md)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--color-text-muted)">Référence</span>
+        <span style="font-weight:800;font-size:var(--font-sm)">${cmd.ref}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--color-text-muted)">Date</span>
+        <span style="font-weight:600;font-size:11px">${date}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--color-text-muted)">Patient</span>
+        <span style="font-weight:700">${cmd.patient}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <span style="font-size:11px;color:var(--color-text-muted)">Médecin</span>
+        <span style="font-weight:600">${cmd.medecin}</span>
+      </div>
+    </div>
+    <div style="border:1.5px solid var(--color-border);border-radius:var(--radius-xl);overflow:hidden;margin-bottom:var(--space-md)">
+      <div style="padding:8px 16px;background:var(--color-bg);border-bottom:1px solid var(--color-border);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px">Médicaments prescrits</div>
+      ${cmd.items.map(i => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--color-border)">
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:var(--font-sm)">${i.nom}</div>
+            <div style="font-size:11px;color:var(--color-text-muted)">$${parseFloat(i.prix).toFixed(2)} × ${i.qte}</div>
+          </div>
+          <div style="font-weight:800;color:#7C3AED">$${(i.prix * i.qte).toFixed(2)}</div>
+        </div>`).join('')}
+      <div style="padding:12px 16px;background:#F5F3FF;border-top:2px solid #7C3AED;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:700;color:#6D28D9">Total ordonnance</span>
+        <span style="font-size:var(--font-lg);font-weight:900;color:#7C3AED">$${total.toFixed(2)}</span>
+      </div>
+    </div>
+  `;
+  document.getElementById('ordo-med-modal').style.display = 'flex';
+}
+
+function commanderDepuisOrdoMed() {
+  let cmd;
+  try { cmd = JSON.parse(localStorage.getItem('sd_last_commande') || 'null'); } catch(_) { cmd = null; }
+  if (!cmd) return;
+  cmd.items.forEach(i => {
+    const existing = cartItems.find(x => x.nom === i.nom);
+    if (existing) { existing.qte += i.qte; }
+    else { cartItems.push({ nom: i.nom, prix: Math.round(i.prix * 3000), qte: i.qte }); }
+  });
+  document.getElementById('cart-count').textContent = cartItems.reduce((s,x) => s + x.qte, 0);
+  document.getElementById('ordo-med-modal').style.display = 'none';
+  showCart();
+}
+
+/* ══════════════════════════════════════════════
+   PAGE RDV
+══════════════════════════════════════════════ */
+function renderRDVPage() {
+  const todayEl    = document.getElementById('rdv-aujourd-hui');
+  const demainEl   = document.getElementById('rdv-demain');
+  const semaineEl  = document.getElementById('rdv-semaine');
+
+  const makeRow = (r, showDate) => {
+    const isTC = r.type === 'teleconsult';
+    return `<div class="rdv-row" onclick="alert('Ouvrir fiche de ${r.nom}')">
+      <div class="rdv-heure">${r.heure}</div>
+      <div class="rdv-sep"></div>
+      <div class="flex-1">
+        <div style="font-weight:700;font-size:var(--font-sm)">${showDate ? '<span style="font-size:10px;font-weight:600;color:var(--color-text-muted);margin-right:6px">'+r.date+'</span>' : ''}${r.nom}</div>
+        <div class="text-xs text-muted">${r.code} · ${r.motif}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span class="consult-type ${isTC ? 'ct-tc' : 'ct-pre'}">${isTC ? 'Téléconsultation' : 'Pré-diagnostic'}</span>
+        ${r.medecin ? `<span style="font-size:10px;color:var(--color-text-muted)">${r.medecin}</span>` : ''}
+      </div>
+    </div>`;
+  };
+
+  todayEl.innerHTML  = CONSULT_FILE.filter(c => c.statut !== 'termine').map(c => makeRow({...c, date:'23/05'}, false)).join('') || '<div class="text-muted text-sm" style="padding:8px">Aucun RDV aujourd\'hui</div>';
+  demainEl.innerHTML = RDV_DEMAIN.map(r => makeRow(r, false)).join('');
+  semaineEl.innerHTML = RDV_SEMAINE.map(r => makeRow(r, true)).join('');
+}
+
+function toggleFormRDV() {
+  const wrap = document.getElementById('form-rdv-wrap');
+  wrap.classList.toggle('page-hidden');
+  if (!wrap.classList.contains('page-hidden')) {
+    document.getElementById('rdv-date').value  = new Date().toISOString().split('T')[0];
+    document.getElementById('rdv-heure').value = '08:00';
+  }
+}
+
+function onRdvTypeChange() {
+  const isTC = document.getElementById('rdv-type').value === 'teleconsult';
+  document.getElementById('rdv-medecin-wrap').style.display = isTC ? '' : 'none';
+}
+
+function enregistrerRDV() {
+  const nom   = document.getElementById('rdv-nom').value.trim();
+  const motif = document.getElementById('rdv-motif').value.trim();
+  const date  = document.getElementById('rdv-date').value;
+  const heure = document.getElementById('rdv-heure').value;
+  if (!nom || !date || !heure) { alert('Veuillez renseigner le nom, la date et l\'heure.'); return; }
+  alert('RDV enregistré !\n\n' + nom + ' · ' + motif + '\n' + date + ' à ' + heure);
+  toggleFormRDV();
+}
+
+function accueilSansRDV() {
+  const nom = prompt('Nom du patient (sans RDV) :');
+  if (!nom) return;
+  const motif = prompt('Motif de consultation :') || 'Non précisé';
+  const heure = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+  const id    = 'C-SR-' + Date.now().toString(36).toUpperCase();
+  CONSULT_FILE.push({ id, nom, code:'SANS-RDV', motif, type:'preconsult', medecin:null, heure, duree:15, statut:'attente', signesFaits:false, ordonnances:[] });
+  renderFile();
+  alert(nom + ' ajouté(e) à la file de consultation.\nPré-diagnostic IA · 15 min');
+}
+
+/* ══════════════════════════════════════════════
+   SIGNES VITAUX
+══════════════════════════════════════════════ */
+function checkTemp(v) {
+  document.getElementById('temp-alert').style.display = v >= 38 ? 'flex' : 'none';
+}
+
+function checkTempModal(v) {
+  document.getElementById('pm-temp-alert').style.display = v >= 38 ? 'block' : 'none';
+}
+
+function selectTDR(btn, group, val) {
+  btn.closest('.form-group').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function toggleCheck(el) { el.classList.toggle('done'); }
+
+function submitSignes() {
+  alert('Signes vitaux transmis au Dr. MWAMBA !\n\nLa fiche est disponible. Lancez la vidéoconférence.');
+  showPage('suivi');
+}
+
+function rejoindreJitsi() {
+  const room = 'SanteDirectKolongono-CONS-' + Date.now().toString(36).toUpperCase();
+  const url  = 'https://meet.jit.si/' + room + '#config.startWithVideoMuted=false&userInfo.displayName=Auxiliaire';
+  if (confirm('Rejoindre la salle Jitsi Meet ?\n\nSalle : ' + room)) window.open(url, '_blank');
+}
+
+function deconnecter() {
+  if (confirm('Se déconnecter de l\'espace auxiliaire ?')) window.location.href = 'index.html';
+}
+
+/* ══════════════════════════════════════════════
+   COUNTDOWN
+══════════════════════════════════════════════ */
+let secs = 12 * 60 + 43;
+const iv = setInterval(() => {
+  if (secs <= 0) { clearInterval(iv); return; }
+  secs--;
+  const el = document.getElementById('countdown1');
+  if (el) el.textContent = Math.floor(secs/60).toString().padStart(2,'0') + ':' + (secs%60).toString().padStart(2,'0');
+}, 1000);
+
+/* ══════════════════════════════════════════════
+   CHIPS pharmacie (global)
+══════════════════════════════════════════════ */
+document.querySelectorAll('.chips').forEach(group => {
+  group.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      group.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+});
+
+/* ══════════════════════════════════════════════
+   MENU MOBILE
+══════════════════════════════════════════════ */
+const menuBtn = document.getElementById('menuToggle');
+const sidebar = document.getElementById('sidebar');
+menuBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+if (window.innerWidth < 900) menuBtn.style.display = 'flex';
+window.addEventListener('resize', () => { menuBtn.style.display = window.innerWidth < 900 ? 'flex' : 'none'; });
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   RECOMMANDATION IA — GRAVITÉ MOTIF RDV
+══════════════════════════════════════════════ */
+const MOTS_URGENT = ['urgence','urgent','crise','douleur','accident','chute','fracture','saignement','convulsion','dyspnee','essoufflement','perte','inconscient','trauma','brûlure','empoisonnement','asthme','tension','cardio','avc'];
+const MOTS_MOYEN  = ['fièvre','paludisme','infection','diarrhee','vomissement','toux','grippe','blessure','consulter','consultation','suivi','hta','diabète','grossesse','prenatal'];
+
+function onRdvMotifChange() {
+  const motif = (document.getElementById('rdv-motif')?.value || '').toLowerCase();
+  const ra = document.getElementById('ia-reco-a');
+  const rb = document.getElementById('ia-reco-b');
+  const ru = document.getElementById('ia-reco-u');
+  if (!ra) return;
+  ra.classList.remove('visible');
+  rb.classList.remove('visible');
+  ru.classList.remove('visible');
+  if (!motif.trim() || motif.length < 4) return;
+  const urgent = MOTS_URGENT.some(m => motif.includes(m));
+  const moyen  = !urgent && MOTS_MOYEN.some(m => motif.includes(m));
+  if (urgent)      ra.classList.add('visible');
+  else if (moyen)  rb.classList.add('visible');
+  else             ru.classList.add('visible');
+}
+
+renderFile();
+populateOrdoSelect();
+onRdvTypeChange();
+const rdvDateInput = document.getElementById('rdv-date');
+if (rdvDateInput) rdvDateInput.value = new Date().toISOString().split('T')[0];
+</script>
+
+<!-- ── Panneau notifications ── -->
+<div id="notif-panel" style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:none;align-items:flex-end" onclick="if(event.target===this)closeNotifPanel()">
+  <div style="background:var(--color-card);border-radius:var(--radius-xxl) var(--radius-xxl) 0 0;width:100%;max-height:70vh;overflow-y:auto;padding:var(--space-xl)">
+    <div style="width:40px;height:4px;background:var(--color-border);border-radius:2px;margin:0 auto var(--space-lg)"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-lg)">
+      <div style="font-size:var(--font-xl);font-weight:800;color:var(--color-text)">Notifications</div>
+      <button class="btn btn-outline btn-sm" onclick="markAllNotifRead()">Tout lire</button>
+    </div>
+    <div id="notif-list"><div style="text-align:center;padding:32px 0;color:var(--color-text-muted)">Chargement...</div></div>
+    <button class="btn btn-outline" style="width:100%;margin-top:var(--space-lg)" onclick="closeNotifPanel()">Fermer</button>
+  </div>
+</div>
+
+<script>
+/* ── Notifications dynamiques — auxiliaire ─────────────────────────────────── */
+(function(){
+  var ROLE='auxiliaire';
+  var API=(location.hostname==='localhost'||location.hostname==='127.0.0.1')?'http://localhost:8002':'';
+  var _notifs=[];
+  function _icon(t){var m={rupture_stock:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',consultation:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',paiement:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',rdv:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',ordonnance:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'};return m[t]||'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';}
+  function _updateBadge(n){var b=document.getElementById('notif-badge');if(!b)return;b.textContent=n;b.style.display=n>0?'':'none';}
+  function _renderList(){var el=document.getElementById('notif-list');if(!el)return;if(!_notifs.length){el.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--color-text-muted)"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.4" style="display:block;margin:0 auto 12px;opacity:.4"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Aucune notification</div>';return;}
+  el.innerHTML=_notifs.map(function(n,i){var c=n.severite==='urgent'?'var(--color-danger)':n.severite==='warning'?'var(--color-warning)':'var(--color-primary)';var bg=n.severite==='urgent'?'rgba(239,68,68,.12)':n.severite==='warning'?'rgba(217,119,6,.12)':'var(--color-primary-light)';return'<div style="display:flex;gap:16px;padding:14px 0;'+(i>0?'border-top:1px solid var(--color-border)':'')+'"><div style="width:40px;height:40px;border-radius:20px;background:'+bg+';display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+_icon(n.type)+'</svg></div><div style="flex:1"><div style="font-weight:700;margin-bottom:3px">'+n.titre+'</div><div style="font-size:var(--font-sm);color:var(--color-text-muted);line-height:1.5">'+n.corps+'</div></div></div>';}).join('');}
+  window.openNotifPanel=function(){_renderList();var p=document.getElementById('notif-panel');if(p)p.style.display='flex';};
+  window.closeNotifPanel=function(){var p=document.getElementById('notif-panel');if(p)p.style.display='none';};
+  window.markAllNotifRead=function(){_notifs=[];_updateBadge(0);_renderList();};
+  async function _fetch(){try{var r=await fetch(API+'/api/notifications?role='+ROLE,{signal:AbortSignal.timeout(4000)});if(!r.ok)return;var d=await r.json();_notifs=d.items||[];_updateBadge(_notifs.length);}catch(e){}}
+  _fetch();setInterval(_fetch,120000);
+})();
+</script>
+</body>
+</html>

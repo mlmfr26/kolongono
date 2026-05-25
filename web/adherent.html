@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espace Adhérent — SantéDirect Kolongono</title>
+  <link rel="stylesheet" href="design-system.css">
+  <style>
+    .page-hidden { display: none !important; }
+    .mutuelle-card { background: linear-gradient(135deg, var(--color-primary-dark) 0%, #1A4731 100%); border-radius: var(--radius-xxl); padding: var(--space-xl); color: #fff; position: relative; overflow: hidden; }
+    .mutuelle-card::before { content: ''; position: absolute; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,.05); top: -80px; right: -40px; }
+    .mutuelle-card::after  { content: ''; position: absolute; width: 100px; height: 100px; border-radius: 50%; background: rgba(255,255,255,.04); bottom: -30px; left: 20px; }
+    .plan-badge { display: inline-block; background: rgba(255,255,255,.15); border-radius: var(--radius-full); padding: 4px 14px; font-size: var(--font-xs); font-weight: 700; margin-bottom: var(--space-sm); }
+    .quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-md); }
+    .qa-btn { background: var(--color-card); border-radius: var(--radius-xl); padding: var(--space-lg); text-align: center; cursor: pointer; box-shadow: var(--shadow-sm); transition: all .15s; border: none; }
+    .qa-btn:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .qa-btn-icon { font-size: 28px; margin-bottom: var(--space-sm); }
+    .qa-btn-label { font-size: var(--font-xs); font-weight: 700; color: var(--color-text-muted); }
+    .urgence-banner { background: linear-gradient(90deg, #DC2626, #B91C1C); border-radius: var(--radius-xl); padding: var(--space-lg); display: flex; align-items: center; gap: var(--space-lg); }
+    @media(max-width:600px) { .quick-actions { grid-template-columns: repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      <div class="sidebar-logo-name">SantéDirect</div>
+      <div class="sidebar-logo-sub">Kolongono · Adhérent</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-page="accueil"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span> Accueil</div>
+      <div class="nav-item" data-page="consultation"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Prendre RDV</div>
+      <div class="nav-item" data-page="pharmacie"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg></span> Pharmacie</div>
+      <div class="nav-item" data-page="dossier"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> Mon dossier</div>
+      <div class="nav-item" data-page="ordonnances"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Ordonnances</div>
+      <div class="nav-item" data-page="abonnement"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span> Mon abonnement</div>
+      <div class="nav-item" data-page="profil"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Profil</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">M</div>
+        <div>
+          <div class="sidebar-user-name">Marie KABONGO</div>
+          <div class="sidebar-user-role">ADH-001 · Plan Famille</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="btn btn-icon btn-outline" id="menuToggle" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <span class="topbar-title" id="topbar-title">Accueil</span>
+      <div class="topbar-actions">
+        <span style="font-size:12px;color:var(--color-text-muted)">Bonjour, Marie</span>
+        <span style="cursor:pointer;display:inline-flex;align-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+      </div>
+    </header>
+
+    <!-- PAGE ACCUEIL -->
+    <div class="page" id="page-accueil">
+
+      <!-- Carte mutuelle -->
+      <div class="mutuelle-card mb-lg">
+        <div class="plan-badge"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Plan Famille · Actif</div>
+        <div style="font-size:var(--font-xxl);font-weight:800;margin-bottom:4px">Marie KABONGO</div>
+        <div style="color:rgba(255,255,255,.5);font-size:var(--font-sm)">ADH-001 · Renouvellement : 22 Juin 2026</div>
+        <div style="display:flex;gap:var(--space-xl);margin-top:var(--space-lg)">
+          <div><div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Consultations restantes</div><div style="color:#fff;font-size:var(--font-xl);font-weight:800">7/10</div></div>
+          <div><div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Membres famille</div><div style="color:#fff;font-size:var(--font-xl);font-weight:800">4</div></div>
+          <div><div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Prochain paiement</div><div style="color:#FDE68A;font-size:var(--font-md);font-weight:800">12 000 FC</div></div>
+        </div>
+      </div>
+
+      <!-- Actions rapides -->
+      <div class="section-label">Actions rapides</div>
+      <div class="quick-actions mb-lg">
+        <button class="qa-btn" onclick="showPage('consultation')">
+          <div class="qa-btn-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="qa-btn-label">Prendre RDV</div>
+        </button>
+        <button class="qa-btn" onclick="showPage('pharmacie')">
+          <div class="qa-btn-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg></div>
+          <div class="qa-btn-label">Pharmacie</div>
+        </button>
+        <button class="qa-btn" onclick="showPage('dossier')">
+          <div class="qa-btn-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+          <div class="qa-btn-label">Mon dossier</div>
+        </button>
+        <button class="qa-btn" onclick="showPage('ordonnances')">
+          <div class="qa-btn-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div class="qa-btn-label">Ordonnances</div>
+        </button>
+      </div>
+
+      <!-- Prochain RDV -->
+      <div class="section-label">Prochain rendez-vous</div>
+      <div class="card mb-lg">
+        <div class="card-body">
+          <div class="flex items-center gap-lg">
+            <div style="width:56px;height:56px;background:var(--color-primary-light);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--color-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="flex-1">
+              <div class="font-bold">Dr. Béatrice MWAMBA</div>
+              <div class="text-sm text-muted">Médecine générale · Demain 14h00</div>
+              <div class="text-xs" style="color:var(--color-primary);margin-top:4px;font-weight:700">Motif : Fièvre persistante, céphalées</div>
+            </div>
+            <div>
+              <span class="badge badge-warning">Demain</span>
+            </div>
+          </div>
+          <div class="alert alert-info" style="margin-top:var(--space-md)">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span class="text-sm">Présentez-vous à l'auxiliaire <strong>15 minutes avant</strong> votre consultation pour la pré-consultation (signes vitaux).</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Urgence -->
+      <div class="urgence-banner mb-lg">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div class="flex-1">
+          <div style="color:#fff;font-weight:800;font-size:var(--font-md)">Urgence médicale ?</div>
+        </div>
+        <a href="tel:+243000000000" class="btn" style="background:#fff;color:var(--color-danger);font-weight:700;display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.84a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.43 16z"/></svg> Appeler</a>
+      </div>
+
+      <!-- Proverbe -->
+      <div class="card">
+        <div class="card-body" style="text-align:center;padding:var(--space-xl)">
+          <div style="margin-bottom:8px;display:flex;justify-content:center"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--color-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8C8 10 5.9 16.17 3.82 21"/><path d="M9.1 17.25c-.88.08-1.75.19-2.6.42C4.77 18.12 3.72 19 3 21"/><path d="M22 2c0 0-9.4 4.16-12 13"/></svg></div>
+          <div style="font-style:italic;color:var(--color-text-muted);font-size:var(--font-sm)">"Bidimu m'bupita buanga"</div>
+          <div style="font-size:var(--font-xs);color:var(--color-text-light);margin-top:4px">Mieux vaut prévenir que guérir — Proverbe Luba</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE CONSULTATION -->
+    <div class="page page-hidden" id="page-consultation">
+      <div class="mb-xl"><div class="section-label">Services</div><h1 class="text-lg font-black">Prendre un rendez-vous</h1></div>
+
+      <div class="alert alert-success mb-lg">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span>Votre plan <strong>Famille</strong> couvre <strong>7 consultations restantes</strong> ce mois.</span>
+      </div>
+
+      <div class="chips mb-lg">
+        <div class="chip active">Disponibles</div>
+        <div class="chip">Tous les médecins</div>
+        <div class="chip">Pédiatrie</div>
+        <div class="chip">Gynécologie</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--space-md)">
+        <div class="card">
+          <div class="card-body flex items-center gap-lg">
+            <div class="avatar avatar-lg" style="background:#E0F2FE;color:#0369A1;flex-shrink:0">B</div>
+            <div class="flex-1">
+              <div class="font-bold">Dr. Béatrice MWAMBA</div>
+              <div class="text-sm text-muted">Médecine générale · 142 consultations</div>
+              <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-sm)">
+                <span class="badge badge-success" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="8" height="8"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg> Disponible</span>
+                <span class="badge badge-muted" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 4,9</span>
+                <span class="badge badge-muted">5 000 FC/consultation</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="bookConsult('Dr. Béatrice MWAMBA')">Réserver</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body flex items-center gap-lg">
+            <div class="avatar avatar-lg" style="background:#E0F2FE;color:#0369A1;flex-shrink:0">J</div>
+            <div class="flex-1">
+              <div class="font-bold">Dr. Jonas KASONGO</div>
+              <div class="text-sm text-muted">Pédiatrie · 98 consultations</div>
+              <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-sm)">
+                <span class="badge badge-success" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="8" height="8"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg> Disponible</span>
+                <span class="badge badge-muted" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 4,7</span>
+                <span class="badge badge-muted">5 000 FC/consultation</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="bookConsult('Dr. Jonas KASONGO')">Réserver</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body flex items-center gap-lg">
+            <div class="avatar avatar-lg" style="background:#E0F2FE;color:#0369A1;flex-shrink:0">S</div>
+            <div class="flex-1">
+              <div class="font-bold">Dr. Sylvie NGANDU</div>
+              <div class="text-sm text-muted">Gynécologie · 67 consultations</div>
+              <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-sm)">
+                <span class="badge badge-muted" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg> En congé</span>
+                <span class="badge badge-muted" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 4,8</span>
+              </div>
+            </div>
+            <button class="btn btn-outline" disabled>Indisponible</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE PHARMACIE -->
+    <div class="page page-hidden" id="page-pharmacie">
+      <div class="mb-xl flex justify-between items-center">
+        <div><div class="section-label">Services</div><h1 class="text-lg font-black">Pharmacie en ligne</h1></div>
+        <button class="btn btn-outline" onclick="showCart()" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Panier <span id="cart-count" class="topbar-badge" style="margin-left:4px">0</span></button>
+      </div>
+      <div class="input-icon-wrap mb-lg">
+        <span class="input-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+        <input class="input" type="text" placeholder="Rechercher un médicament…" id="pharma-search">
+      </div>
+      <div class="chips mb-lg">
+        <div class="chip active">Tous</div>
+        <div class="chip">Analgésiques</div>
+        <div class="chip">Antibiotiques</div>
+        <div class="chip">Antipaludéens</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--space-md)" id="pharma-grid">
+        <!-- rempli par JS -->
+      </div>
+    </div>
+
+    <!-- PAGE DOSSIER -->
+    <div class="page page-hidden" id="page-dossier">
+      <div class="mb-xl"><div class="section-label">Santé</div><h1 class="text-lg font-black">Mon dossier médical</h1></div>
+      <div class="grid-2 mb-lg">
+        <div class="card card-body">
+          <div class="section-label mb-md">Informations médicales</div>
+          <div class="flex justify-between mb-md"><span class="text-sm text-muted">Groupe sanguin</span><span class="badge badge-danger">A+</span></div>
+          <div class="flex justify-between mb-md"><span class="text-sm text-muted">Taille</span><span class="font-bold">162 cm</span></div>
+          <div class="flex justify-between mb-md"><span class="text-sm text-muted">Poids</span><span class="font-bold">58 kg</span></div>
+          <div class="flex justify-between"><span class="text-sm text-muted">IMC</span><span class="badge badge-success">22,1 — Normal</span></div>
+        </div>
+        <div class="card card-body">
+          <div class="section-label mb-md">Allergies</div>
+          <div style="display:flex;flex-wrap:wrap;gap:var(--space-sm)">
+            <span class="badge badge-danger">Pénicilline</span>
+            <span class="badge badge-warning">Sulfamides</span>
+          </div>
+          <div class="section-label mb-md mt-lg">Maladies chroniques</div>
+          <div style="display:flex;flex-wrap:wrap;gap:var(--space-sm)">
+            <span class="badge badge-info">Hypertension légère</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Historique des consultations</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Médecin</th><th>Diagnostic</th><th>Statut</th></tr></thead>
+            <tbody>
+              <tr><td class="text-sm text-muted">15/05/2026</td><td>Dr. MWAMBA</td><td>Paludisme simple</td><td><span class="badge badge-success">Guéri</span></td></tr>
+              <tr><td class="text-sm text-muted">02/04/2026</td><td>Dr. KASONGO</td><td>Rhinopharyngite</td><td><span class="badge badge-success">Guéri</span></td></tr>
+              <tr><td class="text-sm text-muted">18/02/2026</td><td>Dr. MWAMBA</td><td>Hypertension</td><td><span class="badge badge-warning">Suivi en cours</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE ORDONNANCES -->
+    <div class="page page-hidden" id="page-ordonnances">
+      <div class="mb-xl"><div class="section-label">Santé</div><h1 class="text-lg font-black">Mes ordonnances</h1></div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-md)">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="font-bold">Ordonnance du 15 Mai 2026</div><div class="text-sm text-muted">Dr. Béatrice MWAMBA · Paludisme simple</div></div>
+            <span class="badge badge-success">Active</span>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:var(--space-sm)">
+              <div class="flex items-center gap-md" style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-md)">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--color-pharmacie)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg>
+                <div class="flex-1"><div class="font-bold text-sm">Artéméther-Luméfantrine</div><div class="text-xs text-muted">2 comprimés × 2/jour — 3 jours</div></div>
+                <button class="btn btn-primary btn-sm" onclick="alert('Commande ajoutée au panier !')">Commander</button>
+              </div>
+              <div class="flex items-center gap-md" style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-md)">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--color-pharmacie)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg>
+                <div class="flex-1"><div class="font-bold text-sm">Paracétamol 1000mg</div><div class="text-xs text-muted">1 comprimé × 3/jour — 5 jours (si fièvre)</div></div>
+                <button class="btn btn-primary btn-sm" onclick="alert('Commande ajoutée au panier !')">Commander</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE ABONNEMENT -->
+    <div class="page page-hidden" id="page-abonnement">
+      <div class="mb-xl"><div class="section-label">Mutuelle</div><h1 class="text-lg font-black">Mon abonnement</h1></div>
+      <div class="mutuelle-card mb-lg">
+        <div class="plan-badge">Plan Famille — Actif</div>
+        <div style="font-size:var(--font-xxl);font-weight:800">12 000 FC / mois</div>
+        <div style="color:rgba(255,255,255,.5);margin-top:4px;font-size:var(--font-sm)">Prochain prélèvement : 22 Juin 2026</div>
+        <div style="display:flex;gap:var(--space-md);margin-top:var(--space-lg);flex-wrap:wrap">
+          <div style="background:rgba(255,255,255,.1);border-radius:var(--radius-lg);padding:var(--space-md) var(--space-lg)"><div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Consultations</div><div style="color:#fff;font-weight:800">10/mois (famille)</div></div>
+          <div style="background:rgba(255,255,255,.1);border-radius:var(--radius-lg);padding:var(--space-md) var(--space-lg)"><div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Membres</div><div style="color:#fff;font-weight:800">4 membres</div></div>
+          <div style="background:rgba(255,255,255,.1);border-radius:var(--radius-lg);padding:var(--space-md) var(--space-lg)"><div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Paiement</div><div style="color:#FDE68A;font-weight:800">Longonia bridge</div></div>
+        </div>
+      </div>
+      <div class="section-label">Changer de plan</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-md)">
+        <div class="card card-body" style="border:1.5px solid var(--color-border)">
+          <div class="badge badge-success mb-md">Solidaire</div>
+          <div style="font-size:var(--font-xxl);font-weight:800;color:var(--color-primary)">2 000 FC</div>
+          <div class="text-xs text-muted mb-lg">/mois</div>
+          <div style="font-size:var(--font-xs);color:var(--color-text-muted)">✓ 2 consultations/mois<br>✓ Pharmacie -10%</div>
+        </div>
+        <div class="card card-body" style="border:1.5px solid var(--color-border)">
+          <div class="badge badge-info mb-md">Standard</div>
+          <div style="font-size:var(--font-xxl);font-weight:800;color:var(--color-auxiliaire)">5 000 FC</div>
+          <div class="text-xs text-muted mb-lg">/mois</div>
+          <div style="font-size:var(--font-xs);color:var(--color-text-muted)">✓ 5 consultations/mois<br>✓ Pharmacie -15%</div>
+        </div>
+        <div class="card card-body" style="border:2px solid var(--color-primary)">
+          <div class="badge" style="background:var(--color-primary);color:#fff;margin-bottom:var(--space-md)">Famille ✓ Actuel</div>
+          <div style="font-size:var(--font-xxl);font-weight:800;color:var(--color-pharmacie)">12 000 FC</div>
+          <div class="text-xs text-muted mb-lg">/mois</div>
+          <div style="font-size:var(--font-xs);color:var(--color-text-muted)">✓ 10 consult/mois (famille)<br>✓ Pharmacie -20%</div>
+        </div>
+        <div class="card card-body" style="border:1.5px solid var(--color-border)">
+          <div class="badge badge-warning mb-md">Premium</div>
+          <div style="font-size:var(--font-xxl);font-weight:800;color:var(--color-abonnement)">20 000 FC</div>
+          <div class="text-xs text-muted mb-lg">/mois</div>
+          <div style="font-size:var(--font-xs);color:var(--color-text-muted)">✓ Illimité<br>✓ Hospitalisation partenaire</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE PROFIL -->
+    <div class="page page-hidden" id="page-profil">
+      <div class="mb-xl"><div class="section-label">Compte</div><h1 class="text-lg font-black">Mon profil</h1></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Informations personnelles</span></div>
+          <div class="card-body">
+            <div class="form-group"><label>Prénom</label><input class="input" value="Marie" type="text"></div>
+            <div class="form-group"><label>Nom</label><input class="input" value="KABONGO" type="text"></div>
+            <div class="form-group"><label>Date de naissance</label><input class="input" value="1988-03-15" type="date"></div>
+            <div class="form-group"><label>Téléphone</label><input class="input" value="+243 xxx xxx xxx" type="tel"></div>
+            <button class="btn btn-primary">Enregistrer</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Sécurité</span></div>
+          <div class="card-body">
+            <div class="form-group"><label>Mot de passe actuel</label><input class="input" type="password" placeholder="••••••••"></div>
+            <div class="form-group"><label>Nouveau mot de passe</label><input class="input" type="password" placeholder="••••••••"></div>
+            <div class="form-group"><label>Confirmer</label><input class="input" type="password" placeholder="••••••••"></div>
+            <button class="btn btn-outline">Changer le mot de passe</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+const titles = { accueil:'Accueil', consultation:'Prendre un RDV', pharmacie:'Pharmacie en ligne', dossier:'Mon dossier médical', ordonnances:'Mes ordonnances', abonnement:'Mon abonnement', profil:'Mon profil' };
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('page-hidden'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const p = document.getElementById('page-' + id);
+  if (p) p.classList.remove('page-hidden');
+  const n = document.querySelector('[data-page="' + id + '"]');
+  if (n) n.classList.add('active');
+  document.getElementById('topbar-title').textContent = titles[id] || id;
+  window.scrollTo(0,0);
+}
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => showPage(item.dataset.page));
+});
+
+let cart = 0;
+function bookConsult(doc) {
+  if (confirm('Réserver une consultation avec ' + doc + ' ?\n\nVotre mutuelle couvre cette consultation.')) {
+    alert('Consultation réservée !\n\nPrésentez-vous à l\'auxiliaire 15 min avant.');
+  }
+}
+
+const produits = [
+  { nom:'Paracétamol 500mg', cat:'Analgésique', prix:500, stock:250, ord:false, icon:'pill' },
+  { nom:'ORS (Sels de réhydratation)', cat:'Réhydratation', prix:400, stock:180, ord:false, icon:'drop' },
+  { nom:'Ibuprofène 400mg', cat:'Anti-inflammatoire', prix:700, stock:0, ord:false, icon:'pill' },
+  { nom:'Vitamine C 1000mg', cat:'Supplément', prix:600, stock:320, ord:false, icon:'pill' },
+  { nom:'Amoxicilline 500mg', cat:'Antibiotique', prix:1200, stock:12, ord:true, icon:'pill' },
+  { nom:'Artéméther', cat:'Antipaludéen', prix:3500, stock:0, ord:true, icon:'pill' },
+];
+
+function renderPharma() {
+  const grid = document.getElementById('pharma-grid');
+  grid.innerHTML = produits.map(p => {
+    const rupture = p.stock === 0;
+    const pillSvg = `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--color-pharmacie)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg>`;
+    const dropSvg = `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--color-auxiliaire)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`;
+    const iconMap = { pill: pillSvg, drop: dropSvg };
+    return `<div class="card" style="${rupture ? 'border:1.5px solid var(--color-danger)' : ''}">
+      <div class="card-body">
+        <div style="margin-bottom:8px">${iconMap[p.icon] || pillSvg}</div>
+        <div class="font-bold">${p.nom}</div>
+        <div class="text-xs text-muted mb-md">${p.cat}</div>
+        <div style="font-size:var(--font-lg);font-weight:800;color:var(--color-pharmacie);margin-bottom:var(--space-sm)">${p.prix.toLocaleString()} FC</div>
+        ${p.ord ? '<div class="badge badge-warning mb-md">Ordonnance requise</div><br>' : ''}
+        ${rupture ? '<span class="badge badge-danger">Rupture de stock</span>' :
+          `<button class="btn btn-primary btn-sm" onclick="addCart('${p.nom}')">Ajouter au panier</button>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+renderPharma();
+
+function addCart(nom) {
+  if (nom.includes('Amoxicilline') || nom.includes('Artém')) {
+    alert('Ce médicament nécessite une ordonnance médicale.\nPrenez RDV pour obtenir une ordonnance.');
+    return;
+  }
+  cart++;
+  document.getElementById('cart-count').textContent = cart;
+  alert(nom + ' ajouté au panier !');
+}
+
+function showCart() {
+  alert('Votre panier (' + cart + ' article' + (cart > 1 ? 's' : '') + ')\n\nFonction de commande disponible dans l\'app mobile.');
+}
+
+document.querySelectorAll('.chips').forEach(group => {
+  group.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      group.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+});
+
+const menuBtn = document.getElementById('menuToggle');
+const sidebar  = document.getElementById('sidebar');
+menuBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+if (window.innerWidth < 900) menuBtn.style.display = 'flex';
+window.addEventListener('resize', () => { menuBtn.style.display = window.innerWidth < 900 ? 'flex' : 'none'; });
+</script>
+</body>
+</html>

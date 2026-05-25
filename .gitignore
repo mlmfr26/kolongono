@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Environnement — NE JAMAIS COMMITTER
+.env
+.env.*
+!.env.example
+
+# Alembic versions générées en production
+# (décommenter si on ne veut pas versionner les migrations)
+# api/alembic/versions/
+
+# Logs
+*.log
+logs/
+
+# Node / React Native
+node_modules/
+.expo/
+dist/
+build/
+*.jsbundle
+android/app/build/
+android/.gradle/
+android/local.properties
+ios/Pods/
+ios/build/
+*.xcworkspace/xcuserdata/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker
+*.override.yml
+
+# Secrets
+*.pem
+*.key
+*.crt
+firebase-adminsdk*.json
+google-services.json
+GoogleService-Info.plist

@@ -1,0 +1,1976 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espace Médecin — SantéDirect Kolongono</title>
+  <link rel="stylesheet" href="design-system.css">
+  <style>
+    .page-hidden { display: none !important; }
+    :root { --color-primary: #0D9488; --color-primary-dark: #0F766E; --color-primary-light: #CCFBF1; --color-primary-mid: #0D9488; }
+    .sidebar { background: #0F3D38 !important; }
+    .online-toggle { display: flex; align-items: center; gap: var(--space-md); background: rgba(255,255,255,.1); border-radius: var(--radius-full); padding: 8px 16px; }
+    .toggle-sw { width: 40px; height: 22px; background: #4B5563; border-radius: 11px; position: relative; cursor: pointer; transition: background .2s; }
+    .toggle-sw.on { background: #22C55E; }
+    .toggle-sw::after { content:''; position:absolute; width:18px;height:18px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .2s; }
+    .toggle-sw.on::after { left: 20px; }
+    .sig-row { display:flex;align-items:center;gap:var(--space-md);padding:var(--space-md) 0;border-bottom:1px solid var(--color-border); }
+    .sig-row:last-child { border-bottom: none; }
+    .phase-bar { display:flex;align-items:center;background:var(--color-card);border-radius:var(--radius-xl);padding:var(--space-md);box-shadow:var(--shadow-sm);margin-bottom:var(--space-lg);gap:var(--space-sm); }
+    .phase-step { flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer; }
+    .phase-num { width:28px;height:28px;border-radius:50%;background:var(--color-bg);border:2px solid var(--color-border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--color-text-muted); }
+    .phase-num.active { background:var(--color-primary);border-color:var(--color-primary);color:#fff; }
+    .phase-label { font-size:10px;color:var(--color-text-muted); }
+    .phase-label.active { color:var(--color-primary);font-weight:700; }
+    .phase-connector { width:24px;height:2px;background:var(--color-border); }
+    .med-chip { display:inline-flex;align-items:center;gap:4px;border-radius:var(--radius-full);padding:5px 14px;font-size:var(--font-xs);font-weight:600;cursor:pointer;border:1.5px solid var(--color-border);color:var(--color-text-muted);background:var(--color-card);margin:3px;transition:all .15s; }
+    .med-chip.selected { background:var(--color-primary);border-color:var(--color-primary);color:#fff; }
+
+    /* ── Patient row clickable ── */
+    .patient-row { cursor: pointer; transition: background .12s; }
+    .patient-row:hover { background: var(--blue-soft) !important; }
+
+    /* ── Drill panel Niveau 1 (bottom sheet) ── */
+    .fiche-panel  { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; display:flex; align-items:flex-end; }
+    .fiche-panel.hidden { display:none; }
+    .fiche-sheet  { background:var(--color-card); border-radius:var(--radius-xxl) var(--radius-xxl) 0 0; width:100%; max-height:88vh; overflow-y:auto; padding:var(--space-xl); animation:slideUp .25s ease; }
+    @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+    .fiche-handle { width:40px; height:4px; background:var(--color-border); border-radius:2px; margin:0 auto var(--space-lg); }
+
+    /* ── Consultation item cliquable ── */
+    .cons-item { display:flex; align-items:flex-start; gap:var(--space-md); padding:var(--space-md); border-radius:var(--radius-lg); border:1px solid var(--color-border); margin-bottom:var(--space-sm); cursor:pointer; transition:all .15s; }
+    .cons-item:hover { background:var(--blue-soft); border-color:var(--blue); transform:translateX(3px); }
+    .cons-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+
+    /* ── Modal Niveau 2 (détail consultation) ── */
+    .cons-modal  { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:400; display:flex; align-items:center; justify-content:center; padding:var(--space-lg); }
+    .cons-modal.hidden { display:none; }
+    .cons-card   { background:var(--color-card); border-radius:var(--radius-xxl); max-width:580px; width:100%; max-height:88vh; overflow-y:auto; padding:var(--space-xl); animation:fadeIn .2s ease; position:relative; }
+    @keyframes fadeIn { from{opacity:0;transform:scale(.96)} to{opacity:1;transform:scale(1)} }
+    .cons-close  { position:absolute; top:var(--space-lg); right:var(--space-lg); background:var(--color-bg); border:none; width:32px; height:32px; border-radius:var(--radius-full); cursor:pointer; font-size:16px; }
+
+    /* ── Toast ── */
+    #toast-med { position:fixed; bottom:24px; right:24px; background:var(--dark); color:#fff; border-radius:var(--radius-xl); padding:12px 20px; font-size:var(--font-sm); font-weight:600; z-index:600; box-shadow:var(--shadow-lg); transition:opacity .35s; max-width:340px; opacity:0; pointer-events:none; }
+
+    /* ── Signes vitaux grid ── */
+    .sv-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--space-sm); margin-bottom:var(--space-md); }
+    .sv-cell { background:var(--color-bg); border-radius:var(--radius-lg); padding:var(--space-sm) var(--space-md); text-align:center; border:1px solid var(--color-border); }
+    .sv-val  { font-size:var(--font-md); font-weight:800; color:var(--dark); }
+    .sv-lbl  { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--color-text-muted); margin-top:2px; }
+    /* ── Agenda ── */
+    .agenda-tab-btn { padding:8px 20px;font-size:var(--font-sm);font-weight:700;color:var(--color-text-muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s; }
+    .agenda-tab-btn.active { color:var(--color-primary);border-bottom-color:var(--color-primary); }
+    .agenda-dispo-badge { display:inline-flex;align-items:center;gap:4px;background:var(--color-primary-light);color:var(--color-primary-dark);border:1.5px solid #7DD3FC;border-radius:var(--radius-full);padding:3px 12px;font-size:11px;font-weight:700;margin-right:6px;margin-bottom:4px; }
+    .agenda-consult-row { display:flex;align-items:center;gap:var(--space-md);padding:var(--space-md) var(--space-lg);border-radius:var(--radius-lg);border:1.5px solid var(--color-border);background:var(--color-card);transition:border-color .15s; }
+    .agenda-consult-row:hover { border-color:var(--color-primary); }
+    .agenda-row-done  { opacity:.55; }
+    .agenda-time      { font-weight:800;font-size:var(--font-sm);color:var(--color-primary);min-width:48px;flex-shrink:0; }
+    .agenda-row-sep   { width:1px;height:36px;background:var(--color-border);flex-shrink:0; }
+    .agenda-week-col  { border:1.5px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:border-color .15s;background:var(--color-card);min-width:0; }
+    .agenda-week-col:hover { border-color:var(--color-primary); }
+    .agenda-week-today { border-color:var(--color-primary)!important;box-shadow:0 0 0 1px var(--color-primary); }
+    .agenda-week-hdr  { padding:6px 4px;text-align:center;border-bottom:1px solid var(--color-border); }
+    .agenda-week-hdr.today { background:var(--color-primary);color:#fff; }
+    .agenda-week-dispo { padding:3px 5px;background:var(--color-primary-light); }
+    .agenda-dispo-mini { font-size:9px;color:var(--color-primary-dark);font-weight:700;white-space:nowrap; }
+    .agenda-week-slots { padding:4px 5px; }
+    .agenda-mini-slot  { font-size:9px;padding:2px 4px;border-radius:3px;margin-bottom:2px;background:var(--color-bg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .agenda-mini-encours { background:#FEF3C7;color:#92400E; }
+    .agenda-mini-planifie { background:var(--color-primary-light);color:var(--color-primary-dark); }
+    .agenda-week-fill  { height:4px;background:var(--color-border);margin:3px 5px;border-radius:var(--radius-full); }
+    .agenda-cal-grid  { display:grid;grid-template-columns:repeat(7,1fr);gap:3px; }
+    .agenda-cal-hdr   { text-align:center;font-size:10px;font-weight:800;color:var(--color-text-muted);padding:4px 0;text-transform:uppercase;letter-spacing:.3px; }
+    .agenda-cal-cell  { min-height:52px;border-radius:var(--radius-md);padding:4px;display:flex;flex-direction:column;align-items:center;gap:2px;border:1.5px solid transparent;transition:all .15s; }
+    .agenda-cal-busy  { cursor:pointer;background:var(--color-primary-light); }
+    .agenda-cal-busy:hover { border-color:var(--color-primary);background:#BAE6FD; }
+    .agenda-cal-today { border-color:var(--color-primary)!important; }
+    .agenda-cal-today .agenda-cal-num { background:var(--color-primary);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center; }
+    .agenda-cal-weekend { opacity:.35; }
+    .agenda-cal-num   { font-size:var(--font-sm);font-weight:700; }
+    .agenda-cal-dot   { width:5px;height:5px;border-radius:50%;background:var(--color-primary);flex-shrink:0; }
+    .agenda-cal-cnt   { font-size:8px;font-weight:800;color:var(--color-primary); }
+    /* ── RDV médecin ── */
+    .med-rdv-row { display:flex;align-items:center;gap:var(--space-md);padding:var(--space-md) var(--space-lg);border-radius:var(--radius-lg);border:1.5px solid var(--color-border);background:var(--color-card);margin-bottom:var(--space-sm);transition:border-color .15s; }
+    .med-rdv-heure { font-weight:800;font-size:var(--font-sm);color:var(--color-primary);min-width:44px; }
+    .med-rdv-sep { width:1px;height:32px;background:var(--color-border);flex-shrink:0; }
+    .med-rdv-term { opacity:.55; }
+    /* ── Pharmacie médecin ── */
+    .pharma-card-med { background:var(--color-card);border:1.5px solid var(--color-border);border-radius:var(--radius-xl);padding:var(--space-lg);transition:border-color .15s; }
+    .pharma-card-med:hover { border-color:var(--color-primary); }
+    .pharma-stock-bar { height:5px;background:var(--color-bg);border-radius:var(--radius-full);margin:var(--space-sm) 0; }
+    .pharma-stock-fill { height:100%;border-radius:var(--radius-full);transition:width .4s; }
+    .pmt { color:var(--color-text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s; }
+    .pmt.active { color:var(--color-primary);border-bottom-color:var(--color-primary); }
+    /* ── Catégories auxiliaires ── */
+    .aux-cat-a { display:inline-flex;align-items:center;gap:4px;background:#CCFBF1;color:#0F766E;border:1.5px solid #5EEAD4;border-radius:var(--radius-full);padding:2px 10px;font-size:10px;font-weight:800;white-space:nowrap; }
+    .aux-cat-b { display:inline-flex;align-items:center;gap:4px;background:#FEF3C7;color:#92400E;border:1.5px solid #FCD34D;border-radius:var(--radius-full);padding:2px 10px;font-size:10px;font-weight:800;white-space:nowrap; }
+    .aux-link  { cursor:pointer;color:var(--color-primary);font-weight:700;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px; }
+    .aux-link:hover { text-decoration-style:solid; }
+    /* ── Prescripteur ── */
+    .presc-card { border-radius:var(--radius-xl);padding:var(--space-md) var(--space-lg);margin-bottom:var(--space-lg);display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap;border:1.5px solid; }
+    .presc-aux-a { background:#CCFBF1;border-color:#5EEAD4; }
+    .presc-aux-b { background:#FEF3C7;border-color:#FCD34D; }
+    .presc-ia    { background:#EFF6FF;border-color:#BFDBFE; }
+    .presc-med   { background:#F5F3FF;border-color:#C4B5FD; }
+    .presc-icon  { width:38px;height:38px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+    .presc-label { font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px; }
+    .presc-name  { font-size:var(--font-sm);font-weight:800;line-height:1.2; }
+    .presc-sub   { font-size:11px;margin-top:2px; }
+    .aux-modal { position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;display:flex;align-items:center;justify-content:center;padding:var(--space-lg); }
+    .aux-modal.hidden { display:none; }
+    .aux-modal-card { background:var(--color-card);border-radius:var(--radius-xxl);max-width:440px;width:100%;max-height:88vh;overflow-y:auto;padding:var(--space-xl);animation:fadeIn .2s ease;position:relative; }
+    /* ── Panier & Checkout ordonnance ── */
+    .panier-bar { display:flex;align-items:center;gap:var(--space-md);padding:var(--space-md) var(--space-lg);background:var(--color-primary-light);border:1.5px solid var(--color-primary);border-radius:var(--radius-xl);margin-bottom:var(--space-lg);flex-wrap:wrap; }
+    .panier-count-badge { background:#EF4444;color:#fff;border-radius:50%;min-width:20px;height:20px;padding:0 4px;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center; }
+    .checkout-overlay { position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:800;display:flex;align-items:center;justify-content:center;padding:var(--space-lg); }
+    .checkout-overlay.hidden { display:none; }
+    .checkout-card { background:var(--color-card);border-radius:var(--radius-xxl);max-width:560px;width:100%;max-height:92vh;overflow-y:auto;padding:var(--space-xl);animation:fadeIn .2s ease;position:relative; }
+    .checkout-item { display:flex;align-items:center;gap:var(--space-md);padding:var(--space-md) 0;border-bottom:1px solid var(--color-border); }
+    .checkout-item:last-child { border-bottom:none; }
+    .ck-qte-btn { width:26px;height:26px;border-radius:var(--radius-full);border:1.5px solid var(--color-border);background:var(--color-bg);cursor:pointer;font-size:15px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;line-height:1;transition:all .15s; }
+    .ck-qte-btn:hover { border-color:var(--color-primary);color:var(--color-primary); }
+    .ord-panier-item { display:flex;align-items:center;gap:var(--space-md);padding:var(--space-sm) 0;border-bottom:1px solid var(--color-border); }
+    .ord-panier-item:last-child { border-bottom:none; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg></div>
+      <div class="sidebar-logo-name">SantéDirect</div>
+      <div class="sidebar-logo-sub">Kolongono · Médecin</div>
+    </div>
+    <div style="padding:var(--space-md) var(--space-lg)">
+      <div class="online-toggle" id="onlineToggle" onclick="toggleOnline()">
+        <div class="toggle-sw on" id="onlineSw"></div>
+        <span style="color:rgba(255,255,255,.8);font-size:var(--font-xs);font-weight:700;display:inline-flex;align-items:center;gap:5px" id="onlineLbl"><svg viewBox="0 0 24 24" width="8" height="8"><circle cx="12" cy="12" r="10" fill="#22C55E"/></svg> Disponible</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-page="dashboard"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span> Tableau de bord</div>
+      <div class="nav-item" data-page="consultation"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span> Consultation en cours</div>
+      <div class="nav-item" data-page="ordonnance"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Ordonnance digitale</div>
+      <div class="nav-item" data-page="historique"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Mes patients</div>
+      <div class="nav-item" data-page="agenda"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg></span> Agenda</div>
+      <div class="nav-item" data-page="rdv"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Rendez-vous</div>
+      <div class="nav-item" data-page="pharmacie"><span class="nav-item-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg></span> Pharmacie</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">B</div>
+        <div>
+          <div class="sidebar-user-name">Dr. Béatrice MWAMBA</div>
+          <div class="sidebar-user-role">Médecine générale</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="btn btn-icon btn-outline" id="menuToggle" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <span class="topbar-title" id="topbar-title">Tableau de bord</span>
+      <div class="topbar-actions">
+        <span class="topbar-badge" id="notif-badge" style="display:none">0</span>
+        <span style="cursor:pointer;display:inline-flex;align-items:center" onclick="openNotifPanel()" title="Notifications"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+      </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <div class="page" id="page-dashboard">
+
+      <div class="stats-grid mb-xl">
+        <div class="stat-card"><div class="stat-icon" style="background:var(--color-primary-light)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="stat-val" style="color:var(--color-primary)">3</div><div class="stat-label">Consultations terminées</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#FEF3C7"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><div class="stat-val" style="color:var(--color-warning)">1</div><div class="stat-label">En attente</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#DCFCE7"><svg viewBox="0 0 24 24" width="20" height="20" fill="#16A34A" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div><div class="stat-val" style="color:#16A34A">4,9</div><div class="stat-label">Note patients</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#FEF3C7"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div><div class="stat-val" style="color:var(--color-abonnement)">47 500</div><div class="stat-label">FC ce mois</div></div></div>
+      </div>
+
+      <div class="alert alert-warning mb-lg">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span><strong>Claire TSHIABA</strong> — Fiche pré-consultation prête · Consultation dans 10 min <button class="btn btn-primary btn-sm" style="margin-left:12px;display:inline-flex;align-items:center;gap:5px" onclick="showPage('consultation')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Consulter</button></span>
+      </div>
+
+      <div class="section-label">File de consultations</div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-md)">
+
+        <div class="card" style="border-left:4px solid var(--color-warning)">
+          <div class="card-body">
+            <div class="flex items-center gap-lg">
+              <div class="avatar avatar-lg">C</div>
+              <div class="flex-1">
+                <div class="font-bold">Claire TSHIABA <span class="badge badge-warning" style="margin-left:8px">Signes vitaux reçus</span></div>
+                <div class="text-sm text-muted">ADH-003 · Douleurs abdominales · 14h00</div>
+                <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-sm)">
+                  <span class="badge badge-danger" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> 38,5°C</span>
+                  <span class="badge badge-muted" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 12/8 cmHg</span>
+                  <span class="badge badge-muted" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 92 bpm</span>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="showPage('consultation')" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Démarrer</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--color-border)">
+          <div class="card-body">
+            <div class="flex items-center gap-lg">
+              <div class="avatar avatar-lg">P</div>
+              <div class="flex-1">
+                <div class="font-bold">Paul NKEMBA</div>
+                <div class="text-sm text-muted">ADH-004 · Suivi hypertension · 15h30</div>
+                <span class="badge badge-muted">En attente de pré-consultation</span>
+              </div>
+              <button class="btn btn-outline" disabled>Pas encore prêt</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="opacity:0.6">
+          <div class="card-body">
+            <div class="flex items-center gap-lg">
+              <div class="avatar avatar-lg">M</div>
+              <div class="flex-1">
+                <div class="font-bold">Marie KABONGO <span class="badge badge-success" style="margin-left:8px">Terminée</span></div>
+                <div class="text-sm text-muted">ADH-001 · Paludisme simple · 10h30</div>
+              </div>
+              <button class="btn btn-outline btn-sm">Rapport</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--color-border)">
+          <div class="card-body">
+            <div class="flex items-center gap-lg">
+              <div class="avatar avatar-lg">J</div>
+              <div class="flex-1">
+                <div class="font-bold">Jean MUKENDI</div>
+                <div class="text-sm text-muted">ADH-007 · HTA grade 2 suivi · 15h30</div>
+                <span class="badge badge-muted" style="margin-top:4px">En attente pré-consultation</span>
+              </div>
+              <button class="btn btn-outline" disabled>Pas encore prêt</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--color-border)">
+          <div class="card-body">
+            <div class="flex items-center gap-lg">
+              <div class="avatar avatar-lg">J</div>
+              <div class="flex-1">
+                <div class="font-bold">Josephine BAFUA</div>
+                <div class="text-sm text-muted">ADH-023 · Douleurs abdominales · 16h00</div>
+                <span class="badge badge-muted" style="margin-top:4px">En attente pré-consultation</span>
+              </div>
+              <button class="btn btn-outline" disabled>Pas encore prêt</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--color-border)">
+          <div class="card-body">
+            <div class="flex items-center gap-lg">
+              <div class="avatar avatar-lg">H</div>
+              <div class="flex-1">
+                <div class="font-bold">Honorine KABAMBA</div>
+                <div class="text-sm text-muted">ADH-031 · Consultation prénatale 22 SA · 16h30</div>
+                <span class="badge badge-muted" style="margin-top:4px">Planifié</span>
+              </div>
+              <button class="btn btn-outline" disabled>Planifié</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--color-border)">
+          <div class="card-body">
+            <div class="flex items-center gap-lg">
+              <div class="avatar avatar-lg">T</div>
+              <div class="flex-1">
+                <div class="font-bold">Thomas KABILA</div>
+                <div class="text-sm text-muted">ADH-015 · Toux persistante + dyspnée · 17h00</div>
+                <span class="badge badge-muted" style="margin-top:4px">Planifié</span>
+              </div>
+              <button class="btn btn-outline" disabled>Planifié</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--color-border)">
+          <div class="card-body">
+            <div class="flex items-center gap-lg">
+              <div class="avatar avatar-lg">V</div>
+              <div class="flex-1">
+                <div class="font-bold">Victor TSHIMBOMBO</div>
+                <div class="text-sm text-muted">ADH-042 · Diabète type 2 — contrôle glycémie · 17h30</div>
+                <span class="badge badge-muted" style="margin-top:4px">Planifié</span>
+              </div>
+              <button class="btn btn-outline" disabled>Planifié</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--color-border)">
+          <div class="card-body">
+            <div class="flex items-center gap-lg">
+              <div class="avatar avatar-lg">S</div>
+              <div class="flex-1">
+                <div class="font-bold">Sabine LUZOLO</div>
+                <div class="text-sm text-muted">ADH-018 · Vertiges récurrents · 18h00</div>
+                <span class="badge badge-muted" style="margin-top:4px">Planifié</span>
+              </div>
+              <button class="btn btn-outline" disabled>Planifié</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:4px solid var(--color-border)">
+          <div class="card-body">
+            <div class="flex items-center gap-lg">
+              <div class="avatar avatar-lg">R</div>
+              <div class="flex-1">
+                <div class="font-bold">Roger MBENZA</div>
+                <div class="text-sm text-muted">ADH-057 · Fièvre + frissons — paludisme suspect · 18h30</div>
+                <span class="badge badge-muted" style="margin-top:4px">Planifié</span>
+              </div>
+              <button class="btn btn-outline" disabled>Planifié</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CONSULTATION EN COURS -->
+    <div class="page page-hidden" id="page-consultation">
+      <div class="mb-xl"><div class="section-label">Téléconsultation</div><h1 class="text-lg font-black">Consultation en cours</h1></div>
+
+      <!-- Phases -->
+      <div class="phase-bar" id="phases">
+        <div class="phase-step" onclick="setPhase(1)">
+          <div class="phase-num active" id="ph1">1</div>
+          <div class="phase-label active" id="phl1">Préparation</div>
+        </div>
+        <div class="phase-connector"></div>
+        <div class="phase-step" onclick="setPhase(2)">
+          <div class="phase-num" id="ph2">2</div>
+          <div class="phase-label" id="phl2">Consultation</div>
+        </div>
+        <div class="phase-connector"></div>
+        <div class="phase-step" onclick="setPhase(3)">
+          <div class="phase-num" id="ph3">3</div>
+          <div class="phase-label" id="phl3">Clôture</div>
+        </div>
+      </div>
+
+      <!-- Phase 1 -->
+      <div id="phase-content-1">
+        <div class="section-label">Fiche pré-consultation</div>
+        <div class="card mb-lg">
+          <div class="card-header">
+            <div><div class="font-bold">Claire TSHIABA</div><div class="text-sm text-muted">ADH-003 · 34 ans · RDV 14h00</div></div>
+            <span class="badge badge-danger">Fièvre 38,5°C</span>
+          </div>
+          <div class="card-body">
+            <div class="sig-row"><span style="width:24px;display:flex;align-items:center"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--color-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg></span><span class="flex-1 text-sm text-muted">Température</span><span class="font-black" style="color:var(--color-danger)">38,5°C</span><div style="width:8px;height:8px;border-radius:50%;background:var(--color-danger);margin-left:8px"></div></div>
+            <div class="sig-row"><span style="width:24px;display:flex;align-items:center"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="flex-1 text-sm text-muted">Tension artérielle</span><span class="font-black">12/8 cmHg</span></div>
+            <div class="sig-row"><span style="width:24px;display:flex;align-items:center"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span><span class="flex-1 text-sm text-muted">Pouls</span><span class="font-black">92 bpm</span></div>
+            <div class="sig-row"><span style="width:24px;display:flex;align-items:center"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--color-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/><path d="M8.5 2h7"/><path d="M14.5 16h-5"/></svg></span><span class="flex-1 text-sm text-muted">TDR Paludisme</span><span class="badge badge-danger">POSITIF</span></div>
+          </div>
+        </div>
+
+        <div class="section-label">Motif déclaré</div>
+        <div class="card mb-lg">
+          <div class="card-body"><p style="color:var(--dark)">Douleurs abdominales depuis 3 jours, fièvre, vomissements occasionnels. Pas de médicament pris.</p></div>
+        </div>
+
+        <!-- ─── PRESCRIPTEUR ─── -->
+        <div class="section-label">Prescripteur du rendez-vous</div>
+        <div class="presc-card presc-aux-a" style="cursor:pointer" onclick="openAuxModalMed('Jean BOLAMBA')" title="Voir la fiche de l'auxiliaire">
+          <div class="presc-icon" style="background:#0F766E">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="presc-label" style="color:#0F766E">Auxiliaire de santé — Cat. A <span class="aux-cat-a" style="vertical-align:middle">Qualifié</span></div>
+            <div class="presc-name" style="color:#134E4A">Jean BOLAMBA</div>
+            <div class="presc-sub" style="color:#0F766E">Infirmier diplômé d'État — recyclé SantéDirect (2023)</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+            <span style="font-size:10px;color:#0F766E;font-weight:700">Pré-consultation</span>
+            <span style="font-size:10px;color:var(--color-text-muted)">Signes vitaux · 13h42</span>
+            <span style="font-size:10px;color:#0F766E;text-decoration:underline;text-decoration-style:dotted">Voir la fiche</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;padding:var(--space-lg);display:inline-flex;align-items:center;justify-content:center;gap:8px" onclick="setPhase(2)">
+          Démarrer la vidéoconsultation
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+      <!-- Phase 2 -->
+      <div id="phase-content-2" style="display:none">
+        <div class="card mb-lg" style="background:var(--color-primary-dark);cursor:pointer" onclick="rejoindreJitsiMedecin()" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''">
+          <div class="card-body flex items-center gap-lg">
+            <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            <div>
+              <div style="color:#fff;font-size:var(--font-lg);font-weight:800">Rejoindre la salle Jitsi Meet</div>
+              <div style="color:rgba(255,255,255,.6);font-size:var(--font-sm);margin-top:2px">Patient + Auxiliaire déjà connectés · meet.jit.si</div>
+            </div>
+          </div>
+        </div>
+        <div class="card mb-lg" style="background:var(--color-primary-light)">
+          <div class="card-body">
+            <div class="font-bold mb-lg" style="color:var(--color-primary-dark)">Protocole consultation</div>
+            <ul class="timeline">
+              <li class="timeline-item"><div class="timeline-dot">1</div><div class="timeline-content"><div class="timeline-text">Vérifier l'identité du patient</div></div></li>
+              <li class="timeline-item"><div class="timeline-dot">2</div><div class="timeline-content"><div class="timeline-text">Compléter l'anamnèse avec les signes vitaux</div></div></li>
+              <li class="timeline-item"><div class="timeline-dot">3</div><div class="timeline-content"><div class="timeline-text">Demander à l'auxiliaire les vérifications complémentaires</div></div></li>
+              <li class="timeline-item"><div class="timeline-dot">4</div><div class="timeline-content"><div class="timeline-text">Poser le diagnostic basé sur les éléments concrets</div></div></li>
+              <li class="timeline-item"><div class="timeline-dot">5</div><div class="timeline-content"><div class="timeline-text">Rédiger l'ordonnance en temps réel</div></div></li>
+            </ul>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;padding:var(--space-lg);display:inline-flex;align-items:center;justify-content:center;gap:8px" onclick="setPhase(3)">Passer à la clôture <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+      </div>
+
+      <!-- Phase 3 -->
+      <div id="phase-content-3" style="display:none">
+        <div class="alert alert-info mb-lg"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Émettez l'ordonnance numérique pour clôturer et déclencher la livraison.</span></div>
+        <button class="btn btn-primary" style="width:100%;padding:var(--space-lg);font-size:var(--font-lg);display:inline-flex;align-items:center;justify-content:center;gap:8px" onclick="showPage('ordonnance')">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Rédiger l'ordonnance numérique <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ORDONNANCE DIGITALE -->
+    <div class="page page-hidden" id="page-ordonnance">
+
+      <div class="card mb-lg" style="background:var(--color-primary-light);border:1.5px solid var(--color-primary)">
+        <div class="card-body flex items-center gap-lg">
+          <div class="avatar avatar-lg">C</div>
+          <div>
+            <div class="font-bold">Claire TSHIABA · ADH-003</div>
+            <div class="text-sm" style="color:var(--color-primary-dark)">Consultation du 23 Mai 2026 · Dr. Béatrice MWAMBA</div>
+          </div>
+          <div style="margin-left:auto">
+            <button class="btn btn-outline btn-sm" onclick="showPage('pharmacie')">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg>
+              Ajouter médicament
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2 mb-lg">
+        <div class="card">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+            <span class="card-title">Médicaments prescrits</span>
+            <span id="ord-panier-count" style="font-size:11px;color:var(--color-text-muted)">0 article(s)</span>
+          </div>
+          <div class="card-body">
+            <div id="ord-panier-list">
+              <div class="text-muted text-sm" style="padding:var(--space-lg);text-align:center">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;opacity:.4"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg>
+                <div>Aucun médicament prescrit</div>
+                <div style="font-size:10px;margin-top:4px">Utilisez le bouton "Prescrire" dans l'onglet Pharmacie</div>
+              </div>
+            </div>
+            <div id="ord-total-line" style="display:none;padding-top:var(--space-md);border-top:2px solid var(--color-border);margin-top:var(--space-sm)">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:var(--font-sm);font-weight:700;color:var(--color-text-muted)">Total ordonnance</span>
+                <span id="ord-total-val"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Diagnostic & Rapport</span></div>
+          <div class="card-body">
+            <div class="form-group"><label>Diagnostic principal</label><input class="input" value="Paludisme simple (TDR positif)"></div>
+            <div class="form-group"><label>Durée du traitement</label><select class="input"><option>3 jours</option><option>5 jours</option><option selected>7 jours</option><option>14 jours</option></select></div>
+            <div class="form-group"><label>Recommandations</label><textarea class="input" rows="3">Repos au lit · Beaucoup d'eau · Revenir si la fièvre persiste après 48h · Éviter automédication</textarea></div>
+            <div class="form-group"><label>Rapport de consultation</label><textarea class="input" rows="4" placeholder="Notes cliniques, observations, plan de suivi…"></textarea></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Justification thérapeutique -->
+      <div class="card mb-lg" style="border:2px solid #7C3AED;background:#F5F3FF">
+        <div class="card-header" style="background:none;border-bottom:1.5px solid #DDD6FE;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:var(--space-sm)">
+            <span style="width:32px;height:32px;border-radius:50%;background:#7C3AED;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </span>
+            <span class="card-title" style="color:#4C1D95">Justification thérapeutique</span>
+          </div>
+          <span style="background:#7C3AED;color:#fff;font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;border-radius:var(--radius-full);padding:3px 10px">Obligatoire</span>
+        </div>
+        <div class="card-body">
+          <label style="font-size:var(--font-sm);font-weight:700;color:#4C1D95;display:block;margin-bottom:var(--space-sm)">Pourquoi avez-vous choisi ce traitement / cette combinaison pour ce patient ?</label>
+          <textarea id="ord-justification" class="input" rows="4"
+            style="border-color:#C4B5FD;background:#fff;font-size:var(--font-sm);line-height:1.6;resize:vertical"
+            placeholder="Justifiez votre choix thérapeutique : diagnostic retenu, alternatives écartées et pourquoi, terrain spécifique du patient (antécédents, allergies, interactions médicamenteuses évitées), rapport bénéfice/risque de cette combinaison…"></textarea>
+          <div style="font-size:10px;color:#7C3AED;margin-top:var(--space-sm);display:flex;align-items:center;gap:4px">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Cette justification est conservée dans le dossier médical du patient et transmise avec l'ordonnance.
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;padding:var(--space-lg);font-size:var(--font-lg);display:inline-flex;align-items:center;justify-content:center;gap:8px" onclick="submitOrdonnance()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        Valider l'ordonnance — Envoyer à la pharmacie
+      </button>
+    </div>
+
+    <!-- RENDEZ-VOUS -->
+    <div class="page page-hidden" id="page-rdv">
+      <div class="mb-xl flex justify-between items-center">
+        <div><div class="section-label">Planning</div><h1 class="text-lg font-black">Mes rendez-vous</h1></div>
+        <div style="display:flex;gap:var(--space-sm)">
+          <input type="date" class="input" id="med-rdv-date" style="width:160px" onchange="renderMedRDV()">
+        </div>
+      </div>
+
+      <div class="stats-grid mb-xl">
+        <div class="stat-card"><div class="stat-icon" style="background:var(--color-primary-light)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--color-primary)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div><div class="stat-val" style="color:var(--color-primary)">10</div><div class="stat-label">Consultations du jour</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#FEF3C7"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><div class="stat-val" style="color:var(--color-warning)">3</div><div class="stat-label">Terminées</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#DCFCE7"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#16A34A" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><div class="stat-val" style="color:#16A34A">7</div><div class="stat-label">Planifiées</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#F3E8FF"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#7C3AED" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div><div class="stat-val" style="color:#7C3AED">47</div><div class="stat-label">Patients ce mois</div></div></div>
+      </div>
+
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--color-text-muted);margin-bottom:var(--space-sm)">Aujourd'hui — 23 mai 2026</div>
+      <div id="med-rdv-list" style="display:flex;flex-direction:column;gap:var(--space-sm)"></div>
+    </div>
+
+    <!-- PHARMACIE -->
+    <div class="page page-hidden" id="page-pharmacie">
+      <div class="mb-xl"><div class="section-label">Catalogue</div><h1 class="text-lg font-black">Pharmacie — Disponibilité stock</h1></div>
+
+      <!-- Barre ordonnance en cours -->
+      <div class="panier-bar" id="pharma-panier-bar" style="display:none">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--color-primary-dark)" stroke-width="2" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span style="flex:1;color:var(--color-primary-dark);font-size:var(--font-sm)">
+          Ordonnance en cours : <strong id="pharma-panier-txt">0 article(s)</strong>
+        </span>
+        <button class="btn btn-primary btn-sm" onclick="showPage('ordonnance')">Voir l'ordonnance</button>
+      </div>
+
+      <div class="alert alert-info mb-lg" style="background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Cliquez sur <strong>Prescrire</strong> pour ajouter un médicament à l'ordonnance numérique en cours. Validez ensuite l'ordonnance pour déclencher la commande pharmacie.</span>
+      </div>
+
+      <div class="card mb-lg">
+        <div class="card-body" style="padding:var(--space-md)">
+          <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap;align-items:center">
+            <input class="input" id="med-pharma-search" placeholder="Rechercher un médicament…" style="flex:1;min-width:200px" oninput="renderMedPharma(this.value)">
+            <div class="chips" id="med-pharma-chips">
+              <span class="chip active" data-cat="">Tout</span>
+              <span class="chip" data-cat="antipaludeen">Antipaludéens</span>
+              <span class="chip" data-cat="analgesique">Analgésiques</span>
+              <span class="chip" data-cat="antihypertenseur">Antihypertenseurs</span>
+              <span class="chip" data-cat="antibiotic">Antibiotiques</span>
+              <span class="chip" data-cat="maternel">Maternel</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2" id="med-pharma-grid" style="gap:var(--space-md)"></div>
+    </div>
+
+    <!-- AGENDA -->
+    <div class="page page-hidden" id="page-agenda">
+
+      <!-- Bouton Retour agenda -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:var(--space-md)">
+        <button id="agenda-back-btn" class="btn btn-outline btn-sm" style="display:none">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Retour
+        </button>
+      </div>
+
+      <!-- Onglets Journée | Semaine | Mois -->
+      <div style="display:flex;border-bottom:2px solid var(--color-border);margin-bottom:var(--space-xl)">
+        <button class="agenda-tab-btn active" data-vue="jour"    onclick="setAgendaVue('jour')">Journée</button>
+        <button class="agenda-tab-btn"        data-vue="semaine" onclick="setAgendaVue('semaine')">Semaine</button>
+        <button class="agenda-tab-btn"        data-vue="mois"    onclick="setAgendaVue('mois')">Mois</button>
+      </div>
+
+      <!-- ── VUE JOUR ── -->
+      <div id="agenda-pane-jour">
+        <!-- Navigation date -->
+        <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-lg)">
+          <button class="btn btn-icon btn-outline" onclick="agendaNavJour(-1)" title="Jour précédent">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div style="flex:1;text-align:center">
+            <div class="font-bold" style="font-size:var(--font-md)" id="agenda-day-label">—</div>
+            <div class="text-xs text-muted" id="agenda-day-count">—</div>
+          </div>
+          <button class="btn btn-icon btn-outline" onclick="agendaNavJour(1)" id="agenda-jour-next" title="Jour suivant">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+
+        <!-- KPIs rapides -->
+        <div style="display:flex;gap:var(--space-md);flex-wrap:wrap;margin-bottom:var(--space-lg)" id="agenda-jour-kpis"></div>
+
+        <!-- Disponibilités officielles -->
+        <div class="card mb-lg">
+          <div class="card-body" style="padding:var(--space-md) var(--space-lg)">
+            <div style="display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--color-text-muted);white-space:nowrap">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Disponibilités officielles :
+              </div>
+              <div id="agenda-jour-dispos" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Liste des consultations du jour -->
+        <div class="section-label mb-sm">Consultations</div>
+        <div id="agenda-jour-list" style="display:flex;flex-direction:column;gap:var(--space-sm)"></div>
+      </div>
+
+      <!-- ── VUE SEMAINE ── -->
+      <div id="agenda-pane-semaine" style="display:none">
+        <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-lg)">
+          <button class="btn btn-outline btn-sm" onclick="agendaNavSemaine(-1)">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Semaine précédente
+          </button>
+          <div class="font-bold text-sm" style="flex:1;text-align:center" id="agenda-semaine-label">—</div>
+          <button class="btn btn-outline btn-sm" onclick="agendaNavSemaine(1)">
+            Semaine suivante
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:var(--space-md)">
+            <div id="agenda-semaine-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:var(--space-sm)"></div>
+          </div>
+        </div>
+        <div class="text-xs text-muted" style="margin-top:var(--space-md);text-align:center">Cliquez sur un jour pour la vue détaillée</div>
+      </div>
+
+      <!-- ── VUE MOIS ── -->
+      <div id="agenda-pane-mois" style="display:none">
+        <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-lg)">
+          <button class="btn btn-icon btn-outline" id="agenda-mois-prev">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="font-bold" style="flex:1;text-align:center;font-size:var(--font-md)" id="agenda-mois-label">—</div>
+          <button class="btn btn-icon btn-outline" id="agenda-mois-next">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:var(--space-md)">
+            <div id="agenda-mois-body"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:var(--space-lg);justify-content:center;margin-top:var(--space-md);font-size:11px;color:var(--color-text-muted)">
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:var(--color-primary);display:inline-block"></span> Jour avec consultations</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;border:1.5px solid var(--color-primary);display:inline-block"></span> Aujourd'hui</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- HISTORIQUE / MES PATIENTS -->
+    <div class="page page-hidden" id="page-historique">
+      <div class="mb-lg"><div class="text-sm text-muted">Cliquez sur un patient pour voir sa fiche complète</div></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Patient</th><th>Dernière consultation</th><th>Diagnostic principal</th><th>Consultations</th><th>Statut suivi</th></tr></thead>
+            <tbody id="patients-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ NIVEAU 1 — Fiche patient (bottom sheet) ═══ -->
+<div class="fiche-panel hidden" id="fiche-panel" onclick="if(event.target===this)closeFiche()">
+  <div class="fiche-sheet" id="fiche-sheet">
+    <div class="fiche-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-lg)">
+      <div style="display:flex;align-items:center;gap:var(--space-md)">
+        <div class="avatar" style="width:52px;height:52px;font-size:var(--font-xl)" id="fiche-avatar">?</div>
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-muted)" id="fiche-id"></div>
+          <h2 class="font-black" style="font-size:var(--font-lg);margin:2px 0" id="fiche-nom"></h2>
+          <div style="display:flex;gap:var(--space-sm);align-items:center;flex-wrap:wrap;margin-top:4px" id="fiche-meta"></div>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="closeFiche()">Fermer</button>
+    </div>
+
+    <!-- Info médicale rapide -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-sm);margin-bottom:var(--space-lg)" id="fiche-info-grid"></div>
+
+    <!-- Onglets fiche -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--color-border);margin-bottom:var(--space-lg)" id="fiche-tab-bar">
+      <div class="pmt active" id="fpt-dossier" onclick="switchFicheTab('dossier',this)" style="padding:8px 16px;font-size:var(--font-sm);font-weight:700;color:var(--color-text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px">Dossier médical</div>
+      <div class="pmt" id="fpt-rdv" onclick="switchFicheTab('rdv',this)" style="padding:8px 16px;font-size:var(--font-sm);font-weight:700;color:var(--color-text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px">Rendez-vous</div>
+    </div>
+
+    <!-- Pane dossier -->
+    <div id="fiche-pane-dossier">
+      <!-- Dernier signes vitaux -->
+      <div class="section-label" style="margin-bottom:var(--space-sm)">Derniers signes vitaux</div>
+      <div class="sv-grid" id="fiche-sv"></div>
+
+      <!-- Antécédents -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md);margin-bottom:var(--space-lg)" id="fiche-antecedents"></div>
+
+      <!-- Timeline des consultations -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-sm)">
+        <div class="section-label">Historique des consultations</div>
+        <span class="text-xs text-muted" id="fiche-nb-cons"></span>
+      </div>
+      <div id="fiche-consultations"></div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg)">
+        <button class="btn btn-primary" onclick="showPage('consultation');closeFiche()">Nouvelle consultation</button>
+        <button class="btn btn-outline" onclick="closeFiche()">Fermer</button>
+      </div>
+    </div>
+
+    <!-- Pane Rendez-vous -->
+    <div id="fiche-pane-rdv" style="display:none">
+      <div style="margin-bottom:var(--space-lg)" id="fiche-rdv-actuel"></div>
+      <div class="section-label mb-sm">Planifier un nouveau RDV</div>
+      <div class="card">
+        <div class="card-body">
+          <div class="grid-2" style="gap:var(--space-md)">
+            <div class="form-group"><label>Date</label><input class="input" id="fiche-rdv-date" type="date"></div>
+            <div class="form-group"><label>Heure</label><input class="input" id="fiche-rdv-heure" type="time"></div>
+            <div class="form-group">
+              <label>Type</label>
+              <select class="input" id="fiche-rdv-type">
+                <option value="teleconsult">Téléconsultation (30 min)</option>
+                <option value="suivi">Suivi (15 min)</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Motif</label><input class="input" id="fiche-rdv-motif" placeholder="Motif de la prochaine consultation"></div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:var(--space-md)" onclick="enregistrerFicheRDV()">Planifier le RDV</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NIVEAU 2 — Détail d'une consultation (modal centré) ═══ -->
+<div class="cons-modal hidden" id="cons-modal" onclick="if(event.target===this)closeCons()">
+  <div class="cons-card">
+    <button class="cons-close" onclick="closeCons()" title="Fermer">&#215;</button>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-muted);margin-bottom:6px" id="cons-eyelet"></div>
+    <h2 class="font-black" style="font-size:var(--font-lg);margin-bottom:var(--space-xl)" id="cons-titre"></h2>
+    <div id="cons-body"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast-med"></div>
+
+<script>
+const titles = { dashboard:'Tableau de bord', consultation:'Consultation en cours', ordonnance:'Ordonnance numérique', historique:'Mes patients', rdv:'Rendez-vous', pharmacie:'Pharmacie — Stock', agenda:'Agenda' };
+let currentPhase = 1;
+let isOnline = true;
+const USD_TO_FC = 2800;
+function formatFC(usd) {
+  const fc = Math.round(usd * USD_TO_FC);
+  return fc.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FC';
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('page-hidden'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const p = document.getElementById('page-' + id);
+  if (p) p.classList.remove('page-hidden');
+  const n = document.querySelector('[data-page="' + id + '"]');
+  if (n) n.classList.add('active');
+  document.getElementById('topbar-title').textContent = titles[id] || id;
+  window.scrollTo(0, 0);
+  if (id === 'rdv')        renderMedRDV();
+  if (id === 'pharmacie')  { renderMedPharma(); updatePanierUI(); }
+  if (id === 'historique') renderPatients();
+  if (id === 'agenda')     renderAgendaMed();
+  if (id === 'ordonnance') renderOrdonnancePanier();
+}
+document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', () => showPage(item.dataset.page)));
+
+function setPhase(n) {
+  currentPhase = n;
+  [1,2,3].forEach(i => {
+    document.getElementById('ph' + i).className = 'phase-num' + (i === n ? ' active' : '');
+    document.getElementById('phl' + i).className = 'phase-label' + (i === n ? ' active' : '');
+    document.getElementById('phase-content-' + i).style.display = i === n ? 'block' : 'none';
+  });
+}
+
+function toggleOnline() {
+  isOnline = !isOnline;
+  document.getElementById('onlineSw').className = 'toggle-sw' + (isOnline ? ' on' : '');
+  const dotOn = `<svg viewBox="0 0 24 24" width="8" height="8"><circle cx="12" cy="12" r="10" fill="#22C55E"/></svg>`;
+  const dotOff = `<svg viewBox="0 0 24 24" width="8" height="8"><circle cx="12" cy="12" r="10" fill="#EF4444"/></svg>`;
+  document.getElementById('onlineLbl').innerHTML = isOnline ? dotOn + ' Disponible' : dotOff + ' Indisponible';
+}
+
+function toggleMed(el) {
+  el.classList.toggle('selected');
+  el.textContent = el.classList.contains('selected') ? el.textContent.replace(' ✓','') + ' ✓' : el.textContent.replace(' ✓','');
+}
+
+function submitOrdonnance() {
+  if (MED_PANIER.length === 0) {
+    showToastMed('L\'ordonnance est vide — prescrivez des médicaments depuis la Pharmacie.');
+    return;
+  }
+  const just = (document.getElementById('ord-justification')?.value || '').trim();
+  if (!just) {
+    showToastMed('Veuillez justifier votre choix thérapeutique avant de valider.');
+    document.getElementById('ord-justification')?.focus();
+    document.getElementById('ord-justification')?.closest('.card')?.scrollIntoView({ behavior:'smooth', block:'center' });
+    return;
+  }
+  openCheckout();
+}
+
+/* ══════════════════════════════════════════════
+   PANIER — ORDONNANCE NUMÉRIQUE
+══════════════════════════════════════════════ */
+let MED_PANIER = [];
+
+function addToPanier(produitId) {
+  const p = MED_PHARMA_PRODUITS.find(x => x.id === produitId);
+  if (!p) return;
+  const existing = MED_PANIER.find(x => x.produit.id === produitId);
+  if (existing) {
+    existing.qte++;
+  } else {
+    MED_PANIER.push({ produit: p, qte: 1, pos: { dose:'1 comprimé', freq:'2×/jour', duree:'7 jours' } });
+  }
+  updatePanierUI();
+  const btn = document.getElementById('btn-pres-' + produitId);
+  if (btn) {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Ajouté';
+    btn.style.background = 'var(--color-primary)';
+    btn.style.color = '#fff';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.color = ''; }, 1400);
+  }
+  showToastMed(p.nom.split(' ').slice(0,2).join(' ') + ' ajouté à l\'ordonnance.');
+  renderOrdonnancePanier();
+}
+
+function removeFromPanier(produitId) {
+  MED_PANIER = MED_PANIER.filter(x => x.produit.id !== produitId);
+  updatePanierUI();
+  renderOrdonnancePanier();
+}
+
+function changeQtePanier(produitId, delta) {
+  const item = MED_PANIER.find(x => x.produit.id === produitId);
+  if (!item) return;
+  item.qte = Math.max(1, item.qte + delta);
+  updatePanierUI();
+  renderOrdonnancePanier();
+  if (!document.getElementById('checkout-overlay').classList.contains('hidden')) renderCheckoutContent();
+}
+
+function updatePanierUI() {
+  const total   = MED_PANIER.reduce((s, i) => s + i.qte, 0);
+  const montant = MED_PANIER.reduce((s, i) => s + i.produit.prix * i.qte, 0);
+  const bar = document.getElementById('pharma-panier-bar');
+  const txt = document.getElementById('pharma-panier-txt');
+  if (bar) bar.style.display = total > 0 ? '' : 'none';
+  if (txt) txt.textContent   = total + ' article' + (total > 1 ? 's' : '') + ' — $' + montant.toFixed(2) + ' · ' + formatFC(montant);
+}
+
+function setPosologie(produitId, field, value) {
+  const item = MED_PANIER.find(x => x.produit.id === produitId);
+  if (!item) return;
+  if (!item.pos) item.pos = { dose:'1 comprimé', freq:'2×/jour', duree:'7 jours' };
+  item.pos[field] = value;
+}
+
+function renderOrdonnancePanier() {
+  const el    = document.getElementById('ord-panier-list');
+  const cntEl = document.getElementById('ord-panier-count');
+  const totEl = document.getElementById('ord-total-line');
+  const valEl = document.getElementById('ord-total-val');
+  if (!el) return;
+  const total   = MED_PANIER.reduce((s, i) => s + i.produit.prix * i.qte, 0);
+  const nbItems = MED_PANIER.reduce((s, i) => s + i.qte, 0);
+  if (cntEl) cntEl.textContent = nbItems + ' article' + (nbItems > 1 ? 's' : '');
+  if (MED_PANIER.length === 0) {
+    el.innerHTML = `<div class="text-muted text-sm" style="padding:var(--space-xl);text-align:center">
+      <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;opacity:.35"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg>
+      <div>Aucun médicament prescrit</div>
+      <div style="font-size:10px;margin-top:4px">Utilisez "Prescrire" dans l'onglet Pharmacie</div>
+    </div>`;
+    if (totEl) totEl.style.display = 'none';
+    return;
+  }
+  if (totEl) totEl.style.display = '';
+  if (valEl) valEl.innerHTML =
+    `<span style="font-size:var(--font-lg);font-weight:900;color:var(--color-primary)">$${total.toFixed(2)}</span>` +
+    `<span style="font-size:11px;font-weight:700;color:var(--color-text-muted);margin-left:6px">${formatFC(total)}</span>`;
+
+  const DOSES  = ['½ comprimé','1 comprimé','2 comprimés','3 comprimés','1 sachet','2 sachets','1 ampoule','5 ml','10 ml'];
+  const FREQS  = ['1×/jour','2×/jour','3×/jour','4×/jour','Matin et soir','Au besoin'];
+  const DUREES = ['3 jours','5 jours','7 jours','10 jours','14 jours','21 jours','1 mois'];
+  const mkSel  = (arr, val, id, field) =>
+    `<select style="font-size:10px;font-weight:700;border:1.5px solid var(--color-border);border-radius:6px;padding:2px 5px;background:var(--color-bg);color:var(--color-text);cursor:pointer" onchange="setPosologie('${id}','${field}',this.value)">` +
+    arr.map(v => `<option${v === val ? ' selected' : ''}>${v}</option>`).join('') + `</select>`;
+
+  el.innerHTML = MED_PANIER.map(item => {
+    const pos  = item.pos || { dose:'1 comprimé', freq:'2×/jour', duree:'7 jours' };
+    const sous = item.produit.prix * item.qte;
+    return `<div class="ord-panier-item" style="flex-direction:column;align-items:stretch;gap:8px;padding:var(--space-md) 0">
+      <div style="display:flex;align-items:flex-start;gap:var(--space-sm)">
+        <div style="flex:1;min-width:0">
+          <div class="font-bold" style="font-size:var(--font-sm);line-height:1.3">${item.produit.nom}</div>
+          <div style="font-size:10px;color:var(--color-text-muted);margin-top:2px">
+            $${item.produit.prix.toFixed(2)}&nbsp;/&nbsp;unité
+            <span style="color:var(--color-border)">·</span>
+            <span style="font-weight:600">${formatFC(item.produit.prix)}&nbsp;/&nbsp;unité</span>
+          </div>
+        </div>
+        <button onclick="removeFromPanier('${item.produit.id}')" title="Retirer" style="background:none;border:none;cursor:pointer;color:#EF4444;padding:4px;display:inline-flex;flex-shrink:0">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;background:var(--color-bg);border-radius:8px;padding:6px 8px">
+        <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-muted)">Posologie</span>
+        ${mkSel(DOSES,  pos.dose,  item.produit.id, 'dose')}
+        ${mkSel(FREQS,  pos.freq,  item.produit.id, 'freq')}
+        ${mkSel(DUREES, pos.duree, item.produit.id, 'duree')}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="ck-qte-btn" onclick="changeQtePanier('${item.produit.id}',-1)">−</button>
+          <span style="font-weight:800;min-width:22px;text-align:center">${item.qte}</span>
+          <button class="ck-qte-btn" onclick="changeQtePanier('${item.produit.id}',1)">+</button>
+          <span style="font-size:11px;color:var(--color-text-muted)">boîte${item.qte > 1 ? 's' : ''}</span>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:900;color:var(--color-primary);font-size:var(--font-sm)">$${sous.toFixed(2)}</div>
+          <div style="font-size:10px;color:var(--color-text-muted);font-weight:600">${formatFC(sous)}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Checkout modal ── */
+function openCheckout() {
+  if (MED_PANIER.length === 0) {
+    showToastMed('L\'ordonnance est vide — prescrivez des médicaments depuis la Pharmacie.');
+    return;
+  }
+  renderCheckoutContent();
+  document.getElementById('checkout-overlay').classList.remove('hidden');
+}
+
+function closeCheckout() {
+  document.getElementById('checkout-overlay').classList.add('hidden');
+}
+
+function renderCheckoutContent() {
+  const el    = document.getElementById('checkout-items');
+  const totEl = document.getElementById('checkout-total');
+  const nbEl  = document.getElementById('checkout-nb');
+  if (!el) return;
+  const total   = MED_PANIER.reduce((s, i) => s + i.produit.prix * i.qte, 0);
+  const nbItems = MED_PANIER.reduce((s, i) => s + i.qte, 0);
+  if (nbEl) nbEl.textContent = nbItems + ' article' + (nbItems > 1 ? 's' : '');
+  el.innerHTML = MED_PANIER.map(item => {
+    const pos    = item.pos || {};
+    const posStr = [pos.dose, pos.freq, pos.duree].filter(Boolean).join(' · ');
+    const sous   = item.produit.prix * item.qte;
+    return `<div class="checkout-item">
+      <div style="flex:1;min-width:0">
+        <div class="font-bold" style="font-size:var(--font-sm)">${item.produit.nom}</div>
+        <div style="font-size:11px;color:var(--color-text-muted)">$${item.produit.prix.toFixed(2)} × ${item.qte} boîte${item.qte > 1 ? 's' : ''}</div>
+        ${posStr ? `<div style="font-size:10px;font-weight:700;color:var(--color-primary-dark);margin-top:2px">${posStr}</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <button class="ck-qte-btn" onclick="changeQtePanier('${item.produit.id}',-1)">−</button>
+        <span style="font-weight:800;min-width:22px;text-align:center">${item.qte}</span>
+        <button class="ck-qte-btn" onclick="changeQtePanier('${item.produit.id}',1)">+</button>
+      </div>
+      <div style="min-width:72px;text-align:right;flex-shrink:0">
+        <div style="font-weight:800;color:var(--color-primary)">$${sous.toFixed(2)}</div>
+        <div style="font-size:10px;color:var(--color-text-muted)">${formatFC(sous)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  if (totEl) totEl.innerHTML =
+    `$${total.toFixed(2)} <span style="font-size:var(--font-sm);font-weight:700;color:var(--color-primary-dark)">(${formatFC(total)})</span>`;
+
+  // Justification thérapeutique → lecture seule dans le checkout
+  const just = (document.getElementById('ord-justification')?.value || '').trim();
+  const justEl = document.getElementById('checkout-justif-text');
+  if (justEl) justEl.textContent = just || '—';
+}
+
+function confirmerCommande() {
+  const patient = document.getElementById('checkout-patient')?.value || 'le patient';
+  const pmt     = document.querySelector('input[name="checkout-pmt"]:checked')?.value || 'Mobile Money';
+  const total   = MED_PANIER.reduce((s, i) => s + i.produit.prix * i.qte, 0);
+  const ref     = 'ORD-' + Date.now().toString(36).toUpperCase().slice(-6);
+
+  // Persistance locale pour auxiliaire et superadmin
+  const commande = {
+    ref, date: new Date().toISOString(), patient,
+    medecin: 'Dr. Béatrice MWAMBA', pmt,
+    items: MED_PANIER.map(i => ({ nom: i.produit.nom, qte: i.qte, prix: i.produit.prix, posologie: i.pos || {} })),
+    justification_therapeutique: (document.getElementById('ord-justification')?.value || '').trim(),
+    total
+  };
+  try { localStorage.setItem('sd_last_commande', JSON.stringify(commande)); } catch(_) {}
+
+  closeCheckout();
+  MED_PANIER = [];
+  updatePanierUI();
+  renderOrdonnancePanier();
+  showToastMed('Commande ' + ref + ' confirmée — $' + total.toFixed(2) + ' via ' + pmt + '. Livraison déclenchée.');
+  showPage('dashboard');
+}
+
+function rejoindreJitsiMedecin() {
+  const jitsiDomain = 'meet.jit.si';
+  const roomName = 'SanteDirectKolongono-CONS-' + Date.now().toString(36).toUpperCase();
+  const jitsiUrl = 'https://' + jitsiDomain + '/' + roomName + '#config.startWithVideoMuted=false&config.startWithAudioMuted=false&userInfo.displayName=Dr.%20Medecin';
+  if (confirm('Rejoindre la salle Jitsi Meet ?\n\nSalle : ' + roomName + '\n\nPartagez ce nom à l\'auxiliaire pour qu\'il rejoigne la même salle.')) {
+    window.open(jitsiUrl, '_blank');
+  }
+}
+
+const menuBtn = document.getElementById('menuToggle');
+const sidebar = document.getElementById('sidebar');
+menuBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+if (window.innerWidth < 900) menuBtn.style.display = 'flex';
+window.addEventListener('resize', () => { menuBtn.style.display = window.innerWidth < 900 ? 'flex' : 'none'; });
+
+/* ══════════════════════════════════════════════
+   DONNÉES PATIENTS
+══════════════════════════════════════════════ */
+/* ── Données catégories auxiliaires (partagées avec centre.html) ── */
+const AUX_CATEGORIES = {
+  'Jean BOLAMBA':    { categorie:'qualifie',  qualification:'Infirmier diplômé d\'État — recyclé SantéDirect (2023)',          tel:'+243 81x' },
+  'Bernadette MBAYA':{ categorie:'qualifie',  qualification:'Sage-femme diplômée — maternité et périnatalité (2019)',          tel:'+243 85x' },
+  'Grace LUZOLO':   { categorie:'proximite', qualification:'Formation secourisme et prise de signes vitaux — 4 semaines (2025)', tel:'+243 84x' },
+  'Alain MBUYI':    { categorie:'proximite', qualification:'Formation prise en charge patient — 3 semaines (2025)',             tel:'+243 86x' },
+};
+
+const PATIENTS_MEDECIN = [
+  {
+    id: 'ADH-001', nom: 'Marie KABONGO', age: 34, sexe: 'F',
+    tel: '+243 81x xxx xxx', adresse: 'Commune de Kinshasa',
+    groupe_sanguin: 'O+', allergies: ['Pénicilline'],
+    antecedents: ['Paludisme récurrent (2022–2025)', 'Anémie ferriprive'],
+    consultations: [
+      {
+        id:'CONS-001', date:'15/05/2026',
+        motif:'Fièvre et frissons depuis 3 jours — température 38.8°C mesurée par l\'auxiliaire',
+        diagnostic:'Paludisme simple — Plasmodium falciparum (TDR positif)',
+        traitement:['Artéméther-Luméfantrine 80/480 mg — 1 comprimé x 2/j pendant 3 jours','Paracétamol 500 mg — 1 comprimé x 3/j si T° > 38.5°C','Repos et hydratation abondante'],
+        suivi:'Guéri', auxiliaire:'Jean BOLAMBA',
+        prescripteur:{ type:'auxiliaire', nom:'Jean BOLAMBA', heure:'08h15' },
+        sv:{ ta:'120/80 mmHg', temp:'38.8°C', pouls:'92 bpm', spo2:'97%' },
+        notes:'Patiente bien tolère le traitement antipaludique. Contrôle recommandé dans 7 jours en cas de rechute ou persistance des symptômes. Prévention conseillée (moustiquaire).'
+      }
+    ],
+    derniere_consultation:'15/05/2026', statut:'Guéri'
+  },
+  {
+    id: 'ADH-003', nom: 'Claire TSHIABA', age: 28, sexe: 'F',
+    tel: '+243 82x xxx xxx', adresse: 'Commune de Ndjili',
+    groupe_sanguin: 'A+', allergies: [],
+    antecedents: ['Grossesse G2P1 — 18 SA', 'HTA gestationnelle (grossesse précédente)'],
+    consultations: [
+      {
+        id:'CONS-002', date:'23/05/2026 (aujourd\'hui)',
+        motif:'Douleurs abdominales diffuses + nausées matinales persistantes — 18 semaines d\'aménorrhée',
+        diagnostic:'Consultation prénatale en cours — suspicion hyperémèse gravidique modérée',
+        traitement:['Métoclopramide 10 mg — si nausées invalidantes (prescription en cours)','Hydratation orale renforcée','Supplémentation fer + acide folique (continuation)'],
+        suivi:'En cours', auxiliaire:'Bernadette MBAYA',
+        prescripteur:{ type:'auxiliaire', nom:'Bernadette MBAYA', heure:'13h42' },
+        sv:{ ta:'110/70 mmHg', temp:'36.9°C', pouls:'78 bpm', spo2:'99%' },
+        notes:'Consultation en cours. TA et SPO2 normaux. Surveiller prise de poids et hydratation. Échographie à 20 SA recommandée.'
+      }
+    ],
+    derniere_consultation:'Aujourd\'hui', statut:'En cours'
+  },
+  {
+    id: 'ADH-007', nom: 'Jean MUKENDI', age: 52, sexe: 'M',
+    tel: '+243 83x xxx xxx', adresse: 'Commune de Lemba',
+    groupe_sanguin: 'B+', allergies: ['Aspirine', 'Ibuprofène'],
+    antecedents: ['Hypertension artérielle (diagnostiquée 2021)', 'Diabète type 2 (diagnostiqué 2023)', 'Surpoids (IMC 28.4)'],
+    consultations: [
+      {
+        id:'CONS-003', date:'08/05/2026',
+        motif:'Céphalées occipitales + tension élevée mesurée à 162/104 mmHg par l\'auxiliaire',
+        diagnostic:'HTA grade 2 — poussée hypertensive sur fond de non-observance thérapeutique',
+        traitement:['Amlodipine 10 mg — 1 comprimé/j le matin (doublement de dose)','Hydrochlorothiazide 25 mg — 1 comprimé/j','Régime sans sel strict — < 5 g NaCl/j','Contrôle glycémie capillaire 2x/semaine'],
+        suivi:'Suivi', auxiliaire:'Jean BOLAMBA',
+        prescripteur:{ type:'ia', nom:'IA Kolongono', confiance:91, diagnostic_ia:'HTA grade 2 probable (TA 162/104 + céphalées) — consultation urgente recommandée', heure:'07h55' },
+        sv:{ ta:'162/104 mmHg', temp:'36.5°C', pouls:'88 bpm', spo2:'98%' },
+        notes:'Adaptation posologique justifiée par l\'élévation tensionnelle. Renforcer l\'observance. RDV dans 2 semaines pour contrôle TA. Régime alimentaire et activité physique douce conseillés.'
+      },
+      {
+        id:'CONS-004', date:'20/04/2026',
+        motif:'Suivi mensuel HTA — vertiges occasionnels en fin de journée',
+        diagnostic:'HTA grade 1 partiellement stabilisée — tolérance correcte du traitement',
+        traitement:['Amlodipine 5 mg — maintien dose précédente','Réévaluation dans 3 semaines si TA > 150/90'],
+        suivi:'Suivi', auxiliaire:'Jean BOLAMBA',
+        prescripteur:{ type:'medecin', nom:'Dr. Patrick KASONGO', specialite:'Médecine interne', etablissement:'Hôpital de Référence de Lemba', diagnostic_ref:'HTA grade 1 — transfert pour suivi ambulatoire SantéDirect', heure:'09h30' },
+        sv:{ ta:'145/92 mmHg', temp:'36.8°C', pouls:'82 bpm', spo2:'97%' },
+        notes:'Légère amélioration tensionnelle par rapport à la consultation précédente. Poursuivre la surveillance. Adapter si la TA reste supérieure à 150/90 au prochain contrôle.'
+      }
+    ],
+    derniere_consultation:'08/05/2026', statut:'Suivi'
+  }
+];
+
+const statusCls = { 'Guéri':'badge-success', 'En cours':'badge-warning', 'Suivi':'badge-info' };
+
+/* ── Rendu carte prescripteur ── */
+function renderPrescripteurCard(presc, compact) {
+  if (!presc) return '';
+  const pad = compact ? 'padding:8px 12px' : 'padding:var(--space-md) var(--space-lg)';
+  if (presc.type === 'auxiliaire') {
+    const cat  = AUX_CATEGORIES[presc.nom];
+    const catA = cat && cat.categorie === 'qualifie';
+    const cls  = catA ? 'presc-aux-a' : 'presc-aux-b';
+    const col  = catA ? '#0F766E' : '#92400E';
+    const bg   = catA ? '#0F766E' : '#D97706';
+    const qual = cat ? cat.qualification : 'Auxiliaire de santé';
+    const catBadge = cat ? `<span class="${catA ? 'aux-cat-a' : 'aux-cat-b'}" style="vertical-align:middle;margin-left:4px">${catA ? 'Cat. A' : 'Cat. B'}</span>` : '';
+    const clickable = cat ? `style="cursor:pointer" onclick="openAuxModalMed('${presc.nom}')" title="Voir la fiche auxiliaire"` : '';
+    return `<div class="presc-card ${cls}" ${clickable} style="${pad};gap:12px">
+      <div class="presc-icon" style="background:${bg}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div style="flex:1;min-width:0">
+        <div class="presc-label" style="color:${col}">Auxiliaire de santé${catBadge}</div>
+        <div class="presc-name" style="color:${col}">${presc.nom}</div>
+        <div class="presc-sub" style="color:${col};opacity:.8">${qual}</div>
+      </div>
+      ${presc.heure ? `<div style="font-size:10px;color:${col};opacity:.7;flex-shrink:0;text-align:right">Pré-cons.<br>${presc.heure}</div>` : ''}
+    </div>`;
+  }
+  if (presc.type === 'ia') {
+    const pct = presc.confiance || 0;
+    return `<div class="presc-card presc-ia" style="${pad};gap:12px">
+      <div class="presc-icon" style="background:#1D4ED8"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1H1a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5" fill="#fff"/><circle cx="16.5" cy="14.5" r="1.5" fill="#fff"/></svg></div>
+      <div style="flex:1;min-width:0">
+        <div class="presc-label" style="color:#1D4ED8">Intelligence artificielle — Kolongono</div>
+        <div class="presc-name" style="color:#1E3A8A">${presc.nom}</div>
+        ${presc.diagnostic_ia ? `<div class="presc-sub" style="color:#1D4ED8;opacity:.85">${presc.diagnostic_ia}</div>` : ''}
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        ${pct ? `<div style="font-size:18px;font-weight:900;color:#1D4ED8">${pct}%</div><div style="font-size:9px;color:#1D4ED8;opacity:.7">confiance IA</div>` : ''}
+        ${presc.heure ? `<div style="font-size:10px;color:#1D4ED8;opacity:.6;margin-top:4px">${presc.heure}</div>` : ''}
+      </div>
+    </div>`;
+  }
+  if (presc.type === 'medecin') {
+    return `<div class="presc-card presc-med" style="${pad};gap:12px">
+      <div class="presc-icon" style="background:#7C3AED"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg></div>
+      <div style="flex:1;min-width:0">
+        <div class="presc-label" style="color:#6D28D9">Médecin référent — Établissement externe</div>
+        <div class="presc-name" style="color:#4C1D95">${presc.nom}</div>
+        <div class="presc-sub" style="color:#7C3AED;opacity:.85">${presc.specialite || ''} · ${presc.etablissement || ''}</div>
+        ${presc.diagnostic_ref ? `<div style="font-size:10px;margin-top:3px;color:#6D28D9;font-style:italic">"${presc.diagnostic_ref}"</div>` : ''}
+      </div>
+      ${presc.heure ? `<div style="font-size:10px;color:#7C3AED;opacity:.7;flex-shrink:0;text-align:right">Référé<br>${presc.heure}</div>` : ''}
+    </div>`;
+  }
+  return '';
+}
+
+/* ══════════════════════════════════════════════
+   RENDU TABLE PATIENTS
+══════════════════════════════════════════════ */
+function renderPatients() {
+  const tbody = document.getElementById('patients-table');
+  if (!tbody) return;
+  tbody.innerHTML = PATIENTS_MEDECIN.map(p => {
+    const dernier = p.consultations[0];
+    return `<tr class="patient-row" onclick="openFiche('${p.id}')" title="Voir la fiche de ${p.nom}">
+      <td>
+        <div class="flex items-center gap-sm">
+          <div class="avatar">${p.nom[0]}</div>
+          <div>
+            <div class="font-bold">${p.nom}</div>
+            <div class="text-xs text-muted">${p.id} · ${p.age} ans · ${p.sexe === 'F' ? 'Femme' : 'Homme'}</div>
+          </div>
+        </div>
+      </td>
+      <td class="text-sm text-muted">${p.derniere_consultation}</td>
+      <td class="text-sm">${dernier ? dernier.diagnostic.slice(0,45) + (dernier.diagnostic.length > 45 ? '…' : '') : '—'}</td>
+      <td><span class="text-sm font-bold" style="color:var(--color-primary)">${p.consultations.length}</span></td>
+      <td><span class="badge ${statusCls[p.statut] || 'badge-muted'}">${p.statut}</span></td>
+    </tr>`;
+  }).join('');
+}
+// Init au chargement
+document.addEventListener('DOMContentLoaded', renderPatients);
+// Re-render si on arrive sur la page
+const _origShowPage = showPage;
+showPage = function(id) { _origShowPage(id); if (id === 'historique') renderPatients(); };
+
+/* ══════════════════════════════════════════════
+   NIVEAU 1 — Fiche patient
+══════════════════════════════════════════════ */
+function openFiche(patientId) {
+  const p = PATIENTS_MEDECIN.find(x => x.id === patientId);
+  if (!p) return;
+
+  document.getElementById('fiche-avatar').textContent = p.nom[0];
+  document.getElementById('fiche-id').textContent = p.id + ' · Adhérent SantéDirect';
+  document.getElementById('fiche-nom').textContent = p.nom;
+
+  document.getElementById('fiche-meta').innerHTML = `
+    <span class="badge ${statusCls[p.statut] || 'badge-muted'}">${p.statut}</span>
+    <span class="text-xs text-muted">${p.age} ans · ${p.sexe === 'F' ? 'Femme' : 'Homme'}</span>
+    <span class="text-xs text-muted">${p.adresse}</span>`;
+
+  document.getElementById('fiche-info-grid').innerHTML = `
+    <div style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-md);border:1px solid var(--color-border);text-align:center">
+      <div class="font-bold" style="font-size:var(--font-lg);color:var(--dark)">${p.groupe_sanguin}</div>
+      <div style="font-size:10px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px">Groupe sanguin</div>
+    </div>
+    <div style="background:${p.allergies.length ? '#FEF2F2' : 'var(--color-bg)'};border-radius:var(--radius-lg);padding:var(--space-md);border:1px solid ${p.allergies.length ? '#FCA5A5' : 'var(--color-border)'};text-align:center">
+      <div class="font-bold" style="font-size:var(--font-lg);color:${p.allergies.length ? '#991B1B' : 'var(--green-deep)'}">${p.allergies.length || '0'}</div>
+      <div style="font-size:10px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px">Allergie(s)</div>
+    </div>
+    <div style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-md);border:1px solid var(--color-border);text-align:center">
+      <div class="font-bold" style="font-size:var(--font-lg);color:var(--color-primary)">${p.consultations.length}</div>
+      <div style="font-size:10px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px">Consultation(s)</div>
+    </div>`;
+
+  const lastSv = p.consultations[0]?.sv;
+  document.getElementById('fiche-sv').innerHTML = lastSv ? `
+    <div class="sv-cell"><div class="sv-val">${lastSv.ta}</div><div class="sv-lbl">Tension</div></div>
+    <div class="sv-cell"><div class="sv-val">${lastSv.temp}</div><div class="sv-lbl">Température</div></div>
+    <div class="sv-cell"><div class="sv-val">${lastSv.pouls}</div><div class="sv-lbl">Pouls</div></div>
+    <div class="sv-cell"><div class="sv-val">${lastSv.spo2}</div><div class="sv-lbl">SpO2</div></div>`
+    : '<div class="text-sm text-muted">Aucune mesure enregistrée</div>';
+
+  document.getElementById('fiche-antecedents').innerHTML = `
+    <div>
+      <div class="section-label" style="margin-bottom:var(--space-xs,6px)">Antécédents médicaux</div>
+      <ul style="padding-left:var(--space-md);margin:0;font-size:var(--font-xs);color:var(--color-text);line-height:1.8">
+        ${p.antecedents.map(a => '<li>' + a + '</li>').join('') || '<li class="text-muted">Aucun antécédent connu</li>'}
+      </ul>
+    </div>
+    <div>
+      <div class="section-label" style="margin-bottom:var(--space-xs,6px)">Allergies connues</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${p.allergies.length ? p.allergies.map(a => '<span class="badge badge-danger" style="font-size:11px">' + a + '</span>').join('') : '<span class="text-sm text-muted">Aucune allergie déclarée</span>'}
+      </div>
+    </div>`;
+
+  document.getElementById('fiche-nb-cons').textContent = p.consultations.length + ' consultation(s)';
+  const dotColor = { 'Guéri':'var(--green-deep)', 'En cours':'#D97706', 'Suivi':'var(--blue-deep)' };
+  document.getElementById('fiche-consultations').innerHTML = p.consultations.map(c => `
+    <div class="cons-item" onclick="openCons('${p.id}','${c.id}')" title="Voir le détail de cette consultation">
+      <div class="cons-dot" style="background:${dotColor[c.suivi] || '#9CA3AF'}"></div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span class="font-bold" style="font-size:var(--font-sm)">${c.date}</span>
+          <span class="badge ${statusCls[c.suivi] || 'badge-muted'}" style="font-size:10px">${c.suivi}</span>
+        </div>
+        <div class="text-sm text-muted" style="margin-bottom:3px">${c.motif.slice(0, 70)}${c.motif.length > 70 ? '…' : ''}</div>
+        <div class="text-xs font-bold" style="color:var(--dark)">${c.diagnostic.slice(0, 55)}${c.diagnostic.length > 55 ? '…' : ''}</div>
+      </div>
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--color-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:4px"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>`).join('') || '<div class="text-sm text-muted">Aucune consultation enregistrée</div>';
+
+  document.getElementById('fiche-panel').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFiche() {
+  document.getElementById('fiche-panel').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+/* ══════════════════════════════════════════════
+   NIVEAU 2 — Détail consultation
+══════════════════════════════════════════════ */
+function openCons(patientId, consId) {
+  const p = PATIENTS_MEDECIN.find(x => x.id === patientId);
+  if (!p) return;
+  const c = p.consultations.find(x => x.id === consId);
+  if (!c) return;
+
+  document.getElementById('cons-eyelet').textContent = p.nom + ' · ' + consId;
+  document.getElementById('cons-titre').textContent = c.date + ' — ' + c.motif.slice(0, 60) + (c.motif.length > 60 ? '…' : '');
+
+  document.getElementById('cons-body').innerHTML = `
+    <div class="section-label" style="margin-bottom:var(--space-sm)">Signes vitaux à la pré-consultation</div>
+    <div class="sv-grid" style="margin-bottom:var(--space-lg)">
+      <div class="sv-cell"><div class="sv-val">${c.sv.ta}</div><div class="sv-lbl">Tension</div></div>
+      <div class="sv-cell"><div class="sv-val">${c.sv.temp}</div><div class="sv-lbl">Température</div></div>
+      <div class="sv-cell"><div class="sv-val">${c.sv.pouls}</div><div class="sv-lbl">Pouls</div></div>
+      <div class="sv-cell"><div class="sv-val">${c.sv.spo2}</div><div class="sv-lbl">SpO2</div></div>
+    </div>
+    <div class="section-label" style="margin-bottom:var(--space-sm)">Motif de consultation</div>
+    <div style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-md);font-size:var(--font-sm);line-height:1.7;margin-bottom:var(--space-lg);border:1px solid var(--color-border)">${c.motif}</div>
+    <div class="section-label" style="margin-bottom:var(--space-sm)">Diagnostic</div>
+    <div style="background:var(--blue-soft);border-left:4px solid var(--blue-deep);border-radius:0 var(--radius-lg) var(--radius-lg) 0;padding:var(--space-md) var(--space-lg);font-size:var(--font-sm);font-weight:700;color:var(--dark);margin-bottom:var(--space-lg)">${c.diagnostic}</div>
+    <div class="section-label" style="margin-bottom:var(--space-sm)">Traitement prescrit</div>
+    <ul style="padding-left:var(--space-xl);margin:0 0 var(--space-lg);font-size:var(--font-sm);line-height:1.8">
+      ${c.traitement.length ? c.traitement.map(t => `<li style="margin-bottom:6px"><strong>${t.split(' — ')[0]}</strong>${t.includes(' — ') ? ' — ' + t.split(' — ').slice(1).join(' — ') : ''}</li>`).join('') : '<li class="text-muted">Aucun traitement prescrit</li>'}
+    </ul>
+    ${c.notes ? `<div class="section-label" style="margin-bottom:var(--space-sm)">Notes du médecin</div>
+    <div style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-md);font-size:var(--font-sm);line-height:1.72;color:var(--color-text-muted);margin-bottom:var(--space-lg);border:1px solid var(--color-border);font-style:italic">${c.notes}</div>` : ''}
+    <div class="section-label" style="margin-bottom:var(--space-sm)">Prescripteur du rendez-vous</div>
+    ${renderPrescripteurCard(c.prescripteur, true)}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:var(--space-md);border-top:1px solid var(--color-border);margin-top:var(--space-md)">
+      <div class="text-xs text-muted">Signes vitaux saisis par : <span class="aux-link" onclick="openAuxModalMed('${c.auxiliaire}')" title="Voir la fiche de l'auxiliaire">${c.auxiliaire}</span>${AUX_CATEGORIES[c.auxiliaire] ? ' <span class="' + (AUX_CATEGORIES[c.auxiliaire].categorie === 'qualifie' ? 'aux-cat-a' : 'aux-cat-b') + '" style="font-size:9px;padding:1px 7px">' + (AUX_CATEGORIES[c.auxiliaire].categorie === 'qualifie' ? 'Cat. A' : 'Cat. B') + '</span>' : ''}</div>
+      <span class="badge ${statusCls[c.suivi] || 'badge-muted'}">${c.suivi}</span>
+    </div>
+    <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg)">
+      <button class="btn btn-primary btn-sm" onclick="showPage('ordonnance');closeCons();closeFiche()">Nouvelle ordonnance</button>
+      <button class="btn btn-outline btn-sm" onclick="closeCons()">Fermer</button>
+    </div>`;
+
+  document.getElementById('cons-modal').classList.remove('hidden');
+}
+
+function closeCons() {
+  document.getElementById('cons-modal').classList.add('hidden');
+}
+
+/* ── Modal auxiliaire ── */
+function openAuxModalMed(nom) {
+  const data = AUX_CATEGORIES[nom];
+  if (!data) return;
+  const catA = data.categorie === 'qualifie';
+  const catLbl = catA ? 'Catégorie A — Qualifié' : 'Catégorie B — Proximité';
+  const catCls  = catA ? 'aux-cat-a' : 'aux-cat-b';
+  const impliquer = catA
+    ? 'Peut réaliser des actes infirmiers, interpréter les signes vitaux, préparer les injections et assister activement le médecin pendant la téléconsultation.'
+    : 'Peut mesurer les signes vitaux et les transmettre. Ne réalise pas d\'actes médicaux autonomes. Présence de soutien pour le patient.';
+  const initiales = nom.split(' ').filter(w => /^[A-Z]/.test(w)).slice(0,2).map(w=>w[0]).join('');
+  document.getElementById('aux-med-modal-content').innerHTML = `
+    <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-lg)">
+      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--color-primary) 0%,var(--color-primary-dark) 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:var(--font-md);flex-shrink:0">${initiales}</div>
+      <div>
+        <div class="font-bold" style="font-size:var(--font-lg)">${nom}</div>
+        <div class="text-sm text-muted">Auxiliaire de santé · ${data.tel}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:var(--space-lg)"><span class="${catCls}" style="font-size:12px;padding:4px 14px">${catLbl}</span></div>
+    <div class="section-label mb-sm">Qualification</div>
+    <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-md);font-size:var(--font-sm);line-height:1.6;margin-bottom:var(--space-lg)">${data.qualification}</div>
+    <div class="section-label mb-sm">Implication possible en téléconsultation</div>
+    <div style="background:${catA ? 'var(--blue-soft)' : '#FFFBEB'};border-left:4px solid ${catA ? 'var(--blue-deep)' : '#F59E0B'};border-radius:0 var(--radius-lg) var(--radius-lg) 0;padding:var(--space-md) var(--space-lg);font-size:var(--font-sm);line-height:1.7;margin-bottom:var(--space-lg)">${impliquer}</div>
+    <div style="display:flex;justify-content:flex-end">
+      <button class="btn btn-outline btn-sm" onclick="closeAuxModalMed()">Fermer</button>
+    </div>`;
+  document.getElementById('aux-med-modal').classList.remove('hidden');
+}
+
+function closeAuxModalMed() {
+  document.getElementById('aux-med-modal').classList.add('hidden');
+}
+
+/* Toast médecin */
+let _toastMedTimer;
+function showToastMed(msg) {
+  const el = document.getElementById('toast-med');
+  el.textContent = msg;
+  el.style.opacity = '1'; el.style.pointerEvents = 'auto';
+  clearTimeout(_toastMedTimer);
+  _toastMedTimer = setTimeout(() => { el.style.opacity='0'; el.style.pointerEvents='none'; }, 3500);
+}
+
+/* ══════════════════════════════════════════════
+   AGENDA MÉDECIN
+══════════════════════════════════════════════ */
+
+// État global de l'agenda
+let AGENDA_VUE  = 'jour';
+let AGENDA_DATE = new Date(2026, 4, 23); // aujourd'hui = samedi 23 mai 2026
+
+// Disponibilités hebdomadaires officielles (partagées admin/auxiliaire/IA)
+// Clé = jour JS (0=dim, 1=lun … 6=sam)
+const MED_DISPO = {
+  0: [],
+  1: [{ debut:'08:00', fin:'12:00' }, { debut:'14:00', fin:'18:00' }],
+  2: [{ debut:'08:00', fin:'12:00' }, { debut:'14:00', fin:'17:00' }],
+  3: [{ debut:'09:00', fin:'13:00' }],
+  4: [{ debut:'08:00', fin:'12:00' }, { debut:'14:00', fin:'18:00' }],
+  5: [{ debut:'08:00', fin:'11:00' }, { debut:'14:00', fin:'16:00' }],
+  6: [{ debut:'10:00', fin:'14:00' }],  // samedi exceptionnel (téléconsult.)
+};
+
+// Nombre de créneaux 30 min disponibles dans une journée
+function nbCreneauxJour(dow) {
+  return (MED_DISPO[dow] || []).reduce((s, d) => {
+    const [dh, dm] = d.debut.split(':').map(Number);
+    const [fh, fm] = d.fin.split(':').map(Number);
+    return s + ((fh * 60 + fm) - (dh * 60 + dm)) / 30;
+  }, 0);
+}
+
+// Toutes les consultations de la semaine 18-24 mai 2026
+const MED_AGENDA_DATA = [
+  // Lundi 18 mai
+  { date:'2026-05-18', heure:'08:30', patient:'Emile KATAMBA',      code:'ADH-011', motif:'Vaccination — suivi pédiatrique',   statut:'termine',  type:'preconsult',  auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-18', heure:'09:15', patient:'Nadia KANDA',        code:'ADH-022', motif:'Paludisme — récidive',             statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-18', heure:'10:30', patient:'Pascaline NGANGA',   code:'ADH-009', motif:'Douleurs abdominales persistantes', statut:'termine',  type:'teleconsult', auxiliaire:'Bernadette MBAYA' },
+  { date:'2026-05-18', heure:'14:30', patient:'Henri LUZOLO',       code:'ADH-033', motif:'Toux + dyspnée d\'effort',         statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  // Mardi 19 mai
+  { date:'2026-05-19', heure:'08:30', patient:'Chantal KABAMBA',    code:'ADH-017', motif:'Consultation prénatale — 18 SA',   statut:'termine',  type:'teleconsult', auxiliaire:'Bernadette MBAYA' },
+  { date:'2026-05-19', heure:'09:30', patient:'Roger TSHIMANGA',    code:'ADH-024', motif:'HTA — contrôle mensuel',           statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-19', heure:'11:00', patient:'Martine ILUNGA',     code:'ADH-038', motif:'Infection cutanée — surinfection', statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-19', heure:'14:00', patient:'Jerome KALOMBO',     code:'ADH-041', motif:'Diabète type 2 — glycémie haute',  statut:'termine',  type:'teleconsult', auxiliaire:'—' },
+  { date:'2026-05-19', heure:'15:30', patient:'Augustin MBALA',     code:'ADH-052', motif:'Suivi post-op — cicatrisation',    statut:'termine',  type:'suivi',       auxiliaire:'Jean BOLAMBA' },
+  // Mercredi 20 mai
+  { date:'2026-05-20', heure:'09:30', patient:'Sylvie MUKEBA',      code:'ADH-001', motif:'Paludisme — bilan post-traitement',statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-20', heure:'11:00', patient:'Florence KANDA',     code:'ADH-019', motif:'Céphalées sévères — bilan neuro',  statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  // Jeudi 21 mai
+  { date:'2026-05-21', heure:'08:30', patient:'Victor MWAMBA',      code:'ADH-014', motif:'Traumatisme — bilan radiologique', statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-21', heure:'09:30', patient:'Gaston NTUMBA',      code:'ADH-020', motif:'Diarrhée aiguë — réhydratation',   statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-21', heure:'10:30', patient:'Therese BANZA',      code:'ADH-025', motif:'Diabète — contrôle glycémique',    statut:'termine',  type:'teleconsult', auxiliaire:'—' },
+  { date:'2026-05-21', heure:'14:00', patient:'Nadège LUKUSA',      code:'ADH-029', motif:'Paludisme — suivi J7',             statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-21', heure:'15:30', patient:'Timothée KAZADI',    code:'ADH-036', motif:'Post-op — suivi cicatrisation',    statut:'termine',  type:'suivi',       auxiliaire:'Jean BOLAMBA' },
+  // Vendredi 22 mai
+  { date:'2026-05-22', heure:'08:30', patient:'Marie KABONGO',      code:'ADH-001', motif:'Paludisme — contrôle guérison',   statut:'termine',  type:'preconsult',  auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-22', heure:'09:30', patient:'Jean MUKENDI',       code:'ADH-007', motif:'HTA — poussée hypertensive',      statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-22', heure:'14:00', patient:'Pascaline NGANGA',   code:'ADH-009', motif:'Suivi consultation abdominale',    statut:'termine',  type:'preconsult',  auxiliaire:'Bernadette MBAYA' },
+  // Samedi 23 mai (aujourd'hui)
+  { date:'2026-05-23', heure:'10:30', patient:'Marie KABONGO',      code:'ADH-001', motif:'Paludisme simple',                statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-23', heure:'11:45', patient:'Joseph MUTOMBO',     code:'ADH-002', motif:'HTA suivi mensuel',               statut:'termine',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { date:'2026-05-23', heure:'14:00', patient:'Claire TSHIABA',     code:'ADH-003', motif:'Douleurs abdominales + nausées',  statut:'en_cours', type:'teleconsult', auxiliaire:'Bernadette MBAYA',  prescripteur:{ type:'auxiliaire', nom:'Bernadette MBAYA', heure:'13h42' } },
+  { date:'2026-05-23', heure:'15:30', patient:'Paul NKEMBA',        code:'ADH-004', motif:'HTA suivi',                       statut:'planifie', type:'teleconsult', auxiliaire:'Jean BOLAMBA',     prescripteur:{ type:'auxiliaire', nom:'Jean BOLAMBA',     heure:'15h10' } },
+  { date:'2026-05-23', heure:'16:00', patient:'Thomas KABILA',      code:'ADH-005', motif:'Toux persistante',                statut:'planifie', type:'teleconsult', auxiliaire:'—',                prescripteur:{ type:'ia',         nom:'IA Kolongono',    confiance:78, diagnostic_ia:'Infection respiratoire probable — consultation recommandée', heure:'15h45' } },
+  { date:'2026-05-23', heure:'16:30', patient:'Jean MUKENDI',       code:'ADH-007', motif:'HTA grade 2 suivi',               statut:'planifie', type:'teleconsult', auxiliaire:'Jean BOLAMBA',     prescripteur:{ type:'medecin',    nom:'Dr. Patrick KASONGO', specialite:'Médecine interne', etablissement:'Hôpital de Lemba', heure:'09h00' } },
+  { date:'2026-05-23', heure:'17:00', patient:'Josephine BAFUA',    code:'ADH-023', motif:'Douleurs abdominales',            statut:'planifie', type:'teleconsult', auxiliaire:'Jean BOLAMBA',     prescripteur:{ type:'auxiliaire', nom:'Jean BOLAMBA',     heure:'16h30' } },
+  { date:'2026-05-23', heure:'17:30', patient:'Honorine KABAMBA',   code:'ADH-031', motif:'Consultation prénatale 22 SA',    statut:'planifie', type:'teleconsult', auxiliaire:'Bernadette MBAYA',  prescripteur:{ type:'auxiliaire', nom:'Bernadette MBAYA', heure:'17h10' } },
+  { date:'2026-05-23', heure:'18:00', patient:'Victor TSHIMBOMBO',  code:'ADH-042', motif:'Diabète type 2 — glycémie',       statut:'planifie', type:'suivi',       auxiliaire:'—',                prescripteur:{ type:'ia',         nom:'IA Kolongono',    confiance:85, diagnostic_ia:'Déséquilibre glycémique probable — suivi programmé', heure:'17h30' } },
+  { date:'2026-05-23', heure:'18:30', patient:'Roger MBENZA',       code:'ADH-057', motif:'Fièvre + paludisme suspect',      statut:'planifie', type:'teleconsult', auxiliaire:'Jean BOLAMBA',     prescripteur:{ type:'auxiliaire', nom:'Jean BOLAMBA',     heure:'18h05' } },
+];
+
+// Jours occupés du mois de mai (hors données connues — pour la vue mois)
+const MAI_JOURS_OCCUP = [4,6,8,11,13,15,18,19,20,21,22,23];
+
+// ── Utilitaires
+function isoDate(d) { return d.toISOString().split('T')[0]; }
+function consForDate(s) { return MED_AGENDA_DATA.filter(c => c.date === s); }
+const DOW_FR_COURT = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+const DOW_FR_LONG  = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const MOIS_FR      = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+// ── Entrée principale
+function renderAgendaMed() {
+  showAgendaPane(AGENDA_VUE);
+  if (AGENDA_VUE === 'jour')    renderAgendaJour();
+  else if (AGENDA_VUE === 'semaine') renderAgendaSemaine();
+  else renderAgendaMois();
+}
+
+function showAgendaPane(vue) {
+  document.getElementById('agenda-pane-jour').style.display    = vue === 'jour'    ? '' : 'none';
+  document.getElementById('agenda-pane-semaine').style.display = vue === 'semaine' ? '' : 'none';
+  document.getElementById('agenda-pane-mois').style.display    = vue === 'mois'    ? '' : 'none';
+}
+
+function setAgendaVue(vue) {
+  AGENDA_VUE = vue;
+  document.querySelectorAll('.agenda-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.vue === vue));
+  document.getElementById('agenda-back-btn').style.display = 'none';
+  showAgendaPane(vue);
+  renderAgendaMed();
+}
+
+// ── Vue JOUR
+function renderAgendaJour() {
+  const dateStr = isoDate(AGENDA_DATE);
+  const cons    = consForDate(dateStr);
+  const dow     = AGENDA_DATE.getDay();
+  const dispos  = MED_DISPO[dow] || [];
+  const isToday = dateStr === '2026-05-23';
+
+  // Label + compte
+  document.getElementById('agenda-day-label').textContent =
+    DOW_FR_LONG[dow] + ' ' + AGENDA_DATE.getDate() + ' ' + MOIS_FR[AGENDA_DATE.getMonth()] + ' ' + AGENDA_DATE.getFullYear();
+  document.getElementById('agenda-jour-next').disabled = isToday;
+
+  // KPIs
+  const term = cons.filter(c => c.statut === 'termine').length;
+  const enCours = cons.filter(c => c.statut === 'en_cours').length;
+  const planif  = cons.filter(c => c.statut === 'planifie').length;
+  document.getElementById('agenda-jour-kpis').innerHTML = [
+    ['Total', cons.length, 'var(--color-primary)'],
+    ['Terminées', term, 'var(--green-deep)'],
+    ['En cours', enCours, '#D97706'],
+    ['Planifiées', planif, 'var(--blue-deep)'],
+  ].map(([lbl, n, col]) => `<div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-xl);padding:var(--space-sm) var(--space-lg);text-align:center;min-width:80px"><div style="font-size:var(--font-xl);font-weight:900;color:${col};line-height:1">${n}</div><div style="font-size:10px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px">${lbl}</div></div>`).join('');
+
+  // Disponibilités
+  document.getElementById('agenda-jour-dispos').innerHTML = dispos.length
+    ? dispos.map(d => `<span class="agenda-dispo-badge"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${d.debut}–${d.fin}</span>`).join('')
+    : '<span class="text-muted" style="font-size:11px">Aucune disponibilité officielle ce jour</span>';
+
+  // Liste consultations
+  const stCls = { termine:'badge-muted', en_cours:'badge-warning', planifie:'badge-info' };
+  const stLbl = { termine:'Terminée', en_cours:'En cours', planifie:'Planifié' };
+  const tpLbl = { teleconsult:'Téléconsult.', preconsult:'Pré-diag.', suivi:'Suivi' };
+
+  document.getElementById('agenda-jour-list').innerHTML = cons.length
+    ? cons.map(c => `
+      <div class="agenda-consult-row${c.statut === 'termine' ? ' agenda-row-done' : ''}">
+        <div class="agenda-time">${c.heure}</div>
+        <div class="agenda-row-sep"></div>
+        <div class="avatar" style="flex-shrink:0;background:${c.statut === 'en_cours' ? '#FEF3C7' : ''}">${c.patient[0]}</div>
+        <div style="flex:1;min-width:0">
+          <div class="font-bold" style="font-size:var(--font-sm)">${c.patient} <span class="badge badge-muted" style="font-size:9px">${c.code}</span></div>
+          <div class="text-xs text-muted">${c.motif}</div>
+          <div style="margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            ${c.prescripteur ? (() => {
+              const p = c.prescripteur;
+              if (p.type === 'auxiliaire') {
+                const cat = AUX_CATEGORIES[p.nom];
+                const catA = cat && cat.categorie === 'qualifie';
+                return `<span style="font-size:10px;color:${catA ? '#0F766E' : '#92400E'};font-weight:700;display:inline-flex;align-items:center;gap:3px"><svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> ${p.nom} <span class="${catA ? 'aux-cat-a' : 'aux-cat-b'}" style="font-size:8px;padding:0 5px">${catA ? 'Cat. A' : 'Cat. B'}</span></span>`;
+              }
+              if (p.type === 'ia') return `<span style="font-size:10px;color:#1D4ED8;font-weight:700;display:inline-flex;align-items:center;gap:3px"><svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> IA — ${p.confiance}%</span>`;
+              if (p.type === 'medecin') return `<span style="font-size:10px;color:#7C3AED;font-weight:700;display:inline-flex;align-items:center;gap:3px"><svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1"/><path d="M8 15v1a6 6 0 0 0 6 6v0"/></svg> ${p.nom}</span>`;
+              return '';
+            })() : `<span class="text-xs text-muted">Aux. <strong>${c.auxiliaire}</strong></span>`}
+            <span style="font-size:10px;font-weight:600;color:var(--color-primary)">${tpLbl[c.type] || c.type}</span>
+          </div>
+        </div>
+        <span class="badge ${stCls[c.statut] || 'badge-muted'}">${stLbl[c.statut] || c.statut}</span>
+        ${c.statut === 'planifie' ? `<button class="btn btn-primary btn-sm" onclick="showPage('consultation')">Démarrer</button>` : ''}
+      </div>`).join('')
+    : '<div class="text-muted text-sm" style="padding:24px;text-align:center;border:1.5px dashed var(--color-border);border-radius:var(--radius-xl)">Aucune consultation ce jour</div>';
+}
+
+function agendaNavJour(delta) {
+  AGENDA_DATE = new Date(AGENDA_DATE.getTime() + delta * 86400000);
+  AGENDA_VUE  = 'jour';
+  document.querySelectorAll('.agenda-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.vue === 'jour'));
+  document.getElementById('agenda-back-btn').style.display = 'none';
+  showAgendaPane('jour');
+  renderAgendaJour();
+}
+
+// Depuis semaine/mois → jour + bouton retour
+function agendaJourFrom(fromVue, dateStr) {
+  if (dateStr) AGENDA_DATE = new Date(dateStr + 'T00:00:00');
+  AGENDA_VUE = 'jour';
+  document.querySelectorAll('.agenda-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.vue === 'jour'));
+  showAgendaPane('jour');
+  const backBtn = document.getElementById('agenda-back-btn');
+  backBtn.style.display = '';
+  backBtn.onclick = () => {
+    AGENDA_VUE = fromVue;
+    document.querySelectorAll('.agenda-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.vue === fromVue));
+    backBtn.style.display = 'none';
+    showAgendaPane(fromVue);
+    if (fromVue === 'semaine') renderAgendaSemaine();
+    else renderAgendaMois();
+  };
+  renderAgendaJour();
+}
+
+// ── Vue SEMAINE
+function renderAgendaSemaine() {
+  const dow    = AGENDA_DATE.getDay();
+  const monday = new Date(AGENDA_DATE);
+  monday.setDate(AGENDA_DATE.getDate() - (dow === 0 ? 6 : dow - 1));
+  const today  = '2026-05-23';
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+
+  document.getElementById('agenda-semaine-label').textContent =
+    'Semaine du ' + days[0].getDate() + ' au ' + days[6].getDate() + ' ' + MOIS_FR[days[6].getMonth()] + ' ' + days[6].getFullYear();
+
+  document.getElementById('agenda-semaine-grid').innerHTML = days.map(day => {
+    const dateStr = isoDate(day);
+    const cons    = consForDate(dateStr);
+    const dispos  = MED_DISPO[day.getDay()] || [];
+    const isT     = dateStr === today;
+    const total   = nbCreneauxJour(day.getDay());
+    const pct     = total > 0 ? Math.min(100, Math.round(cons.length / total * 100)) : 0;
+
+    return `<div class="agenda-week-col${isT ? ' agenda-week-today' : ''}" onclick="agendaJourFrom('semaine','${dateStr}')">
+      <div class="agenda-week-hdr${isT ? ' today' : ''}">
+        <div style="font-size:10px;font-weight:800">${DOW_FR_COURT[day.getDay()]}</div>
+        <div style="font-size:18px;font-weight:900">${day.getDate()}</div>
+      </div>
+      ${dispos.length
+        ? `<div class="agenda-week-dispo">${dispos.map(d => `<div class="agenda-dispo-mini">${d.debut}–${d.fin}</div>`).join('')}</div>`
+        : `<div style="font-size:9px;color:var(--color-text-muted);padding:4px;text-align:center">Repos</div>`}
+      ${cons.length ? `
+        <div class="agenda-week-slots">
+          ${cons.slice(0, 4).map(c => `<div class="agenda-mini-slot${c.statut === 'en_cours' ? ' agenda-mini-encours' : c.statut === 'planifie' ? ' agenda-mini-planifie' : ''}">${c.heure} · ${c.patient.split(' ')[0]}</div>`).join('')}
+          ${cons.length > 4 ? `<div style="font-size:9px;color:var(--color-text-muted);padding:2px 4px">+${cons.length - 4} autre${cons.length - 4 > 1 ? 's' : ''}</div>` : ''}
+        </div>
+        <div class="agenda-week-fill"><div style="height:100%;width:${pct}%;background:var(--color-primary);border-radius:var(--radius-full)"></div></div>
+        <div style="font-size:9px;text-align:center;color:var(--color-text-muted);padding-bottom:4px">${cons.length}/${Math.round(total)} créneaux</div>
+      ` : (dispos.length ? `<div style="font-size:9px;color:var(--green-deep);font-weight:700;padding:6px;text-align:center">Disponible</div>` : '')}
+    </div>`;
+  }).join('');
+}
+
+function agendaNavSemaine(delta) {
+  AGENDA_DATE = new Date(AGENDA_DATE.getTime() + delta * 7 * 86400000);
+  renderAgendaSemaine();
+}
+
+// ── Vue MOIS
+function renderAgendaMois() {
+  const year  = AGENDA_DATE.getFullYear();
+  const month = AGENDA_DATE.getMonth();
+  const today = '2026-05-23';
+  const firstDow = (new Date(year, month, 1).getDay() + 6) % 7; // lundi=0
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  document.getElementById('agenda-mois-label').textContent = MOIS_FR[month] + ' ' + year;
+  document.getElementById('agenda-mois-prev').onclick = () => { AGENDA_DATE = new Date(year, month - 1, 1); renderAgendaMois(); };
+  document.getElementById('agenda-mois-next').onclick = () => { AGENDA_DATE = new Date(year, month + 1, 1); renderAgendaMois(); };
+
+  let html = '<div class="agenda-cal-grid">';
+  ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].forEach(d => {
+    html += `<div class="agenda-cal-hdr">${d}</div>`;
+  });
+  for (let i = 0; i < firstDow; i++) html += '<div></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date    = new Date(year, month, d);
+    const dateStr = isoDate(date);
+    const cons    = consForDate(dateStr);
+    const occupied= cons.length > 0 || (year === 2026 && month === 4 && MAI_JOURS_OCCUP.includes(d));
+    const isToday = dateStr === today;
+    const isWE    = date.getDay() === 0 || date.getDay() === 6;
+    const click   = occupied ? `onclick="agendaJourFrom('mois','${dateStr}')"` : '';
+    html += `<div class="agenda-cal-cell${isToday ? ' agenda-cal-today' : ''}${occupied ? ' agenda-cal-busy' : ''}${isWE && !occupied ? ' agenda-cal-weekend' : ''}" ${click}>
+      <div class="agenda-cal-num">${d}</div>
+      ${occupied ? '<div class="agenda-cal-dot"></div>' : ''}
+      ${cons.length ? `<div class="agenda-cal-cnt">${cons.length}</div>` : ''}
+    </div>`;
+  }
+  html += '</div>';
+  document.getElementById('agenda-mois-body').innerHTML = html;
+}
+
+// ── Swipe sur mobile (vue jour)
+(function() {
+  let tx = 0;
+  const pane = () => document.getElementById('agenda-pane-jour');
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive:true });
+  document.addEventListener('touchend', e => {
+    if (!pane() || pane().style.display === 'none') return;
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 60) agendaNavJour(dx < 0 ? 1 : -1);
+  }, { passive:true });
+})();
+
+/* ══════════════════════════════════════════════
+   PAGE RDV MÉDECIN
+══════════════════════════════════════════════ */
+const MED_RDV_DATA = [
+  { heure:'10:30', patient:'Marie KABONGO',     code:'ADH-001', motif:'Paludisme simple',          statut:'termine',   type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { heure:'11:45', patient:'Joseph MUTOMBO',    code:'ADH-002', motif:'HTA suivi',                 statut:'termine',   type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { heure:'14:00', patient:'Claire TSHIABA',    code:'ADH-003', motif:'Douleurs abdominales',      statut:'en_cours',  type:'teleconsult', auxiliaire:'Bernadette MBAYA' },
+  { heure:'15:30', patient:'Paul NKEMBA',       code:'ADH-004', motif:'HTA suivi',                 statut:'planifie',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { heure:'16:00', patient:'Thomas KABILA',     code:'ADH-005', motif:'Toux persistante',          statut:'planifie',  type:'teleconsult', auxiliaire:'—' },
+  { heure:'16:30', patient:'Jean MUKENDI',      code:'ADH-007', motif:'HTA grade 2 suivi',         statut:'planifie',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { heure:'17:00', patient:'Josephine BAFUA',   code:'ADH-023', motif:'Douleurs abdominales',      statut:'planifie',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+  { heure:'17:30', patient:'Honorine KABAMBA',  code:'ADH-031', motif:'Consultation prénatale 22 SA', statut:'planifie', type:'teleconsult', auxiliaire:'Bernadette MBAYA' },
+  { heure:'18:00', patient:'Victor TSHIMBOMBO', code:'ADH-042', motif:'Diabète type 2 — glycémie', statut:'planifie',  type:'suivi',       auxiliaire:'—' },
+  { heure:'18:30', patient:'Roger MBENZA',      code:'ADH-057', motif:'Fièvre + paludisme suspect',statut:'planifie',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
+];
+
+function renderMedRDV() {
+  const el = document.getElementById('med-rdv-list');
+  if (!el) return;
+  const dateInput = document.getElementById('med-rdv-date');
+  if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
+  const statusCls  = { termine:'badge-muted', en_cours:'badge-warning', planifie:'badge-info' };
+  const statusLbl  = { termine:'Terminée', en_cours:'En cours', planifie:'Planifié' };
+  el.innerHTML = MED_RDV_DATA.map(r => `
+    <div class="med-rdv-row${r.statut === 'termine' ? ' med-rdv-term' : ''}">
+      <div class="med-rdv-heure">${r.heure}</div>
+      <div class="med-rdv-sep"></div>
+      <div class="avatar">${r.patient[0]}</div>
+      <div style="flex:1;min-width:0">
+        <div class="font-bold" style="font-size:var(--font-sm)">${r.patient} <span class="badge badge-muted" style="font-size:9px">${r.code}</span></div>
+        <div class="text-xs text-muted">${r.motif} · Aux. ${r.auxiliaire}</div>
+      </div>
+      <span class="badge ${statusCls[r.statut] || 'badge-muted'}">${statusLbl[r.statut] || r.statut}</span>
+      ${r.statut === 'planifie' ? `<button class="btn btn-primary btn-sm" onclick="showPage('consultation')">Démarrer</button>` : `<button class="btn btn-outline btn-sm" onclick="showPage('historique')">Voir</button>`}
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════
+   PAGE PHARMACIE MÉDECIN
+══════════════════════════════════════════════ */
+const MED_PHARMA_PRODUITS = [
+  { id:'P01', nom:'Artéméther-Luméfantrine 80/480 mg',   cat:'antipaludeen',      prix:2.40, stock:142, seuil:30, rupture:false },
+  { id:'P02', nom:'Artéméther-Luméfantrine 40/240 mg',   cat:'antipaludeen',      prix:1.60, stock:98,  seuil:25, rupture:false },
+  { id:'P03', nom:'Quinine Sulfate 300 mg',               cat:'antipaludeen',      prix:1.80, stock:67,  seuil:20, rupture:false },
+  { id:'P04', nom:'Paracétamol 500 mg',                   cat:'analgesique',       prix:0.35, stock:284, seuil:50, rupture:false },
+  { id:'P05', nom:'Ibuprofène 400 mg',                    cat:'analgesique',       prix:0.55, stock:190, seuil:40, rupture:false },
+  { id:'P06', nom:'Amlodipine 5 mg',                      cat:'antihypertenseur',  prix:1.20, stock:112, seuil:20, rupture:false },
+  { id:'P07', nom:'Amlodipine 10 mg',                     cat:'antihypertenseur',  prix:1.50, stock:89,  seuil:20, rupture:false },
+  { id:'P08', nom:'Hydrochlorothiazide 25 mg',            cat:'antihypertenseur',  prix:0.80, stock:134, seuil:30, rupture:false },
+  { id:'P09', nom:'Amoxicilline 500 mg',                  cat:'antibiotic',        prix:1.10, stock:76,  seuil:25, rupture:false },
+  { id:'P10', nom:'Cotrimoxazole 480 mg',                 cat:'antibiotic',        prix:0.75, stock:23,  seuil:30, rupture:false },
+  { id:'P11', nom:'Métoclopramide 10 mg',                 cat:'maternel',          prix:0.90, stock:58,  seuil:15, rupture:false },
+  { id:'P12', nom:'Fer + Acide folique 60/0.4 mg',        cat:'maternel',          prix:0.60, stock:145, seuil:30, rupture:false },
+  { id:'P13', nom:'Ocytocine 10 UI/1 ml',                 cat:'maternel',          prix:2.80, stock:12,  seuil:10, rupture:false },
+  { id:'P14', nom:'Chloroquine 150 mg',                   cat:'antipaludeen',      prix:0.45, stock:0,   seuil:20, rupture:true  },
+  { id:'P15', nom:'Métronidazole 250 mg',                 cat:'antibiotic',        prix:0.65, stock:88,  seuil:20, rupture:false },
+];
+
+let MED_PHARMA_CAT = '';
+
+function renderMedPharma(search) {
+  const q = (search || document.getElementById('med-pharma-search')?.value || '').toLowerCase();
+  let liste = MED_PHARMA_CAT ? MED_PHARMA_PRODUITS.filter(p => p.cat === MED_PHARMA_CAT) : MED_PHARMA_PRODUITS;
+  if (q.length >= 2) liste = liste.filter(p => p.nom.toLowerCase().includes(q));
+
+  const grid = document.getElementById('med-pharma-grid');
+  if (!grid) return;
+  grid.innerHTML = liste.map(p => {
+    const pct     = Math.min(100, Math.round(p.stock / (p.seuil * 5) * 100));
+    const barColor= p.rupture ? '#EF4444' : p.stock < p.seuil ? '#F59E0B' : '#16A34A';
+    const statut  = p.rupture ? '<span style="background:#FEE2E2;color:#991B1B;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700">Rupture</span>'
+                  : p.stock < p.seuil ? '<span style="background:#FEF3C7;color:#92400E;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700">Stock bas</span>'
+                  : '<span style="background:#DCFCE7;color:#166534;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700">Disponible</span>';
+    return `<div class="pharma-card-med">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-sm);margin-bottom:var(--space-sm)">
+        <div class="font-bold" style="font-size:var(--font-sm);line-height:1.3">${p.nom}</div>
+        ${statut}
+      </div>
+      <div class="pharma-stock-bar"><div class="pharma-stock-fill" style="width:${pct}%;background:${barColor}"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-muted)">
+        <span>Stock : <strong>${p.rupture ? '0' : p.stock} unités</strong></span>
+        <span>Prix patient : <strong>$${p.prix.toFixed(2)}</strong></span>
+      </div>
+      ${!p.rupture ? `<button class="btn btn-outline btn-sm" style="width:100%;margin-top:var(--space-sm);display:inline-flex;align-items:center;justify-content:center;gap:6px" id="btn-pres-${p.id}" onclick="addToPanier('${p.id}')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Prescrire</button>` : ''}
+    </div>`;
+  }).join('') || '<div class="text-muted text-sm" style="grid-column:1/-1;padding:20px;text-align:center">Aucun produit trouvé</div>';
+}
+
+// Chips pharmacie médecin
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('#med-pharma-chips .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#med-pharma-chips .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      MED_PHARMA_CAT = chip.dataset.cat;
+      renderMedPharma();
+    });
+  });
+});
+
+/* ══════════════════════════════════════════════
+   ONGLET RDV DANS LA FICHE PATIENT
+══════════════════════════════════════════════ */
+function switchFicheTab(tab, el) {
+  document.querySelectorAll('#fiche-tab-bar .pmt').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('fiche-pane-dossier').style.display = tab === 'dossier' ? '' : 'none';
+  document.getElementById('fiche-pane-rdv').style.display     = tab === 'rdv'     ? '' : 'none';
+}
+
+function enregistrerFicheRDV() {
+  const date  = document.getElementById('fiche-rdv-date')?.value;
+  const heure = document.getElementById('fiche-rdv-heure')?.value;
+  const motif = document.getElementById('fiche-rdv-motif')?.value?.trim();
+  if (!date || !heure || !motif) { showToastMed('Veuillez remplir la date, l\'heure et le motif.'); return; }
+  const d = new Date(date);
+  const mois = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+  showToastMed('RDV planifié : ' + d.getDate() + ' ' + mois[d.getMonth()] + ' à ' + heure + ' — ' + motif);
+  document.getElementById('fiche-rdv-date').value  = '';
+  document.getElementById('fiche-rdv-heure').value = '';
+  document.getElementById('fiche-rdv-motif').value = '';
+}
+
+// Init date RDV fiche
+document.addEventListener('DOMContentLoaded', () => {
+  const d = document.getElementById('fiche-rdv-date');
+  if (d) d.value = new Date().toISOString().split('T')[0];
+  const m = document.getElementById('med-rdv-date');
+  if (m) m.value = new Date().toISOString().split('T')[0];
+});
+
+// Ferme modals si clic sur backdrop
+document.addEventListener('click', e => {
+  const aux = document.getElementById('aux-med-modal');
+  if (aux && !aux.classList.contains('hidden') && e.target === aux) closeAuxModalMed();
+  const ck = document.getElementById('checkout-overlay');
+  if (ck && !ck.classList.contains('hidden') && e.target === ck) closeCheckout();
+});
+</script>
+
+<!-- ══ MODAL AUXILIAIRE — MÉDECIN ══ -->
+<div class="aux-modal hidden" id="aux-med-modal">
+  <div class="aux-modal-card">
+    <button class="cons-close" onclick="closeAuxModalMed()" title="Fermer">×</button>
+    <div class="font-bold mb-lg" style="font-size:var(--font-lg);padding-right:40px">Auxiliaire de santé</div>
+    <div id="aux-med-modal-content"></div>
+  </div>
+</div>
+
+<!-- ══ MODAL CHECKOUT — ORDONNANCE ══ -->
+<div class="checkout-overlay hidden" id="checkout-overlay">
+  <div class="checkout-card">
+    <button class="cons-close" onclick="closeCheckout()" title="Fermer">×</button>
+
+    <!-- En-tête -->
+    <div style="margin-bottom:var(--space-lg);padding-right:40px">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--color-primary);margin-bottom:4px">Ordonnance numérique</div>
+      <div class="font-bold" style="font-size:var(--font-lg)">Récapitulatif de commande</div>
+      <div class="text-sm text-muted" style="margin-top:2px">Dr. Béatrice MWAMBA · <span id="checkout-nb">0 article</span></div>
+    </div>
+
+    <!-- Patient -->
+    <div class="card mb-lg" style="background:var(--color-bg)">
+      <div class="card-body" style="padding:var(--space-md)">
+        <div class="form-group" style="margin-bottom:0">
+          <label style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px">Patient</label>
+          <select class="input" id="checkout-patient" style="margin-top:4px">
+            <option value="Claire TSHIABA">Claire TSHIABA — ADH-003</option>
+            <option value="Jean MUKENDI">Jean MUKENDI — ADH-007</option>
+            <option value="Josephine BAFUA">Josephine BAFUA — ADH-012</option>
+            <option value="Honorine KABAMBA">Honorine KABAMBA — ADH-018</option>
+            <option value="Thomas KABILA">Thomas KABILA — ADH-021</option>
+            <option value="Victor TSHIMBOMBO">Victor TSHIMBOMBO — ADH-025</option>
+            <option value="Sabine LUZOLO">Sabine LUZOLO — ADH-029</option>
+            <option value="Roger MBENZA">Roger MBENZA — ADH-034</option>
+            <option value="Marie KALOMBO">Marie KALOMBO — ADH-041</option>
+            <option value="Pascal ILUNGA">Pascal ILUNGA — ADH-045</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Liste produits -->
+    <div class="card mb-lg">
+      <div class="card-header"><span class="card-title">Médicaments prescrits</span></div>
+      <div class="card-body" style="padding:var(--space-sm) var(--space-lg)">
+        <div id="checkout-items"></div>
+      </div>
+      <div style="padding:var(--space-md) var(--space-lg);background:var(--color-primary-light);border-top:2px solid var(--color-primary);border-radius:0 0 var(--radius-xl) var(--radius-xl);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:700;color:var(--color-primary-dark)">Total ordonnance</span>
+        <span id="checkout-total" style="font-size:var(--font-xl);font-weight:900;color:var(--color-primary)">$0.00</span>
+      </div>
+    </div>
+
+    <!-- Justification thérapeutique (lecture seule dans le checkout) -->
+    <div id="checkout-justif-wrap" class="mb-lg" style="background:#F5F3FF;border:1.5px solid #C4B5FD;border-radius:var(--radius-xl);padding:var(--space-md) var(--space-lg)">
+      <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#7C3AED;margin-bottom:6px;display:flex;align-items:center;gap:5px">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Justification thérapeutique
+      </div>
+      <div id="checkout-justif-text" style="font-size:var(--font-sm);color:#4C1D95;line-height:1.6;font-style:italic"></div>
+    </div>
+
+    <!-- Paiement -->
+    <div class="card mb-lg">
+      <div class="card-header"><span class="card-title">Mode de paiement</span></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:var(--space-sm)">
+        <label style="display:flex;align-items:center;gap:var(--space-md);padding:var(--space-sm) var(--space-md);border-radius:var(--radius-lg);border:1.5px solid var(--color-border);cursor:pointer">
+          <input type="radio" name="checkout-pmt" value="M-Pesa" checked style="accent-color:var(--color-primary)">
+          <div>
+            <div class="font-bold" style="font-size:var(--font-sm)">M-Pesa</div>
+            <div style="font-size:10px;color:var(--color-text-muted)">Vodacom · Paiement mobile instantané</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:var(--space-md);padding:var(--space-sm) var(--space-md);border-radius:var(--radius-lg);border:1.5px solid var(--color-border);cursor:pointer">
+          <input type="radio" name="checkout-pmt" value="Orange Money" style="accent-color:var(--color-primary)">
+          <div>
+            <div class="font-bold" style="font-size:var(--font-sm)">Orange Money</div>
+            <div style="font-size:10px;color:var(--color-text-muted)">Orange · Paiement mobile</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:var(--space-md);padding:var(--space-sm) var(--space-md);border-radius:var(--radius-lg);border:1.5px solid var(--color-border);cursor:pointer">
+          <input type="radio" name="checkout-pmt" value="Solde Longonia" style="accent-color:var(--color-primary)">
+          <div>
+            <div class="font-bold" style="font-size:var(--font-sm)">Solde Longonia</div>
+            <div style="font-size:10px;color:var(--color-text-muted)">Déduction automatique solde mutuelle</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Livraison -->
+    <div class="alert" style="background:#F0FDF4;border-color:#86EFAC;color:#166534;margin-bottom:var(--space-lg)">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      <span>Livraison à domicile déclenchée automatiquement à la validation. Délai estimé : <strong>24–48 h</strong>. Un SMS de confirmation sera envoyé au patient.</span>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:var(--space-md)">
+      <button class="btn btn-outline" style="flex:1" onclick="closeCheckout()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Modifier l'ordonnance
+      </button>
+      <button class="btn btn-primary" style="flex:2;display:inline-flex;align-items:center;justify-content:center;gap:8px" onclick="confirmerCommande()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Confirmer la commande
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Panneau notifications ── -->
+<div id="notif-panel" style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:none;align-items:flex-end" onclick="if(event.target===this)closeNotifPanel()">
+  <div style="background:var(--color-card);border-radius:var(--radius-xxl) var(--radius-xxl) 0 0;width:100%;max-height:70vh;overflow-y:auto;padding:var(--space-xl)">
+    <div style="width:40px;height:4px;background:var(--color-border);border-radius:2px;margin:0 auto var(--space-lg)"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-lg)">
+      <div style="font-size:var(--font-xl);font-weight:800;color:var(--color-text)">Notifications</div>
+      <button class="btn btn-outline btn-sm" onclick="markAllNotifRead()">Tout lire</button>
+    </div>
+    <div id="notif-list"><div style="text-align:center;padding:32px 0;color:var(--color-text-muted)">Chargement...</div></div>
+    <button class="btn btn-outline" style="width:100%;margin-top:var(--space-lg)" onclick="closeNotifPanel()">Fermer</button>
+  </div>
+</div>
+
+<script>
+/* ── Notifications dynamiques — médecin ────────────────────────────────────── */
+(function(){
+  var ROLE='medecin';
+  var API=(location.hostname==='localhost'||location.hostname==='127.0.0.1')?'http://localhost:8002':'';
+  var _notifs=[];
+  function _icon(t){var m={rupture_stock:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',consultation:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',paiement:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',rdv:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',ordonnance:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'};return m[t]||'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';}
+  function _updateBadge(n){var b=document.getElementById('notif-badge');if(!b)return;b.textContent=n;b.style.display=n>0?'':'none';}
+  function _renderList(){var el=document.getElementById('notif-list');if(!el)return;if(!_notifs.length){el.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--color-text-muted)"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.4" style="display:block;margin:0 auto 12px;opacity:.4"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Aucune notification</div>';return;}
+  el.innerHTML=_notifs.map(function(n,i){var c=n.severite==='urgent'?'var(--color-danger)':n.severite==='warning'?'var(--color-warning)':'var(--color-primary)';var bg=n.severite==='urgent'?'rgba(239,68,68,.12)':n.severite==='warning'?'rgba(217,119,6,.12)':'var(--color-primary-light)';return'<div style="display:flex;gap:16px;padding:14px 0;'+(i>0?'border-top:1px solid var(--color-border)':'')+'"><div style="width:40px;height:40px;border-radius:20px;background:'+bg+';display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+_icon(n.type)+'</svg></div><div style="flex:1"><div style="font-weight:700;margin-bottom:3px">'+n.titre+'</div><div style="font-size:var(--font-sm);color:var(--color-text-muted);line-height:1.5">'+n.corps+'</div></div></div>';}).join('');}
+  window.openNotifPanel=function(){_renderList();var p=document.getElementById('notif-panel');if(p)p.style.display='flex';};
+  window.closeNotifPanel=function(){var p=document.getElementById('notif-panel');if(p)p.style.display='none';};
+  window.markAllNotifRead=function(){_notifs=[];_updateBadge(0);_renderList();};
+  async function _fetch(){try{var r=await fetch(API+'/api/notifications?role='+ROLE,{signal:AbortSignal.timeout(4000)});if(!r.ok)return;var d=await r.json();_notifs=d.items||[];_updateBadge(_notifs.length);}catch(e){}}
+  _fetch();setInterval(_fetch,120000);
+})();
+</script>
+</body>
+</html>
