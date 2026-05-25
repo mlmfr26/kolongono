@@ -520,10 +520,10 @@
     <button class="btn btn-primary">+ Produit</button>
   </div>
   <div class="stats-grid mb-lg">
-    <div class="stat-card stat-purple"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div><div><div class="stat-val" id="ph-sku" style="color:var(--color-pharmacie)">—</div><div class="stat-label">Produits (SKU)</div></div></div>
-    <div class="stat-card stat-amber"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="stat-val" id="ph-bas" style="color:var(--color-warning)">—</div><div class="stat-label">Bas stock</div></div></div>
-    <div class="stat-card stat-danger"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="stat-val" id="ph-ruptures" style="color:var(--color-danger)">—</div><div class="stat-label">Ruptures</div></div></div>
-    <div class="stat-card stat-green"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.5 20.5L3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7"/></svg></div><div><div class="stat-val" id="ph-prescription" style="color:var(--color-primary)">—</div><div class="stat-label">Sur ordonnance</div></div></div>
+    <div class="stat-card stat-purple" onclick="openPharmaDrill('tous')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div><div><div class="stat-val" id="ph-sku" style="color:var(--color-pharmacie)">—</div><div class="stat-label">Produits (SKU)</div></div></div>
+    <div class="stat-card stat-amber" onclick="openPharmaDrill('bas')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="stat-val" id="ph-bas" style="color:var(--color-warning)">—</div><div class="stat-label">Bas stock</div></div></div>
+    <div class="stat-card stat-danger" onclick="openPharmaDrill('ruptures')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="stat-val" id="ph-ruptures" style="color:var(--color-danger)">—</div><div class="stat-label">Ruptures</div></div></div>
+    <div class="stat-card stat-green" onclick="openPharmaDrill('ordonnance')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.5 20.5L3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7"/></svg></div><div><div class="stat-val" id="ph-prescription" style="color:var(--color-primary)">—</div><div class="stat-label">Sur ordonnance</div></div></div>
   </div>
   <div class="mb-md" style="position:relative">
     <input type="search" id="pharma-search" placeholder="Rechercher un médicament, DCI, catégorie…" autocomplete="off"
@@ -1754,18 +1754,20 @@ function renderMedecinsTable(list) {
 }
 
 var _APISD = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:8002' : '';
+var _pharmaItems = [];
 
 async function loadPharmacie(q) {
   var tok = localStorage.getItem('sd_token');
-  var url = _APISD + '/api/pharmacie/ean/list?limit=100' + (q ? '&q=' + encodeURIComponent(q) : '');
+  var url = _APISD + '/api/pharmacie/ean/list?limit=200' + (q ? '&q=' + encodeURIComponent(q) : '');
   try {
     var r = await fetch(url, { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
     if (!r.ok) throw new Error('Erreur API ' + r.status);
     var data = await r.json();
     var items = data.items || [];
-    var ruptures = items.filter(p => (p.stock_total||0) === 0).length;
-    var bas = items.filter(p => { var s=p.stock_total||0; return s>0 && s<20; }).length;
-    var ord = items.filter(p => p.prescription).length;
+    _pharmaItems = items;
+    var ruptures = items.filter(function(p){ return (p.stock_total||0) === 0; }).length;
+    var bas = items.filter(function(p){ var s=p.stock_total||0; return s>0 && s<20; }).length;
+    var ord = items.filter(function(p){ return p.prescription; }).length;
     document.getElementById('ph-sku').textContent = data.total;
     document.getElementById('ph-bas').textContent = bas;
     document.getElementById('ph-ruptures').textContent = ruptures;
@@ -1775,6 +1777,45 @@ async function loadPharmacie(q) {
     document.getElementById('pharma-table').innerHTML =
       '<tr><td colspan="7" class="text-center text-muted" style="padding:32px">Erreur chargement : '+e.message+'</td></tr>';
   }
+}
+
+function openPharmaDrill(filtre) {
+  var cfg = {
+    tous:       { titre:'Catalogue complet',          sous:'Tous les médicaments enregistrés',             pred: function(){ return true; },                                              badge:'badge-muted' },
+    bas:        { titre:'Médicaments — Bas stock',    sous:'Stock entre 1 et 19 unités · À réapprovisionner', pred: function(p){ var s=p.stock_total||0; return s>0 && s<20; },          badge:'badge-warning' },
+    ruptures:   { titre:'Ruptures de stock',          sous:'Stock = 0 · Indisponibles immédiatement',      pred: function(p){ return (p.stock_total||0)===0; },                          badge:'badge-danger' },
+    ordonnance: { titre:'Médicaments sur ordonnance', sous:'Dispensation strictement sur prescription médicale', pred: function(p){ return !!p.prescription; },                          badge:'badge-warning' },
+  };
+  var c = cfg[filtre] || cfg.tous;
+  var liste = _pharmaItems.filter(c.pred);
+
+  document.getElementById('drill-breadcrumb').innerHTML =
+    '<span>Pharmacie</span><span class="breadcrumb-sep">›</span><span>'+c.titre+'</span>';
+  document.getElementById('drill-title').textContent = c.titre;
+  document.getElementById('drill-subtitle').textContent = c.sous + ' · ' + liste.length + ' résultat' + (liste.length>1?'s':'');
+
+  var rows = liste.length ? liste.map(function(p) {
+    var s = p.stock_total || 0;
+    var lvl = s===0 ? 'rupture' : s<20 ? 'critique' : s<50 ? 'faible' : 'ok';
+    var clr = lvl==='ok' ? 'var(--color-primary)' : lvl==='faible' ? 'var(--color-warning)' : 'var(--color-danger)';
+    var niv = lvl==='ok' ? 'badge-success' : lvl==='faible' ? 'badge-warning' : 'badge-danger';
+    return '<tr>'
+      +'<td><span class="font-bold">'+p.nom+'</span>'+(p.dci?'<br><span class="text-xs text-muted">'+p.dci+(p.dosage?' · '+p.dosage:'')+'</span>':'')+'</td>'
+      +'<td class="text-muted text-sm">'+(p.categorie||'—')+'</td>'
+      +'<td class="font-bold">'+(p.prix_usd?'$'+Number(p.prix_usd).toFixed(2):'—')+'</td>'
+      +'<td><div class="flex items-center gap-sm"><div class="stock-bar"><div class="stock-fill" style="width:'+Math.min(s/300*100,100)+'%;background:'+clr+'"></div></div><span class="text-sm">'+s+'</span></div></td>'
+      +'<td><span class="badge '+niv+'">'+lvl.toUpperCase()+'</span></td>'
+      +'<td>'+(p.prescription?'<span class="badge badge-warning">Oui</span>':'<span class="badge badge-muted">Non</span>')+'</td>'
+      +'<td class="text-xs text-muted">'+(p.code||'—')+'</td>'
+      +'</tr>';
+  }).join('') : '<tr><td colspan="7" class="text-center text-muted" style="padding:24px">Aucun médicament dans cette catégorie</td></tr>';
+
+  document.getElementById('drill-body').innerHTML =
+    '<div class="table-wrap"><table><thead><tr>'
+    +'<th>Produit / DCI</th><th>Catégorie</th><th>Prix USD</th><th>Stock total</th><th>Niveau</th><th>Ordonnance</th><th>Code</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+
+  document.getElementById('drill-panel').classList.remove('hidden');
 }
 
 var _sugTimer = null;
