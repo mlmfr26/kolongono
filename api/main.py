@@ -206,7 +206,7 @@ class AbonnementRequest(BaseModel):
 
 # ─── Routes ────────────────────────────────────────────────────────────────────
 
-@app.get("/")
+@app.get("/api/status")
 async def root():
     return {
         "service": "SantéDirect — Kolongono",
@@ -660,7 +660,7 @@ app.include_router(notifications_router)
 from fastapi.staticfiles import StaticFiles as _StaticFiles
 import os as _os
 if _os.path.exists("web"):
-    app.mount("/web", _StaticFiles(directory="web", html=True), name="web")
+    app.mount("/", _StaticFiles(directory="web", html=True), name="web")
 
 
 if __name__ == "__main__":
