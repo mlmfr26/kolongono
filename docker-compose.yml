@@ -12,6 +12,8 @@ services:
     container_name: santesd-api
     restart: unless-stopped
     env_file: .env
+    volumes:
+      - ./web:/app/web:ro
     networks:
       - longonia_longonia
 
