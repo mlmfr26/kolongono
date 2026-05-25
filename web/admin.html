@@ -520,12 +520,15 @@
     <button class="btn btn-primary">+ Produit</button>
   </div>
   <div class="stats-grid mb-lg">
-    <div class="stat-card stat-purple" onclick="openDrill('pharmacie','tous')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div><div><div class="stat-val" style="color:var(--color-pharmacie)">48</div><div class="stat-label">Produits (SKU)</div></div></div>
-    <div class="stat-card stat-amber" onclick="openDrill('pharmacie','bas_stock')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="stat-val" style="color:var(--color-warning)">8</div><div class="stat-label">Bas stock</div></div></div>
-    <div class="stat-card stat-danger" onclick="openDrill('pharmacie','ruptures')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="stat-val" style="color:var(--color-danger)">3</div><div class="stat-label">Ruptures</div></div></div>
-    <div class="stat-card stat-blue" onclick="openDrill('pharmacie','commandes')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></div><div><div class="stat-val" style="color:var(--color-primary)">213</div><div class="stat-label">Commandes</div></div></div>
+    <div class="stat-card stat-purple"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div><div><div class="stat-val" id="ph-sku" style="color:var(--color-pharmacie)">—</div><div class="stat-label">Produits (SKU)</div></div></div>
+    <div class="stat-card stat-amber"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="stat-val" id="ph-bas" style="color:var(--color-warning)">—</div><div class="stat-label">Bas stock</div></div></div>
+    <div class="stat-card stat-danger"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="stat-val" id="ph-ruptures" style="color:var(--color-danger)">—</div><div class="stat-label">Ruptures</div></div></div>
+    <div class="stat-card stat-green"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.5 20.5L3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7"/></svg></div><div><div class="stat-val" id="ph-prescription" style="color:var(--color-primary)">—</div><div class="stat-label">Sur ordonnance</div></div></div>
   </div>
-  <div class="card"><div class="table-wrap"><table><thead><tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Stock</th><th>Niveau</th><th>Ordonnance</th><th></th></tr></thead><tbody id="pharma-table"></tbody></table></div></div>
+  <div class="mb-md" style="display:flex;gap:8px">
+    <input type="search" id="pharma-search" placeholder="Rechercher un médicament, DCI, catégorie…" style="flex:1;padding:10px 14px;border:1.5px solid var(--color-border);border-radius:var(--radius-lg);font-size:var(--font-sm)" oninput="loadPharmacie(this.value)">
+  </div>
+  <div class="card"><div class="table-wrap"><table><thead><tr><th>Produit / DCI</th><th>Catégorie</th><th>Prix USD</th><th>Stock total</th><th>Niveau</th><th>Ordonnance</th><th>Code</th></tr></thead><tbody id="pharma-table"><tr><td colspan="7" class="text-center text-muted" style="padding:32px">Chargement…</td></tr></tbody></table></div></div>
 </div>
 
 <!-- ══ PAGE ABONNEMENTS ══ -->
@@ -1338,7 +1341,7 @@ function showPage(id) {
   closeDrill(); window.scrollTo(0, 0);
   if (id === 'adherents')   renderAdherentsTable(DATA.adherents);
   if (id === 'medecins')    renderMedecinsTable(DATA.medecins);
-  if (id === 'pharmacie')   renderPharmaTable(DATA.produits);
+  if (id === 'pharmacie')   loadPharmacie();
   if (id === 'abonnements') renderAboTable(DATA.adherents);
   if (id === 'consultations') renderConsultTable(DATA.consultations);
   if (id === 'metrics')     renderMetrics();
@@ -1745,19 +1748,48 @@ function renderMedecinsTable(list) {
     </tr>`).join('');
 }
 
+async function loadPharmacie(q) {
+  var tok = localStorage.getItem('sd_token');
+  var url = API + '/api/pharmacie/ean/list?limit=100' + (q ? '&q=' + encodeURIComponent(q) : '');
+  try {
+    var r = await fetch(url, { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
+    if (!r.ok) throw new Error('Erreur API ' + r.status);
+    var data = await r.json();
+    var items = data.items || [];
+    var ruptures = items.filter(p => (p.stock_total||0) === 0).length;
+    var bas = items.filter(p => { var s=p.stock_total||0; return s>0 && s<20; }).length;
+    var ord = items.filter(p => p.prescription).length;
+    document.getElementById('ph-sku').textContent = data.total;
+    document.getElementById('ph-bas').textContent = bas;
+    document.getElementById('ph-ruptures').textContent = ruptures;
+    document.getElementById('ph-prescription').textContent = ord;
+    renderPharmaTable(items);
+  } catch(e) {
+    document.getElementById('pharma-table').innerHTML =
+      '<tr><td colspan="7" class="text-center text-muted" style="padding:32px">Erreur : '+e.message+'</td></tr>';
+  }
+}
+
 function renderPharmaTable(list) {
+  if (!list.length) {
+    document.getElementById('pharma-table').innerHTML =
+      '<tr><td colspan="7" class="text-center text-muted" style="padding:32px">Aucun résultat</td></tr>';
+    return;
+  }
   document.getElementById('pharma-table').innerHTML = list.map(p => {
-    const lvl = p.stock===0?'rupture':p.stock<20?'critique':p.stock<50?'faible':'ok';
+    const s = p.stock_total || 0;
+    const lvl = s===0?'rupture':s<20?'critique':s<50?'faible':'ok';
     const clr = lvl==='ok'?'var(--color-primary)':lvl==='faible'?'var(--color-warning)':'var(--color-danger)';
-    return `<tr style="cursor:pointer" onclick="openDetail('produit','${p.id}')">
-      <td class="font-bold">${p.nom}</td>
-      <td class="text-muted text-sm">${p.cat}</td>
-      <td class="font-bold">$${p.prix.toFixed(2)}</td>
-      <td><div class="flex items-center gap-sm"><div class="stock-bar"><div class="stock-fill" style="width:${Math.min(p.stock/300*100,100)}%;background:${clr}"></div></div><span class="text-sm">${p.stock}</span></div></td>
+    return `<tr>
+      <td><span class="font-bold">${p.nom}</span>${p.dci?'<br><span class="text-xs text-muted">'+p.dci+(p.dosage?' · '+p.dosage:'')+'</span>':''}${p.forme?'<span class="text-xs text-muted"> · '+p.forme+'</span>':''}</td>
+      <td class="text-muted text-sm">${p.categorie||'—'}</td>
+      <td class="font-bold">${p.prix_usd?'$'+Number(p.prix_usd).toFixed(2):'—'}</td>
+      <td><div class="flex items-center gap-sm"><div class="stock-bar"><div class="stock-fill" style="width:${Math.min(s/300*100,100)}%;background:${clr}"></div></div><span class="text-sm">${s}</span></div></td>
       <td><span class="badge ${lvl==='ok'?'badge-success':lvl==='faible'?'badge-warning':'badge-danger'}">${lvl.toUpperCase()}</span></td>
-      <td>${p.ord?'<span class="badge badge-warning">Oui</span>':'<span class="badge badge-muted">Non</span>'}</td>
-      <td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openDetail('produit','${p.id}')">↗</button></td>
-    </tr>`;}).join('');
+      <td>${p.prescription?'<span class="badge badge-warning">Oui</span>':'<span class="badge badge-muted">Non</span>'}</td>
+      <td class="text-xs text-muted">${p.code||'—'}</td>
+    </tr>`;
+  }).join('');
 }
 
 function renderAboTable(list) {

@@ -324,6 +324,57 @@ def get_mouvements(
     ]
 
 
+# ─── Catalogue paginé avec stock agrégé ──────────────────────────────────────
+
+@router.get("/ean/list")
+def list_medicaments(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, le=200),
+    q: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    from models import MedicamentEAN, StockPharmacie
+    from sqlalchemy import func
+
+    query = db.query(MedicamentEAN)
+    if q:
+        query = query.filter(
+            MedicamentEAN.nom.ilike(f"%{q}%") |
+            MedicamentEAN.dci.ilike(f"%{q}%") |
+            MedicamentEAN.categorie.ilike(f"%{q}%")
+        )
+    total = query.count()
+    meds = query.order_by(MedicamentEAN.nom).offset(skip).limit(limit).all()
+
+    codes = [m.code_interne for m in meds]
+    stock_map = {}
+    if codes:
+        rows = (
+            db.query(StockPharmacie.medicament_code, func.sum(StockPharmacie.quantite).label("total"))
+            .filter(StockPharmacie.medicament_code.in_(codes))
+            .group_by(StockPharmacie.medicament_code)
+            .all()
+        )
+        stock_map = {r.medicament_code: int(r.total) for r in rows}
+
+    items = [
+        {
+            "code":         m.code_interne,
+            "ean":          m.ean,
+            "nom":          m.nom,
+            "dci":          m.dci,
+            "dosage":       m.dosage,
+            "forme":        m.forme,
+            "categorie":    m.categorie,
+            "prescription": m.prescription,
+            "prix_usd":     m.prix_usd,
+            "stock_total":  stock_map.get(m.code_interne, 0),
+        }
+        for m in meds
+    ]
+    return {"total": total, "items": items, "skip": skip, "limit": limit}
+
+
 # ─── Import base de départ ────────────────────────────────────────────────────
 
 @router.post("/ean/import-base", status_code=201)
