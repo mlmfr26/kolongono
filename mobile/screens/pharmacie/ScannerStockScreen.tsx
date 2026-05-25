@@ -42,7 +42,7 @@ export default function ScannerStockScreen({ route }: Props) {
     Vibration.vibrate(80);
 
     try {
-      const response = await apiClient.get(`/pharmacie/ean/${value}`);
+      const response = await apiClient.get(`/api/pharmacie/ean/${value}`);
       const medicament = response.data;
 
       setIsActive(false);

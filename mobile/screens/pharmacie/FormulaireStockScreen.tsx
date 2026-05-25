@@ -70,7 +70,7 @@ export default function FormulaireStockScreen({ route }: Props) {
         : { code_interne: medicament.code_interne };
 
       if (mode === 'entree') {
-        await apiClient.post('/pharmacie/stock/entree', {
+        await apiClient.post('/api/pharmacie/stock/entree', {
           centre_id: centreId,
           ...codeField,
           quantite: qte,
@@ -85,11 +85,11 @@ export default function FormulaireStockScreen({ route }: Props) {
           `+${qte} ${medicament.nom} ${medicament.dosage || ''} réceptionnés.`,
           [
             { text: 'Scanner un autre', onPress: () => navigation.goBack() },
-            { text: 'Terminer', onPress: () => navigation.navigate('PharmacieAdmin') },
+            { text: 'Terminer', onPress: () => navigation.navigate('Main') },
           ]
         );
       } else {
-        const { data } = await apiClient.post('/pharmacie/stock/sortie', {
+        const { data } = await apiClient.post('/api/pharmacie/stock/sortie', {
           centre_id: centreId,
           ...codeField,
           quantite: qte,
@@ -104,7 +104,7 @@ export default function FormulaireStockScreen({ route }: Props) {
 
         Alert.alert('Sortie enregistrée', alertMsg, [
           { text: 'Scanner un autre', onPress: () => navigation.goBack() },
-          { text: 'Terminer', onPress: () => navigation.navigate('PharmacieAdmin') },
+          { text: 'Terminer', onPress: () => navigation.navigate('Main') },
         ]);
       }
     } catch (error: any) {

@@ -260,6 +260,37 @@ export default function AuxiliaireHomeScreen({ navigation }: any) {
           <Text style={[styles.nouveauText, { color: palette.blueDeep }]}>Fournitures & Renouvellements</Text>
         </TouchableOpacity>
 
+        {/* Scanner pharmacie — codes-barres EAN */}
+        <View style={styles.scannerSection}>
+          <Text style={styles.scannerSectionLabel}>PHARMACIE — SCANNER CODE-BARRES</Text>
+          <View style={styles.scannerBtns}>
+            <TouchableOpacity
+              style={[styles.scannerBtn, { backgroundColor: '#ECFDF5', borderColor: '#059669' }]}
+              onPress={() => navigation.navigate('ScannerStockScreen', {
+                mode: 'entree',
+                centreId: user?.centre_id ?? 'CTR-001',
+                operateur: user?.id ?? 'auxiliaire',
+              })}
+              activeOpacity={0.85}
+            >
+              <Icon name="scan" size={22} color="#059669" />
+              <Text style={[styles.scannerBtnText, { color: '#059669' }]}>Réceptionner{'\n'}stock</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.scannerBtn, { backgroundColor: '#FFFBEB', borderColor: '#D97706' }]}
+              onPress={() => navigation.navigate('ScannerStockScreen', {
+                mode: 'sortie',
+                centreId: user?.centre_id ?? 'CTR-001',
+                operateur: user?.id ?? 'auxiliaire',
+              })}
+              activeOpacity={0.85}
+            >
+              <Icon name="scan" size={22} color="#D97706" />
+              <Text style={[styles.scannerBtnText, { color: '#D97706' }]}>Dispenser{'\n'}au patient</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Guide rapide */}
         <View style={styles.guideCard}>
           <Text style={styles.guideTitle}>Protocole pré-consultation (15 min avant)</Text>
@@ -362,4 +393,10 @@ const styles = StyleSheet.create({
   guideNum:   { width: 24, height: 24, borderRadius: 12, backgroundColor: palette.greenDeep, justifyContent: 'center', alignItems: 'center' },
   guideNumText:    { color: palette.white, fontSize: fontSize.xs, fontWeight: fontWeight.black },
   guideStepText:   { flex: 1, fontSize: fontSize.sm, color: palette.greenDeep },
+
+  scannerSection:      { marginHorizontal: spacing.lg, marginBottom: spacing.lg },
+  scannerSectionLabel: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: colors.textMuted, letterSpacing: 1, marginBottom: spacing.sm },
+  scannerBtns:         { flexDirection: 'row', gap: spacing.md },
+  scannerBtn:          { flex: 1, borderRadius: radius.xl, padding: spacing.lg, alignItems: 'center', gap: spacing.sm, borderWidth: 2 },
+  scannerBtnText:      { fontSize: fontSize.sm, fontWeight: fontWeight.bold, textAlign: 'center', lineHeight: 18 },
 });

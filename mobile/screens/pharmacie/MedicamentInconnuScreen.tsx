@@ -80,7 +80,7 @@ export default function MedicamentInconnuScreen({ route }: Props) {
         cree_par: centreId,
       };
 
-      const { data: medicament } = await apiClient.post('/pharmacie/ean', payload);
+      const { data: medicament } = await apiClient.post('/api/pharmacie/ean', payload);
 
       Alert.alert(
         'Médicament enregistré',

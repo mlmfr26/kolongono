@@ -11,6 +11,7 @@ export type User = {
   email: string;
   role: UserRole;
   plan?: string | null;
+  centre_id?: string | null;
 };
 
 type AuthContextType = {
