@@ -638,6 +638,74 @@ async def websocket_signaling(
             signaling.rooms.pop(room_id, None)
 
 
+# ── Admin ─────────────────────────────────────────────────────────────────────
+
+PLANS_PRIX = {"solidaire": 1.0, "standard": 2.0, "famille": 5.0, "premium": 10.0}
+
+@app.get("/api/admin/users", tags=["Admin"])
+async def list_users_admin(
+    role: Optional[str] = Query(None),
+    actif: Optional[bool] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, le=200),
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_user),
+):
+    from sqlalchemy import select, func as sqlfunc
+    q = select(User)
+    cq = select(sqlfunc.count()).select_from(User)
+    if role:
+        q = q.where(User.role == role)
+        cq = cq.where(User.role == role)
+    if actif is not None:
+        q = q.where(User.actif == actif)
+        cq = cq.where(User.actif == actif)
+    total = (await db.execute(cq)).scalar()
+    users = (await db.execute(q.order_by(User.nom).offset(skip).limit(limit))).scalars().all()
+    return {
+        "total": total,
+        "items": [
+            {
+                "id": u.id,
+                "nom": u.nom,
+                "prenom": u.prenom,
+                "nom_complet": f"{u.nom} {u.prenom}",
+                "email": u.email,
+                "role": u.role,
+                "plan": u.plan,
+                "prix_usd": PLANS_PRIX.get(u.plan or "", 0),
+                "actif": u.actif,
+                "statut": "actif" if u.actif else "inactif",
+                "centre_id": u.centre_id,
+                "created_at": u.created_at.isoformat() if u.created_at else None,
+            }
+            for u in users
+        ],
+    }
+
+
+@app.get("/api/admin/stats", tags=["Admin"])
+async def admin_stats(
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_user),
+):
+    from sqlalchemy import select, func as sqlfunc
+    rows = (await db.execute(
+        select(User.role, sqlfunc.count(User.id)).group_by(User.role)
+    )).all()
+    par_role = {r: c for r, c in rows}
+    adherents_actifs = (await db.execute(
+        select(sqlfunc.count()).select_from(User)
+        .where(User.role == "adherent", User.actif == True)
+    )).scalar()
+    return {
+        "par_role": par_role,
+        "total": sum(par_role.values()),
+        "adherents_actifs": adherents_actifs,
+        "adherents_inactifs": par_role.get("adherent", 0) - adherents_actifs,
+    }
+
+
 # ── Routers externes ──────────────────────────────────────────────────────────
 
 from routers.unites import router as unites_router, movements_router

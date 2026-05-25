@@ -525,8 +525,11 @@
     <div class="stat-card stat-danger"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="stat-val" id="ph-ruptures" style="color:var(--color-danger)">—</div><div class="stat-label">Ruptures</div></div></div>
     <div class="stat-card stat-green"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.5 20.5L3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7"/></svg></div><div><div class="stat-val" id="ph-prescription" style="color:var(--color-primary)">—</div><div class="stat-label">Sur ordonnance</div></div></div>
   </div>
-  <div class="mb-md" style="display:flex;gap:8px">
-    <input type="search" id="pharma-search" placeholder="Rechercher un médicament, DCI, catégorie…" style="flex:1;padding:10px 14px;border:1.5px solid var(--color-border);border-radius:var(--radius-lg);font-size:var(--font-sm)" oninput="loadPharmacie(this.value)">
+  <div class="mb-md" style="position:relative">
+    <input type="search" id="pharma-search" placeholder="Rechercher un médicament, DCI, catégorie…" autocomplete="off"
+      style="width:100%;padding:10px 14px;border:1.5px solid var(--color-border);border-radius:var(--radius-lg);font-size:var(--font-sm);box-sizing:border-box"
+      oninput="pharmaSuggest(this.value)" onkeydown="if(event.key==='Escape')pharmaCloseSug()">
+    <div id="pharma-sug" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1.5px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:200;max-height:260px;overflow-y:auto;margin-top:4px"></div>
   </div>
   <div class="card"><div class="table-wrap"><table><thead><tr><th>Produit / DCI</th><th>Catégorie</th><th>Prix USD</th><th>Stock total</th><th>Niveau</th><th>Ordonnance</th><th>Code</th></tr></thead><tbody id="pharma-table"><tr><td colspan="7" class="text-center text-muted" style="padding:32px">Chargement…</td></tr></tbody></table></div></div>
 </div>
@@ -1339,8 +1342,8 @@ function showPage(id) {
   document.getElementById('topbar-title').textContent = PAGE_TITLES[id] || id;
   document.getElementById('breadcrumb').style.display = 'none';
   closeDrill(); window.scrollTo(0, 0);
-  if (id === 'adherents')   renderAdherentsTable(DATA.adherents);
-  if (id === 'medecins')    renderMedecinsTable(DATA.medecins);
+  if (id === 'adherents')   loadAdherents();
+  if (id === 'medecins')    loadMedecins();
   if (id === 'pharmacie')   loadPharmacie();
   if (id === 'abonnements') renderAboTable(DATA.adherents);
   if (id === 'consultations') renderConsultTable(DATA.consultations);
@@ -1750,9 +1753,11 @@ function renderMedecinsTable(list) {
     </tr>`).join('');
 }
 
+var _APISD = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:8002' : '';
+
 async function loadPharmacie(q) {
   var tok = localStorage.getItem('sd_token');
-  var url = API + '/api/pharmacie/ean/list?limit=100' + (q ? '&q=' + encodeURIComponent(q) : '');
+  var url = _APISD + '/api/pharmacie/ean/list?limit=100' + (q ? '&q=' + encodeURIComponent(q) : '');
   try {
     var r = await fetch(url, { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
     if (!r.ok) throw new Error('Erreur API ' + r.status);
@@ -1768,9 +1773,97 @@ async function loadPharmacie(q) {
     renderPharmaTable(items);
   } catch(e) {
     document.getElementById('pharma-table').innerHTML =
-      '<tr><td colspan="7" class="text-center text-muted" style="padding:32px">Erreur : '+e.message+'</td></tr>';
+      '<tr><td colspan="7" class="text-center text-muted" style="padding:32px">Erreur chargement : '+e.message+'</td></tr>';
   }
 }
+
+var _sugTimer = null;
+function pharmaSuggest(val) {
+  var box = document.getElementById('pharma-sug');
+  clearTimeout(_sugTimer);
+  if (!val || val.length < 2) {
+    box.style.display = 'none';
+    if (!val) loadPharmacie();
+    return;
+  }
+  _sugTimer = setTimeout(async function() {
+    var tok = localStorage.getItem('sd_token');
+    try {
+      var r = await fetch(_APISD + '/api/pharmacie/ean/list?limit=8&q=' + encodeURIComponent(val),
+        { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
+      var data = await r.json();
+      var items = (data.items||[]);
+      if (!items.length) { box.style.display='none'; loadPharmacie(val); return; }
+      box.innerHTML = items.map(function(p) {
+        var hl = p.nom.replace(new RegExp('('+val.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),
+          '<strong style="color:var(--dark)">$1</strong>');
+        return '<div class="pharma-sug-item" style="padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--color-border);font-size:var(--font-sm)"'
+          +' onmousedown="pharmaSelectSug(\''+p.nom.replace(/'/g,"&#39;")+'\')"'
+          +' onmouseover="this.style.background=\'var(--color-bg)\'" onmouseout="this.style.background=\'\'">'
+          +hl+(p.dci?' <span style="color:var(--color-text-muted);font-size:var(--font-xs)">— '+p.dci+'</span>':'')
+          +(p.categorie?' <span style="background:var(--color-bg);border-radius:4px;padding:1px 6px;font-size:10px;color:var(--color-text-muted)">'+p.categorie+'</span>':'')
+          +'</div>';
+      }).join('');
+      box.style.display = 'block';
+    } catch(e) {}
+  }, 180);
+}
+function pharmaSelectSug(nom) {
+  document.getElementById('pharma-search').value = nom;
+  document.getElementById('pharma-sug').style.display = 'none';
+  loadPharmacie(nom);
+}
+function pharmaCloseSug() {
+  document.getElementById('pharma-sug').style.display = 'none';
+}
+
+async function loadAdherents() {
+  var tok = localStorage.getItem('sd_token');
+  var tbody = document.getElementById('adherents-table');
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Chargement…</td></tr>';
+  try {
+    var r = await fetch(_APISD + '/api/admin/users?role=adherent&limit=100',
+      { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var d = await r.json();
+    var items = (d.items || []).map(function(u) {
+      return { id:u.id, nom:u.nom+' '+u.prenom, plan:u.plan||'standard',
+               statut:u.statut, montant:u.prix_usd||0, renouv:'—' };
+    });
+    if (!items.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Aucun adhérent</td></tr>';
+      return;
+    }
+    renderAdherentsTable(items);
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Erreur : '+e.message+'</td></tr>';
+  }
+}
+
+async function loadMedecins() {
+  var tok = localStorage.getItem('sd_token');
+  var tbody = document.getElementById('medecins-table');
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Chargement…</td></tr>';
+  try {
+    var r = await fetch(_APISD + '/api/admin/users?role=medecin&limit=100',
+      { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var d = await r.json();
+    var items = (d.items || []);
+    if (!items.length) { renderMedecinsTable(DATA.medecins); return; }
+    var list = items.map(function(u) {
+      return { id:u.id, nom:'Dr. '+u.nom+' '+u.prenom, spec:'—',
+               consult:0, note:0, statut:u.actif?'disponible':'conge' };
+    });
+    renderMedecinsTable(list);
+  } catch(e) {
+    renderMedecinsTable(DATA.medecins);
+  }
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#pharma-search') && !e.target.closest('#pharma-sug'))
+    pharmaCloseSug();
+});
 
 function renderPharmaTable(list) {
   if (!list.length) {
