@@ -1345,6 +1345,8 @@ function showPage(id) {
   if (id === 'abonnements') renderAboTable(DATA.adherents);
   if (id === 'consultations') renderConsultTable(DATA.consultations);
   if (id === 'metrics')     renderMetrics();
+  if (id === 'rh' && !_rhInited) { _rhInited = true; renderRH(); }
+  if (id === 'centres' && !_centresInited) { _centresInited = true; renderPageCentres(); }
   // Superadmin : afficher le sélecteur de centre sur Metrics
   const metCentreSel = document.getElementById('met-centre-sel');
   if (metCentreSel) {
@@ -2712,15 +2714,8 @@ function declencherPaieGlobale() {
   }
 }
 
-// Patch showPage pour initialiser RH au premier affichage
-const _origShowPage = showPage;
 let _rhInited = false;
 let _centresInited = false;
-function showPage(id) {
-  _origShowPage(id);
-  if (id === 'rh' && !_rhInited) { _rhInited = true; renderRH(); }
-  if (id === 'centres' && !_centresInited) { _centresInited = true; renderPageCentres(); }
-}
 
 /* ── Détection URL ?page=centres (retour depuis un centre) ── */
 (function() {
