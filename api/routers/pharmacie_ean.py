@@ -50,6 +50,18 @@ class SortieStockRequest(BaseModel):
     reference: Optional[str] = None   # ex: "ORD-042" si lié à une ordonnance
     operateur: str
 
+class MedicamentPatch(BaseModel):
+    nom: Optional[str] = None
+    dci: Optional[str] = None
+    dosage: Optional[str] = None
+    forme: Optional[str] = None
+    ean: Optional[str] = None
+    fabricant: Optional[str] = None
+    categorie: Optional[str] = None
+    prescription: Optional[bool] = None
+    prix_usd: Optional[float] = None
+    unite_boite: Optional[int] = None
+
 
 # ─── Lookup EAN ─────────────────────────────────────────────────────────────
 
@@ -180,6 +192,31 @@ def creer_medicament(payload: MedicamentCreate, db: Session = Depends(get_db)):
         cree_le=datetime.utcnow()
     )
     db.add(med)
+    db.commit()
+    db.refresh(med)
+    return med
+
+
+@router.patch("/ean/{code_interne}", status_code=200)
+def modifier_medicament(code_interne: str, payload: MedicamentPatch, db: Session = Depends(get_db)):
+    """Met à jour les champs d'un médicament existant (admin)."""
+    from models import MedicamentEAN
+    med = db.query(MedicamentEAN).filter(MedicamentEAN.code_interne == code_interne).first()
+    if not med:
+        raise HTTPException(status_code=404, detail="Médicament non trouvé")
+
+    # Vérifier unicité EAN si modifié
+    if payload.ean is not None and payload.ean != med.ean:
+        conflict = db.query(MedicamentEAN).filter(
+            MedicamentEAN.ean == payload.ean,
+            MedicamentEAN.code_interne != code_interne
+        ).first()
+        if conflict:
+            raise HTTPException(status_code=409, detail=f"EAN déjà utilisé par {conflict.code_interne}")
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(med, field, value)
+
     db.commit()
     db.refresh(med)
     return med

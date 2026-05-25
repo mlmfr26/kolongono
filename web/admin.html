@@ -223,6 +223,17 @@
     .sidebar-logout { display:flex; align-items:center; gap:8px; width:100%; margin-top:10px; padding:8px 12px; background:transparent; border:1px solid rgba(255,255,255,.12); border-radius:var(--radius-lg); color:rgba(255,255,255,.5); font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; text-align:left; }
     .sidebar-logout:hover { background:rgba(239,68,68,.15); border-color:#EF4444; color:#FCA5A5; }
 
+    /* ── Fiche produit ── */
+    .pf-section       { margin-bottom:var(--space-xl);padding-bottom:var(--space-lg);border-bottom:1px solid var(--color-border); }
+    .pf-section:last-child { border:none; padding-bottom:0; }
+    .pf-section-title { font-size:var(--font-xs);font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:var(--space-md); }
+    .pf-grid          { display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md); }
+    .pf-grid-3        { display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-md); }
+    .pf-readonly      { background:var(--color-bg)!important;color:var(--color-text-muted);cursor:default; }
+    .pf-stock-row     { display:flex;align-items:center;gap:var(--space-md);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-md) var(--space-lg);margin-bottom:var(--space-md); }
+    .table-row-hover tr { cursor:pointer; }
+    .table-row-hover tr:hover { background:var(--color-bg); }
+
     /* ── Metrics ── */
     .met-dl-bar { display:flex; gap:var(--space-sm); flex-wrap:wrap; margin-bottom:var(--space-lg); }
     .met-type-chip { display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:var(--radius-full);font-size:var(--font-xs);font-weight:700;cursor:pointer;border:1.5px solid var(--color-border);color:var(--color-text-muted);background:var(--color-card);transition:all .15s; }
@@ -531,7 +542,7 @@
       oninput="pharmaSuggest(this.value)" onkeydown="if(event.key==='Escape')pharmaCloseSug()">
     <div id="pharma-sug" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1.5px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:200;max-height:260px;overflow-y:auto;margin-top:4px"></div>
   </div>
-  <div class="card"><div class="table-wrap"><table><thead><tr><th>Produit / DCI</th><th>Catégorie</th><th>Prix USD</th><th>Stock total</th><th>Niveau</th><th>Ordonnance</th><th>Code</th></tr></thead><tbody id="pharma-table"><tr><td colspan="7" class="text-center text-muted" style="padding:32px">Chargement…</td></tr></tbody></table></div></div>
+  <div class="card"><div class="table-wrap"><table class="table-row-hover"><thead><tr><th>Produit / DCI</th><th>Catégorie</th><th>Prix USD</th><th>Stock total</th><th>Niveau</th><th>Ordonnance</th><th>Code</th><th></th></tr></thead><tbody id="pharma-table"><tr><td colspan="8" class="text-center text-muted" style="padding:32px">Chargement…</td></tr></tbody></table></div></div>
 </div>
 
 <!-- ══ PAGE ABONNEMENTS ══ -->
@@ -1799,7 +1810,8 @@ function openPharmaDrill(filtre) {
     var lvl = s===0 ? 'rupture' : s<20 ? 'critique' : s<50 ? 'faible' : 'ok';
     var clr = lvl==='ok' ? 'var(--color-primary)' : lvl==='faible' ? 'var(--color-warning)' : 'var(--color-danger)';
     var niv = lvl==='ok' ? 'badge-success' : lvl==='faible' ? 'badge-warning' : 'badge-danger';
-    return '<tr>'
+    var safeCode = (p.code||'').replace(/'/g,"\\'");
+    return '<tr style="cursor:pointer" onclick="openProduitFiche(\''+safeCode+'\')">'
       +'<td><span class="font-bold">'+p.nom+'</span>'+(p.dci?'<br><span class="text-xs text-muted">'+p.dci+(p.dosage?' · '+p.dosage:'')+'</span>':'')+'</td>'
       +'<td class="text-muted text-sm">'+(p.categorie||'—')+'</td>'
       +'<td class="font-bold">'+(p.prix_usd?'$'+Number(p.prix_usd).toFixed(2):'—')+'</td>'
@@ -1807,15 +1819,194 @@ function openPharmaDrill(filtre) {
       +'<td><span class="badge '+niv+'">'+lvl.toUpperCase()+'</span></td>'
       +'<td>'+(p.prescription?'<span class="badge badge-warning">Oui</span>':'<span class="badge badge-muted">Non</span>')+'</td>'
       +'<td class="text-xs text-muted">'+(p.code||'—')+'</td>'
+      +'<td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openProduitFiche(\''+safeCode+'\')">✎</button></td>'
       +'</tr>';
-  }).join('') : '<tr><td colspan="7" class="text-center text-muted" style="padding:24px">Aucun médicament dans cette catégorie</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Aucun médicament dans cette catégorie</td></tr>';
 
   document.getElementById('drill-body').innerHTML =
-    '<div class="table-wrap"><table><thead><tr>'
-    +'<th>Produit / DCI</th><th>Catégorie</th><th>Prix USD</th><th>Stock total</th><th>Niveau</th><th>Ordonnance</th><th>Code</th>'
+    '<div class="table-wrap"><table class="table-row-hover"><thead><tr>'
+    +'<th>Produit / DCI</th><th>Catégorie</th><th>Prix USD</th><th>Stock total</th><th>Niveau</th><th>Ordonnance</th><th>Code</th><th></th>'
     +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
 
   document.getElementById('drill-panel').classList.remove('hidden');
+}
+
+// ── Fiche produit ─────────────────────────────────────────────────────────────
+
+var _currentProduit = null;
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function openProduitFiche(code) {
+  var p = _pharmaItems.find(function(x){ return x.code === code; });
+  if (!p) return;
+  _currentProduit = p;
+  var s = p.stock_total || 0;
+  var lvl = s===0?'rupture':s<20?'critique':s<50?'faible':'ok';
+  var stockBadge = lvl==='ok'?'badge-success':lvl==='faible'?'badge-warning':'badge-danger';
+  var stockColor = lvl==='ok'?'var(--color-primary)':lvl==='faible'?'var(--color-warning)':'var(--color-danger)';
+
+  document.getElementById('detail-breadcrumb').innerHTML =
+    '<span style="cursor:pointer;color:var(--color-primary)" onclick="closeDetail()">Pharmacie</span>'
+    +'<span class="breadcrumb-sep">›</span><span>Fiche produit</span>';
+  document.getElementById('detail-title').textContent = p.nom;
+
+  document.getElementById('detail-body').innerHTML =
+    // ── En-tête visuel ──
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:var(--space-xl);padding:var(--space-lg);background:var(--color-bg);border-radius:var(--radius-xl);border:1px solid var(--color-border)">'
+      +'<div style="width:52px;height:52px;border-radius:var(--radius-lg);background:var(--purple-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+        +'<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--purple-deep)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5L3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/></svg>'
+      +'</div>'
+      +'<div style="flex:1">'
+        +'<div style="font-size:var(--font-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">'+(escHtml(p.categorie)||'Non classé')+'</div>'
+        +'<div style="font-size:var(--font-sm);color:var(--color-text-muted)">'
+          +[escHtml(p.forme),escHtml(p.dosage)].filter(Boolean).join(' · ')
+        +'</div>'
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+        +'<div style="font-size:22px;font-weight:900;color:'+stockColor+'">'+s+'</div>'
+        +'<div style="font-size:10px;font-weight:700;color:var(--color-text-muted)">UNITÉS EN STOCK</div>'
+        +'<span class="badge '+stockBadge+'" style="margin-top:4px">'+lvl.toUpperCase()+'</span>'
+      +'</div>'
+    +'</div>'
+
+    // ── Section Identité ──
+    +'<div class="pf-section">'
+      +'<div class="pf-section-title">Identité</div>'
+      +'<div class="form-group"><label>Nom commercial</label>'
+        +'<input class="input" id="pf-nom" value="'+escHtml(p.nom)+'"></div>'
+      +'<div class="pf-grid">'
+        +'<div class="form-group"><label>DCI (générique)</label>'
+          +'<input class="input" id="pf-dci" value="'+escHtml(p.dci||'')+'" placeholder="Nom générique…"></div>'
+        +'<div class="form-group"><label>Dosage</label>'
+          +'<input class="input" id="pf-dosage" value="'+escHtml(p.dosage||'')+'" placeholder="Ex: 500mg"></div>'
+      +'</div>'
+      +'<div class="pf-grid">'
+        +'<div class="form-group"><label>Forme</label>'
+          +'<input class="input" id="pf-forme" value="'+escHtml(p.forme||'')+'" placeholder="comprimé, sirop…"></div>'
+        +'<div class="form-group"><label>Catégorie thérapeutique</label>'
+          +'<input class="input" id="pf-categorie" value="'+escHtml(p.categorie||'')+'" placeholder="Antibiotique…"></div>'
+      +'</div>'
+    +'</div>'
+
+    // ── Section Codes ──
+    +'<div class="pf-section">'
+      +'<div class="pf-section-title">Codes d\'identification</div>'
+      +'<div class="pf-grid">'
+        +'<div class="form-group"><label>Code interne <span style="font-size:10px;color:var(--color-text-muted)">(non modifiable)</span></label>'
+          +'<input class="input pf-readonly" id="pf-code" value="'+escHtml(p.code||'')+'" readonly></div>'
+        +'<div class="form-group"><label>Code EAN-13 / Barcode</label>'
+          +'<input class="input" id="pf-ean" value="'+escHtml(p.ean||'')+'" placeholder="Ex: 3400935378906" maxlength="14" pattern="[0-9]{8,14}"></div>'
+      +'</div>'
+    +'</div>'
+
+    // ── Section Prix et réglementation ──
+    +'<div class="pf-section">'
+      +'<div class="pf-section-title">Prix et réglementation</div>'
+      +'<div class="pf-grid">'
+        +'<div class="form-group"><label>Prix unitaire (USD)</label>'
+          +'<input class="input" id="pf-prix" type="number" step="0.01" min="0" value="'+escHtml(p.prix_usd||'')+'"></div>'
+        +'<div class="form-group" style="display:flex;flex-direction:column;justify-content:center">'
+          +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:var(--font-sm)">'
+            +'<input type="checkbox" id="pf-prescription" '+(p.prescription?'checked':'')+' style="width:16px;height:16px;cursor:pointer">'
+            +' Prescription obligatoire'
+          +'</label>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-md)">'
+        +'<button class="btn btn-primary" onclick="saveProduit()">Sauvegarder les informations</button>'
+        +'<button class="btn btn-outline" onclick="closeDetail()">Annuler</button>'
+      +'</div>'
+    +'</div>'
+
+    // ── Section Ajustement de stock ──
+    +'<div class="pf-section">'
+      +'<div class="pf-section-title" style="display:flex;align-items:center;gap:8px">'
+        +'Ajustement de stock'
+        +'<span class="badge '+stockBadge+'">'+s+' unité'+(s>1?'s':'')+' actuellement</span>'
+      +'</div>'
+      +'<div class="pf-grid-3">'
+        +'<div class="form-group"><label>Quantité</label>'
+          +'<input class="input" id="pf-adj-qty" type="number" min="1" value="1"></div>'
+        +'<div class="form-group"><label>Type de mouvement</label>'
+          +'<select class="input" id="pf-adj-type">'
+            +'<option value="entree">↑ Entrée (réception)</option>'
+            +'<option value="sortie">↓ Sortie / Retrait</option>'
+          +'</select></div>'
+        +'<div class="form-group"><label>Motif</label>'
+          +'<input class="input" id="pf-adj-motif" placeholder="Inventaire, correction…"></div>'
+      +'</div>'
+      +'<button class="btn btn-outline" onclick="ajusterStockFiche()">Enregistrer le mouvement de stock</button>'
+    +'</div>';
+
+  document.getElementById('detail-modal').classList.remove('hidden');
+}
+
+async function saveProduit() {
+  if (!_currentProduit) return;
+  var tok = localStorage.getItem('sd_token');
+  var payload = {
+    nom:          (document.getElementById('pf-nom').value||'').trim() || undefined,
+    dci:          (document.getElementById('pf-dci').value||'').trim() || null,
+    dosage:       (document.getElementById('pf-dosage').value||'').trim() || null,
+    forme:        (document.getElementById('pf-forme').value||'').trim() || null,
+    categorie:    (document.getElementById('pf-categorie').value||'').trim() || null,
+    ean:          (document.getElementById('pf-ean').value||'').trim() || null,
+    prix_usd:     parseFloat(document.getElementById('pf-prix').value) || null,
+    prescription: document.getElementById('pf-prescription').checked,
+  };
+  try {
+    var r = await fetch(_APISD + '/api/pharmacie/ean/' + _currentProduit.code, {
+      method: 'PATCH',
+      headers: Object.assign({'Content-Type':'application/json'}, tok?{'Authorization':'Bearer '+tok}:{} ),
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) { var err = await r.json().catch(function(){return {detail:'Erreur API'};});
+      throw new Error(err.detail || 'Erreur HTTP ' + r.status); }
+    var updated = await r.json();
+    var idx = _pharmaItems.findIndex(function(x){ return x.code === _currentProduit.code; });
+    if (idx >= 0) {
+      _pharmaItems[idx] = Object.assign({}, _pharmaItems[idx], {
+        nom: updated.nom, dci: updated.dci, dosage: updated.dosage,
+        forme: updated.forme, categorie: updated.categorie,
+        ean: updated.ean, prix_usd: updated.prix_usd, prescription: updated.prescription,
+      });
+    }
+    showToast('✓ Médicament mis à jour · ' + updated.nom);
+    closeDetail();
+    loadPharmacie();
+  } catch(e) { alert('Erreur : ' + e.message); }
+}
+
+async function ajusterStockFiche() {
+  if (!_currentProduit) return;
+  var tok = localStorage.getItem('sd_token');
+  var qty   = parseInt(document.getElementById('pf-adj-qty').value) || 0;
+  var type  = document.getElementById('pf-adj-type').value;
+  var motif = (document.getElementById('pf-adj-motif').value||'').trim() || 'Ajustement manuel admin';
+  if (qty <= 0) { alert('Quantité invalide'); return; }
+  var endpoint = type === 'entree' ? '/api/pharmacie/stock/entree' : '/api/pharmacie/stock/sortie';
+  var payload = { centre_id:'CTR-001', code_interne:_currentProduit.code, quantite:qty, operateur:'admin' };
+  if (type === 'entree') payload.fournisseur = motif;
+  else { payload.motif = 'autre'; payload.reference = motif; }
+  try {
+    var r = await fetch(_APISD + endpoint, {
+      method: 'POST',
+      headers: Object.assign({'Content-Type':'application/json'}, tok?{'Authorization':'Bearer '+tok}:{}),
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) { var err = await r.json().catch(function(){return {detail:'Erreur API'};});
+      throw new Error(err.detail || 'Erreur HTTP ' + r.status); }
+    var result = await r.json();
+    var newStock = type==='entree' ? result.nouveau_stock : result.stock_restant;
+    var idx = _pharmaItems.findIndex(function(x){ return x.code === _currentProduit.code; });
+    if (idx >= 0) _pharmaItems[idx].stock_total = newStock;
+    showToast('✓ Stock mis à jour · ' + result.medicament + ' · ' + newStock + ' unités');
+    closeDetail();
+    loadPharmacie();
+  } catch(e) { alert('Erreur : ' + e.message); }
 }
 
 var _sugTimer = null;
@@ -1916,7 +2107,8 @@ function renderPharmaTable(list) {
     const s = p.stock_total || 0;
     const lvl = s===0?'rupture':s<20?'critique':s<50?'faible':'ok';
     const clr = lvl==='ok'?'var(--color-primary)':lvl==='faible'?'var(--color-warning)':'var(--color-danger)';
-    return `<tr>
+    const code = (p.code||'').replace(/'/g,"\\'");
+    return `<tr onclick="openProduitFiche('${code}')">
       <td><span class="font-bold">${p.nom}</span>${p.dci?'<br><span class="text-xs text-muted">'+p.dci+(p.dosage?' · '+p.dosage:'')+'</span>':''}${p.forme?'<span class="text-xs text-muted"> · '+p.forme+'</span>':''}</td>
       <td class="text-muted text-sm">${p.categorie||'—'}</td>
       <td class="font-bold">${p.prix_usd?'$'+Number(p.prix_usd).toFixed(2):'—'}</td>
@@ -1924,6 +2116,7 @@ function renderPharmaTable(list) {
       <td><span class="badge ${lvl==='ok'?'badge-success':lvl==='faible'?'badge-warning':'badge-danger'}">${lvl.toUpperCase()}</span></td>
       <td>${p.prescription?'<span class="badge badge-warning">Oui</span>':'<span class="badge badge-muted">Non</span>'}</td>
       <td class="text-xs text-muted">${p.code||'—'}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openProduitFiche('${code}')">✎</button></td>
     </tr>`;
   }).join('');
 }
