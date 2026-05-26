@@ -146,44 +146,50 @@ jobs:
           else:
               print("VisionCamera_enableCodeScanner déjà présent")
 
-          # ── 4e. settings.gradle — DRM repos (CRITICAL pour BaseReactPackage) ────
+          # ── 4e. settings.gradle — PATCH (ne pas réécrire) + DRM repos ─────────
           sg = dest / "settings.gradle"
-          print("=== settings.gradle AVANT ===")
-          print(sg.read_text() if sg.exists() else "(absent)")
+          sg_txt = sg.read_text() if sg.exists() else ""
+          print("=== settings.gradle TEMPLATE ===")
+          print(sg_txt)
 
-          sg.write_text(
-              'pluginManagement {\n'
-              '    includeBuild("../node_modules/@react-native/gradle-plugin")\n'
-              '    repositories {\n'
-              '        google()\n'
-              '        mavenCentral()\n'
-              '    }\n'
-              '}\n'
-              '\n'
-              'plugins {\n'
-              '    id("com.facebook.react.settings")\n'
-              '}\n'
-              '\n'
-              'extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->\n'
-              '    ex.autolinkLibrariesFromCommand()\n'
-              '}\n'
-              '\n'
-              'dependencyResolutionManagement {\n'
-              '    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)\n'
-              '    repositories {\n'
-              '        maven { url uri("../node_modules/react-native/android") }\n'
-              '        maven { url uri("../node_modules/@react-native/gradle-plugin") }\n'
-              '        google()\n'
-              '        mavenCentral()\n'
-              '        mavenLocal()\n'
-              '    }\n'
-              '}\n'
-              '\n'
-              "rootProject.name = 'SantedirectKolongono'\n"
-              "include ':app'\n"
-              'includeBuild("../node_modules/@react-native/gradle-plugin")\n'
+          drm_block = (
+              "\ndependencyResolutionManagement {\n"
+              "    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)\n"
+              "    repositories {\n"
+              "        maven { url uri('../node_modules/react-native/android') }\n"
+              "        maven { url uri('../node_modules/@react-native/gradle-plugin') }\n"
+              "        google()\n"
+              "        mavenCentral()\n"
+              "        mavenLocal()\n"
+              "    }\n"
+              "}\n"
           )
-          print("✓ settings.gradle → DRM repos locaux react-native/android ajoutés (PREFER_PROJECT)")
+
+          if "dependencyResolutionManagement" not in sg_txt:
+              # Insérer avant rootProject.name ou à la fin
+              if "rootProject.name" in sg_txt:
+                  sg_txt = sg_txt.replace("rootProject.name", drm_block + "\nrootProject.name", 1)
+              else:
+                  sg_txt += drm_block
+              sg.write_text(sg_txt)
+              print("✓ DRM repos injectés dans settings.gradle")
+          else:
+              print("DRM déjà présent — patch FAIL_ON_PROJECT_REPOS → PREFER_PROJECT si nécessaire")
+              if "FAIL_ON_PROJECT_REPOS" in sg_txt:
+                  sg_txt = sg_txt.replace("FAIL_ON_PROJECT_REPOS", "PREFER_PROJECT")
+                  sg.write_text(sg_txt)
+                  print("✓ FAIL_ON_PROJECT_REPOS → PREFER_PROJECT")
+              if "node_modules/react-native/android" not in sg_txt:
+                  import re as re2
+                  sg_txt = re2.sub(
+                      r'(dependencyResolutionManagement\s*\{[^}]*repositories\s*\{)',
+                      r"\1\n        maven { url uri('../node_modules/react-native/android') }",
+                      sg_txt, flags=re2.DOTALL)
+                  sg.write_text(sg_txt)
+                  print("✓ maven repo local ajouté dans DRM")
+
+          print("=== settings.gradle FINAL ===")
+          print(sg.read_text())
           PY
 
       # ── 5. ABI arm64-v8a (~25-35 MB) ─────────────────────────────────────────
