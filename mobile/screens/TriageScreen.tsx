@@ -34,7 +34,7 @@ const SYMPTOMES_PREDEFINIS: { id: string; label: string; iconName: IconName; cat
 ];
 
 const URGENCE_OPTIONS = [
-  { id: 'normale',     label: 'Normale',      color: colors.success, desc: 'Pas d'urgence immédiate' },
+  { id: 'normale',     label: 'Normale',      color: colors.success, desc: "Pas d'urgence immédiate" },
   { id: 'urgent',      label: 'Urgent',        color: colors.warning, desc: 'Besoin rapide de soins' },
   { id: 'tres_urgent', label: 'Très urgent',   color: colors.danger,  desc: 'Situation critique' },
 ];
