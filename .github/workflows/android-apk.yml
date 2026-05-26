@@ -86,7 +86,7 @@ jobs:
                   compileSdkVersion = 35
                   targetSdkVersion = 34
                   ndkVersion = "25.1.8937393"
-                  kotlinVersion = "1.8.0"
+                  kotlinVersion = "1.9.25"
               }
               repositories {
                   google()
