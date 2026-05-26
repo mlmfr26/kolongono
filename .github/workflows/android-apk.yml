@@ -146,79 +146,74 @@ jobs:
           else:
               print("VisionCamera_enableCodeScanner déjà présent")
 
+          # ── 4e. Patch settings.gradle — ajouter ReactAndroid comme composite build
+          sg = dest / "settings.gradle"
+          sg_txt = sg.read_text() if sg.exists() else ""
+          print("=== settings.gradle ORIGINAL ===")
+          print(sg_txt)
+
+          rn_path = Path("mobile/node_modules/react-native").resolve()
+          rn_android_path = rn_path / "android"
+          react_android_dir = rn_path / "ReactAndroid"
+
+          print(f"\n=== Diagnostic react-native ===")
+          print(f"  node_modules/react-native/android/ : {rn_android_path.exists()}")
+          print(f"  node_modules/react-native/ReactAndroid/ : {react_android_dir.exists()}")
+
+          # Lister le contenu de android/ (top level)
+          if rn_android_path.exists():
+              items = list(rn_android_path.iterdir())
+              print(f"  android/ top-level ({len(items)} items): {[p.name for p in items[:15]]}")
+
+          # Chercher TOUS les AARs dans react-native (pas seulement android/)
+          all_aars = sorted(rn_path.glob("**/*.aar"))[:10]
+          print(f"  Tous les AARs dans react-native/ : {[str(p) for p in all_aars]}")
+
+          # settings.gradle de ReactAndroid ?
+          rn_sg = react_android_dir / "settings.gradle"
+          rn_sg_kts = react_android_dir / "settings.gradle.kts"
+          rn_bg = react_android_dir / "build.gradle"
+          rn_bg_kts = react_android_dir / "build.gradle.kts"
+          has_settings = rn_sg.exists() or rn_sg_kts.exists()
+          has_build = rn_bg.exists() or rn_bg_kts.exists()
+          print(f"  ReactAndroid/settings.gradle: {rn_sg.exists()} | settings.gradle.kts: {rn_sg_kts.exists()}")
+          print(f"  ReactAndroid/build.gradle: {rn_bg.exists()} | build.gradle.kts: {rn_bg_kts.exists()}")
+
+          # ── Ajouter ReactAndroid comme composite build si c'est un projet Gradle ──
+          if (has_settings or has_build) and "ReactAndroid" not in sg_txt:
+              substitution = (
+                  f'\n// react-android via ReactAndroid source (com.facebook.react.settings)\n'
+                  f'includeBuild("{react_android_dir}") {{\n'
+                  f'    dependencySubstitution {{\n'
+                  f'        substitute(module("com.facebook.react:react-android")).using(project(":"))\n'
+                  f'        substitute(module("com.facebook.react:hermes-android")).using(project(":"))\n'
+                  f'    }}\n'
+                  f'}}\n'
+              )
+              sg.write_text(sg_txt + substitution)
+              print(f"✓ includeBuild ReactAndroid ajouté à settings.gradle")
+              print("=== settings.gradle PATCHED ===")
+              print(sg.read_text())
+          elif "ReactAndroid" in sg_txt:
+              print("ReactAndroid déjà dans settings.gradle")
+          else:
+              print("WARNING: ReactAndroid n'est pas un projet Gradle valide — skip includeBuild")
+              # Fallback: afficher la structure pour diagnostic
+              if react_android_dir.exists():
+                  items = list(react_android_dir.iterdir())
+                  print(f"  ReactAndroid/ contenu: {[p.name for p in items[:20]]}")
+
           PY
 
-      # ── 4.5 Diagnostic + injection AAR directe dans les libs natives ──────────
-      - name: Inject react-android AAR into native libs
+      # ── 4.5 Diagnostic libs natives (build.gradle complet) ───────────────────
+      - name: Diagnostic native libs build.gradle
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          rn_android = Path("mobile/node_modules/react-native/android").resolve()
-          print(f"=== react-native/android : {rn_android} ===")
-          print(f"  Existe : {rn_android.exists()}")
-
-          # Chercher le AAR react-android
-          aars = sorted(rn_android.glob("**/react-android*.aar"))
-          print(f"  AARs trouvés : {aars}")
-
-          print("\n=== settings.gradle (android/) ===")
-          sg_main = Path("mobile/android/settings.gradle")
-          print(sg_main.read_text() if sg_main.exists() else "(absent)")
-
-          for lib_name, lib_dir_str in [
-              ("react-native-screens", "mobile/node_modules/react-native-screens/android"),
-              ("react-native-gesture-handler", "mobile/node_modules/react-native-gesture-handler/android"),
-          ]:
-              lib_dir = Path(lib_dir_str)
-              print(f"\n=== {lib_name}/android/ ===")
-
-              bg = lib_dir / "build.gradle"
-              sg = lib_dir / "settings.gradle"
-
-              print(f"  build.gradle : {bg.exists()}")
-              if bg.exists():
-                  print('\n'.join(bg.read_text().split('\n')[:60]))
-
-              print(f"  settings.gradle : {sg.exists()}")
-              if sg.exists():
-                  print(sg.read_text()[:800])
-
-              # ── Injection AAR directe (bypass Maven) ──────────────────────────
-              if not aars:
-                  print(f"  WARNING: AAR introuvable — skip injection")
-                  continue
-
-              aar_abs = str(aars[0])
-              if not bg.exists():
-                  print(f"  build.gradle absent — skip")
-                  continue
-
-              txt = bg.read_text()
-              if aar_abs in txt:
-                  print(f"  Déjà injecté — skip")
-                  continue
-
-              # Insérer compileOnly files('...') dans le 1er bloc dependencies {
-              if "dependencies {" in txt:
-                  patched = txt.replace(
-                      "dependencies {",
-                      f"dependencies {{\n    compileOnly files('{aar_abs}')",
-                      1
-                  )
-                  bg.write_text(patched)
-                  print(f"  ✓ compileOnly files('{aar_abs}') injecté")
-              else:
-                  # Ajouter avant android { ou en tête de fichier
-                  injection = (
-                      f"dependencies {{\n"
-                      f"    compileOnly files('{aar_abs}')\n"
-                      f"}}\n\n"
-                  )
-                  bg.write_text(injection + txt)
-                  print(f"  ✓ bloc dependencies prepend injecté")
-          PY
+          echo "=== react-native-screens/android/build.gradle COMPLET ==="
+          cat mobile/node_modules/react-native-screens/android/build.gradle 2>/dev/null || echo "(absent)"
+          echo "=== react-native-gesture-handler/android/build.gradle (60 lignes) ==="
+          head -60 mobile/node_modules/react-native-gesture-handler/android/build.gradle 2>/dev/null || echo "(absent)"
+          echo "=== react-native-screens version ==="
+          python3 -c "import json; d=json.load(open('mobile/node_modules/react-native-screens/package.json')); print(d.get('version','?'), '| peerDeps:', d.get('peerDependencies',{}).get('react-native','?'))" 2>/dev/null || echo "?"
 
       # ── 5. ABI arm64-v8a (~25-35 MB) ─────────────────────────────────────────
       - name: Limit ABI to arm64-v8a
