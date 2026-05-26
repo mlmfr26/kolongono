@@ -26,13 +26,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: mobile/package-lock.json
 
       # ── 4. Install JS deps ───────────────────────────────────────────────────
       - name: Install JS dependencies
         working-directory: mobile
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       # ── 5. Générer android/ depuis le template react-native installé ─────────
       # Stratégie : copie depuis node_modules/react-native/template/ (aucun réseau)
@@ -133,10 +131,14 @@ jobs:
               f.write(patched)
           PY
 
-      # ── 9. Gradle wrapper permissions ────────────────────────────────────────
-      - name: Make gradlew executable
+      # ── 9. Gradle wrapper permissions + local.properties ────────────────────
+      - name: Prepare Gradle
         working-directory: mobile/android
-        run: chmod +x gradlew
+        run: |
+          chmod +x gradlew
+          # Créer local.properties avec le chemin SDK Android de GitHub Actions
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "local.properties créé : sdk.dir=$ANDROID_HOME"
 
       # ── 10. Build Debug APK ──────────────────────────────────────────────────
       - name: Build Debug APK
