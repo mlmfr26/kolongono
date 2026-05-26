@@ -104,9 +104,18 @@ jobs:
               '    }\n'
               '}\n'
               '\n'
+              'allprojects {\n'
+              '    repositories {\n'
+              '        maven { url = "$rootDir/../node_modules/react-native/android" }\n'
+              '        maven { url = "$rootDir/../node_modules/@react-native-community/cli-platform-android/android" }\n'
+              '        google()\n'
+              '        mavenCentral()\n'
+              '    }\n'
+              '}\n'
+              '\n'
               'apply plugin: "com.facebook.react.rootproject"\n'
           )
-          print("✓ build.gradle → AGP 8.6.0 · compileSdk 35 · kotlin 1.9.25")
+          print("✓ build.gradle → AGP 8.6.0 · compileSdk 35 · kotlin 1.9.25 · allprojects repos")
 
           # ── 4b. app/build.gradle — JVM 17 ───────────────────────────────────────
           abg = dest / "app" / "build.gradle"
