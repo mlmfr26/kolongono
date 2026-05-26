@@ -119,6 +119,35 @@ export default function CentreDashboardScreen({ navigation }: any) {
           />
         </View>
 
+        {/* Section Scanner pharmacie */}
+        <Text style={styles.secLabel}>PHARMACIE — STOCK</Text>
+        <View style={styles.scannerSection}>
+          <TouchableOpacity
+            style={[styles.scannerBtn, { backgroundColor: '#059669' }]}
+            onPress={() => navigation.navigate('ScannerStockScreen', {
+              mode: 'entree',
+              centreId: user?.centre_id ?? 'CTR-001',
+              operateur: user?.id ?? 'admin',
+            })}
+            activeOpacity={0.85}
+          >
+            <Icon name="scan" size={20} color="#fff" />
+            <Text style={styles.scannerBtnText}>Réceptionner stock</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.scannerBtn, { backgroundColor: '#D97706' }]}
+            onPress={() => navigation.navigate('ScannerStockScreen', {
+              mode: 'sortie',
+              centreId: user?.centre_id ?? 'CTR-001',
+              operateur: user?.id ?? 'admin',
+            })}
+            activeOpacity={0.85}
+          >
+            <Icon name="scan" size={20} color="#fff" />
+            <Text style={styles.scannerBtnText}>Dispenser au patient</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Section Impact SantéDirect */}
         <Text style={styles.secLabel}>IMPACT SANTÉDIRECT</Text>
         <View style={styles.sdCard}>
@@ -337,6 +366,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
   },
   triageBtnText: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: '#FFF' },
+
+  // Scanner pharmacie
+  scannerSection: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  scannerBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    borderRadius: radius.xl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    ...shadow.sm,
+  },
+  scannerBtnText: {
+    color: '#fff',
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+  },
 
   // FAB
   fab: {

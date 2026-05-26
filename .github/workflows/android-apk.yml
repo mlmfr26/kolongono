@@ -10,7 +10,7 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
 
     steps:
       # ── 1. Checkout ──────────────────────────────────────────────────────────
@@ -32,52 +32,125 @@ jobs:
       # ── 4. Install JS deps ───────────────────────────────────────────────────
       - name: Install JS dependencies
         working-directory: mobile
-        run: npm install
+        run: npm ci
 
-      # ── 5. Générer android/ via react-native init ────────────────────────────
-      # Le projet n'a pas de dossier android/ — on génère le template puis on relie
+      # ── 5. Générer android/ depuis le template react-native installé ─────────
+      # Stratégie : copie depuis node_modules/react-native/template/ (aucun réseau)
+      # Fallback : react-native@0.73 init dans /tmp
       - name: Generate android/ directory
-        working-directory: mobile
+        env:
+          CI: "true"
         run: |
-          # Initialise un projet temporaire pour récupérer le template android/
-          npx @react-native-community/cli@13 init SanteTemp --version 0.73.0 --skip-install --skip-git-init --directory /tmp/rn-template
-          cp -r /tmp/rn-template/android ./android
-          # Mettre à jour le nom de l'application
-          sed -i 's/com.santetemp/com.santesd.kolongono/g' android/app/build.gradle
-          sed -i 's/com.santetemp/com.santesd.kolongono/g' android/app/src/main/AndroidManifest.xml
-          sed -i 's/com.santetemp/com.santesd.kolongono/g' android/app/src/main/java/com/santetemp/MainActivity.kt 2>/dev/null || true
-          # Renommer les dossiers Java package si nécessaire
-          find android -name "*.kt" -o -name "*.java" | xargs sed -i 's/package com.santetemp/package com.santesd.kolongono/g' 2>/dev/null || true
-          find android -name "*.kt" -o -name "*.java" | xargs sed -i 's/import com.santetemp/import com.santesd.kolongono/g' 2>/dev/null || true
+          TEMPLATE="$GITHUB_WORKSPACE/mobile/node_modules/react-native/template"
+          DEST="$GITHUB_WORKSPACE/mobile/android"
 
-      # ── 6. Permissions caméra (react-native-vision-camera) ──────────────────
-      - name: Configure camera permissions
-        working-directory: mobile
-        run: |
-          # Ajouter les permissions caméra dans AndroidManifest.xml si absentes
-          if ! grep -q "android.permission.CAMERA" android/app/src/main/AndroidManifest.xml; then
-            sed -i 's/<uses-permission android:name="android.permission.INTERNET"/\
-          <uses-permission android:name="android.permission.CAMERA" \/>\
-          <uses-permission android:name="android.permission.INTERNET"/' android/app/src/main/AndroidManifest.xml
+          if [ -d "$TEMPLATE/android" ]; then
+            echo "✓ Template trouvé dans node_modules/react-native/template/"
+            cp -r "$TEMPLATE/android" "$DEST"
+          else
+            echo "Template node_modules absent — init via npx dans /tmp..."
+            cd /tmp
+            npx --yes react-native@0.73.6 init SanteTemp --skip-install
+            cp -r /tmp/SanteTemp/android "$DEST"
           fi
 
-      # ── 7. Gradle wrapper permissions ────────────────────────────────────────
+          echo "Contenu android/ généré :"
+          ls -la "$DEST"
+
+      # ── 6. Corriger le package name ──────────────────────────────────────────
+      - name: Fix package name → com.santesd.kolongono
+        run: |
+          DEST="$GITHUB_WORKSPACE/mobile/android"
+
+          # Détecter le package name actuel dans build.gradle
+          ORIG=$(grep -oP 'applicationId\s+"?\K[^"]+' "$DEST/app/build.gradle" | head -1 || echo "")
+          if [ -z "$ORIG" ]; then
+            ORIG=$(grep -oP 'namespace\s+"?\K[^"]+' "$DEST/app/build.gradle" | head -1 || echo "com.helloworld")
+          fi
+          echo "Package name d'origine détecté : $ORIG"
+
+          # Remplacer dans tous les fichiers Gradle, XML, Kotlin, Java
+          find "$DEST" -type f \( -name "*.gradle" -o -name "*.kts" -o -name "*.xml" \
+            -o -name "*.kt" -o -name "*.java" \) -print0 \
+            | xargs -0 sed -i "s|${ORIG}|com.santesd.kolongono|g"
+
+          # Cas spécifique HelloWorld / helloworld
+          find "$DEST" -type f \( -name "*.kt" -o -name "*.java" -o -name "*.xml" \) -print0 \
+            | xargs -0 sed -i \
+              -e 's|com\.helloworld|com.santesd.kolongono|g' \
+              -e 's|com\.santeTemp|com.santesd.kolongono|g' \
+              -e 's|com\.santeapp|com.santesd.kolongono|g'
+
+          # Renommer les dossiers Java/Kotlin si package path différent
+          JAVA_SRC="$DEST/app/src/main/java"
+          KOTLIN_SRC="$DEST/app/src/main/kotlin"
+          for SRC_ROOT in "$JAVA_SRC" "$KOTLIN_SRC"; do
+            if [ -d "$SRC_ROOT" ]; then
+              NEW_PKG_PATH="$SRC_ROOT/com/santesd/kolongono"
+              mkdir -p "$NEW_PKG_PATH"
+              find "$SRC_ROOT" -name "*.kt" -o -name "*.java" | while read f; do
+                mv "$f" "$NEW_PKG_PATH/" 2>/dev/null || true
+              done
+            fi
+          done
+
+          echo "Package name après correction :"
+          grep -r "applicationId\|namespace\|package " "$DEST/app/build.gradle" || true
+
+      # ── 7. Permissions caméra (react-native-vision-camera) ──────────────────
+      - name: Add camera permissions
+        run: |
+          MANIFEST="$GITHUB_WORKSPACE/mobile/android/app/src/main/AndroidManifest.xml"
+          if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
+            sed -i 's|<uses-permission android:name="android.permission.INTERNET"|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.INTERNET"|' "$MANIFEST"
+          fi
+          echo "Permissions dans AndroidManifest :"
+          grep "uses-permission" "$MANIFEST"
+
+      # ── 8. ABI arm64-v8a uniquement — APK ~25-35 MB ──────────────────────────
+      - name: Limit ABI to arm64-v8a
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          path = "mobile/android/app/build.gradle"
+          with open(path) as f:
+              txt = f.read()
+
+          # Injecter ndk.abiFilters après versionName
+          patched = re.sub(
+              r'(versionName\s+"[^"]*")',
+              r'\1\n        ndk {\n            abiFilters "arm64-v8a"\n        }',
+              txt, count=1
+          )
+          if patched == txt:
+              print("WARNING: versionName non trouvé dans build.gradle", file=sys.stderr)
+              print("Contenu build.gradle :", file=sys.stderr)
+              print(txt[:2000], file=sys.stderr)
+          else:
+              print("✓ ABI arm64-v8a injecté")
+
+          with open(path, "w") as f:
+              f.write(patched)
+          PY
+
+      # ── 9. Gradle wrapper permissions ────────────────────────────────────────
       - name: Make gradlew executable
         working-directory: mobile/android
         run: chmod +x gradlew
 
-      # ── 8. Build Debug APK ───────────────────────────────────────────────────
+      # ── 10. Build Debug APK ──────────────────────────────────────────────────
       - name: Build Debug APK
         working-directory: mobile/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
         env:
           JAVA_OPTS: '-Xmx4096m'
+          GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4096m'
 
-      # ── 9. Upload artifact ───────────────────────────────────────────────────
+      # ── 11. Upload artifact ──────────────────────────────────────────────────
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SanteDirect-debug-${{ github.run_number }}
+          name: SanteDirect-debug-arm64-${{ github.run_number }}
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
           if-no-files-found: error

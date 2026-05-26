@@ -1939,6 +1939,28 @@ function openProduitFiche(code) {
           +'<input class="input" id="pf-adj-motif" placeholder="Inventaire, correction…"></div>'
       +'</div>'
       +'<button class="btn btn-outline" onclick="ajusterStockFiche()">Enregistrer le mouvement de stock</button>'
+    +'</div>'
+
+    // ── Section Étiquettes ELA034 ──
+    +'<div class="pf-section" style="padding-bottom:0;border:none">'
+      +'<div class="pf-section-title">Étiquettes ELA034 (70×35 mm · 24/feuille A4)</div>'
+      +'<div class="pf-grid-3">'
+        +'<div class="form-group"><label>Type de code</label>'
+          +'<select class="input" id="pf-etiq-type">'
+            +'<option value="code128">Code-barres · code interne</option>'
+            +'<option value="ean13">Code-barres · EAN-13</option>'
+            +'<option value="qr">QR Code · code interne</option>'
+          +'</select></div>'
+        +'<div class="form-group"><label>Nombre d\'étiquettes (1–24)</label>'
+          +'<input class="input" id="pf-etiq-qty" type="number" min="1" max="24" value="8"></div>'
+        +'<div class="form-group" style="display:flex;align-items:flex-end">'
+          +'<button class="btn btn-outline" style="width:100%" onclick="imprimerEtiquettes()">🖨 Imprimer la planche</button>'
+        +'</div>'
+      +'</div>'
+      +'<p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:var(--space-sm)">'
+        +'Code interne (ex : MED-042) = code maison scannable. EAN-13 = code d\'origine du fabricant. '
+        +'Compatible imprimante laser A4, papier étiquettes ELA034.'
+      +'</p>'
     +'</div>';
 
   document.getElementById('detail-modal').classList.remove('hidden');
@@ -2007,6 +2029,90 @@ async function ajusterStockFiche() {
     closeDetail();
     loadPharmacie();
   } catch(e) { alert('Erreur : ' + e.message); }
+}
+
+function imprimerEtiquettes() {
+  if (!_currentProduit) return;
+  var p   = _currentProduit;
+  var qty = Math.min(24, Math.max(1, parseInt(document.getElementById('pf-etiq-qty').value) || 8));
+  var type = document.getElementById('pf-etiq-type').value; // 'code128' | 'ean13' | 'qr'
+
+  var codeVal, format;
+  if (type === 'ean13') {
+    codeVal = (p.ean || '').replace(/\D/g, '');
+    if (!codeVal || codeVal.length < 12) {
+      alert('Ce produit n\'a pas d\'EAN-13 valide. Utilisez "Code-barres · code interne" ou "QR Code" à la place.');
+      return;
+    }
+    if (codeVal.length === 12) codeVal = '0' + codeVal; // padding EAN-13
+    format = 'EAN13';
+  } else if (type === 'code128') {
+    codeVal = p.code || p.ean || 'INCONNU';
+    format = 'CODE128';
+  } else {
+    codeVal = p.code || p.ean || 'INCONNU';
+    format = 'qr';
+  }
+
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  var shortName = (p.nom || '').substring(0, 32);
+  var sub = [p.dci, p.dosage].filter(Boolean).join(' · ').substring(0, 40);
+
+  var labels = '';
+  for (var i = 0; i < qty; i++) {
+    if (format === 'qr') {
+      labels += '<div class="lbl"><div class="qrbox" data-code="' + esc(codeVal) + '"></div>'
+        + '<div class="lname">' + esc(shortName) + '</div>'
+        + (sub ? '<div class="lsub">' + esc(sub) + '</div>' : '')
+        + '<div class="lcode">' + esc(codeVal) + '</div></div>';
+    } else {
+      labels += '<div class="lbl"><svg class="bc" data-val="' + esc(codeVal) + '" data-fmt="' + format + '"></svg>'
+        + '<div class="lname">' + esc(shortName) + '</div>'
+        + (sub ? '<div class="lsub">' + esc(sub) + '</div>' : '')
+        + '</div>';
+    }
+  }
+  for (var j = qty; j < 24; j++) labels += '<div class="lbl lbl-empty"></div>';
+
+  var w = window.open('', '_blank', 'width=960,height=720');
+  w.document.write('<!DOCTYPE html><html><head>'
+    + '<meta charset="UTF-8"><title>Étiquettes ELA034 — ' + esc(p.nom) + '</title>'
+    + '<style>'
+    + '@page{size:A4;margin:10mm 0}'
+    + '*{margin:0;padding:0;box-sizing:border-box}'
+    + 'body{font-family:Arial,Helvetica,sans-serif}'
+    + '.sheet{display:grid;grid-template-columns:repeat(3,70mm);width:210mm}'
+    + '.lbl{width:70mm;height:35mm;border:.3mm dashed #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5mm 2mm;overflow:hidden;gap:.5mm}'
+    + '.lbl-empty{background:none}'
+    + '.bc{width:66mm;height:auto;max-height:19mm}'
+    + '.qrbox canvas,.qrbox img{width:22mm!important;height:22mm!important;display:block}'
+    + '.lname{font-size:6.5pt;font-weight:700;text-align:center;max-width:67mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+    + '.lsub{font-size:5pt;color:#555;text-align:center;max-width:67mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+    + '.lcode{font-size:5pt;color:#888;font-family:monospace;letter-spacing:.4px}'
+    + '@media print{.lbl{border-color:transparent}.toolbar{display:none}}'
+    + '</style>'
+    + '<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\\/script>'
+    + '<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"><\\/script>'
+    + '</head><body>'
+    + '<div class="toolbar" style="padding:10px 16px;background:#f5f5f5;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:12px;font-family:sans-serif;font-size:13px">'
+    + '<b>Planche ' + qty + '/24 étiquettes — ' + esc(p.nom) + '</b>'
+    + '<button onclick="window.print()" style="padding:6px 18px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700">🖨 Imprimer</button>'
+    + '<button onclick="window.close()" style="padding:6px 14px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">✕ Fermer</button>'
+    + '<span style="color:#999;font-size:11px">A4 • ELA034 (70×35 mm, 24/feuille)</span>'
+    + '</div>'
+    + '<div class="sheet">' + labels + '</div>'
+    + '<script>window.addEventListener("load",function(){'
+    + 'document.querySelectorAll(".bc[data-val]").forEach(function(el){'
+    + 'try{JsBarcode(el,el.dataset.val,{format:el.dataset.fmt,width:1.4,height:36,displayValue:true,fontSize:7,margin:0,textMargin:1,font:"Arial"});}'
+    + 'catch(e){el.outerHTML="<div style=\'font-size:7pt;color:red\'>Code invalide : "+el.dataset.val+"</div>";}'
+    + '});'
+    + 'if(typeof QRCode!=="undefined"){document.querySelectorAll(".qrbox[data-code]").forEach(function(el){'
+    + 'new QRCode(el,{text:el.dataset.code,width:84,height:84,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});'
+    + '});}'
+    + '});<\\/script>'
+    + '</body></html>');
+  w.document.close();
 }
 
 var _sugTimer = null;
