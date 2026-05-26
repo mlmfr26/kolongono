@@ -148,50 +148,77 @@ jobs:
 
           PY
 
-      # ── 4.5 Diagnostic + patch repos natifs ─────────────────────────────────
-      - name: Diagnostic + patch native libs repos
+      # ── 4.5 Diagnostic + injection AAR directe dans les libs natives ──────────
+      - name: Inject react-android AAR into native libs
         run: |
-          RN_ANDROID="$(realpath mobile/node_modules/react-native/android)"
-          echo "=== react-android AAR ==="
-          find "$RN_ANDROID/com/facebook/react" -name "react-android*.aar" 2>/dev/null \
-            || echo "WARNING: AAR non trouvé dans $RN_ANDROID"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
 
-          echo "=== settings.gradle (android/) ==="
-          cat mobile/android/settings.gradle
+          rn_android = Path("mobile/node_modules/react-native/android").resolve()
+          print(f"=== react-native/android : {rn_android} ===")
+          print(f"  Existe : {rn_android.exists()}")
 
-          echo "=== react-native-screens/android/settings.gradle ==="
-          cat mobile/node_modules/react-native-screens/android/settings.gradle 2>/dev/null || echo "(absent)"
+          # Chercher le AAR react-android
+          aars = sorted(rn_android.glob("**/react-android*.aar"))
+          print(f"  AARs trouvés : {aars}")
 
-          echo "=== react-native-gesture-handler/android/settings.gradle ==="
-          cat mobile/node_modules/react-native-gesture-handler/android/settings.gradle 2>/dev/null || echo "(absent)"
+          print("\n=== settings.gradle (android/) ===")
+          sg_main = Path("mobile/android/settings.gradle")
+          print(sg_main.read_text() if sg_main.exists() else "(absent)")
 
-          echo "=== react-native-screens/android/build.gradle (30 premières lignes) ==="
-          head -30 mobile/node_modules/react-native-screens/android/build.gradle 2>/dev/null || echo "(absent)"
+          for lib_name, lib_dir_str in [
+              ("react-native-screens", "mobile/node_modules/react-native-screens/android"),
+              ("react-native-gesture-handler", "mobile/node_modules/react-native-gesture-handler/android"),
+          ]:
+              lib_dir = Path(lib_dir_str)
+              print(f"\n=== {lib_name}/android/ ===")
 
-          # ── Patch: injecter le maven local react-native/android dans les libs natives
-          for LIB_DIR in \
-            mobile/node_modules/react-native-screens/android \
-            mobile/node_modules/react-native-gesture-handler/android
-          do
-            BG="$LIB_DIR/build.gradle"
-            SG="$LIB_DIR/settings.gradle"
+              bg = lib_dir / "build.gradle"
+              sg = lib_dir / "settings.gradle"
 
-            # Patch build.gradle — premier repositories { trouvé
-            if [ -f "$BG" ] && ! grep -q "react-native/android" "$BG"; then
-              if grep -q "repositories {" "$BG"; then
-                sed -i "0,/repositories {/s|repositories {|repositories {\n        maven { url = uri('$RN_ANDROID') }|" "$BG"
-                echo "  ✓ maven injecté dans $(basename $LIB_DIR)/build.gradle"
-              fi
-            fi
+              print(f"  build.gradle : {bg.exists()}")
+              if bg.exists():
+                  print('\n'.join(bg.read_text().split('\n')[:60]))
 
-            # Patch settings.gradle — premier repositories { trouvé
-            if [ -f "$SG" ] && ! grep -q "react-native/android" "$SG"; then
-              if grep -q "repositories {" "$SG"; then
-                sed -i "0,/repositories {/s|repositories {|repositories {\n        maven { url = uri('$RN_ANDROID') }|" "$SG"
-                echo "  ✓ maven injecté dans $(basename $LIB_DIR)/settings.gradle"
-              fi
-            fi
-          done
+              print(f"  settings.gradle : {sg.exists()}")
+              if sg.exists():
+                  print(sg.read_text()[:800])
+
+              # ── Injection AAR directe (bypass Maven) ──────────────────────────
+              if not aars:
+                  print(f"  WARNING: AAR introuvable — skip injection")
+                  continue
+
+              aar_abs = str(aars[0])
+              if not bg.exists():
+                  print(f"  build.gradle absent — skip")
+                  continue
+
+              txt = bg.read_text()
+              if aar_abs in txt:
+                  print(f"  Déjà injecté — skip")
+                  continue
+
+              # Insérer compileOnly files('...') dans le 1er bloc dependencies {
+              if "dependencies {" in txt:
+                  patched = txt.replace(
+                      "dependencies {",
+                      f"dependencies {{\n    compileOnly files('{aar_abs}')",
+                      1
+                  )
+                  bg.write_text(patched)
+                  print(f"  ✓ compileOnly files('{aar_abs}') injecté")
+              else:
+                  # Ajouter avant android { ou en tête de fichier
+                  injection = (
+                      f"dependencies {{\n"
+                      f"    compileOnly files('{aar_abs}')\n"
+                      f"}}\n\n"
+                  )
+                  bg.write_text(injection + txt)
+                  print(f"  ✓ bloc dependencies prepend injecté")
+          PY
 
       # ── 5. ABI arm64-v8a (~25-35 MB) ─────────────────────────────────────────
       - name: Limit ABI to arm64-v8a
