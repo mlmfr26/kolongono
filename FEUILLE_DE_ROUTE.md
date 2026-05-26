@@ -1,14 +1,14 @@
 # Feuille de route — SantéDirect Kolongono
 
-> Mise à jour automatique toutes les 6 heures par Claude Code.
+> Mise à jour toutes les 6 heures par Claude Code.
 > Format : **Date · Heure · Durée de session · Ce qui a changé.**
 
 ---
 
 ## Dernière mise à jour
 
-**2026-05-26 · ~17h00 (UTC+2 Kinshasa) · Session ~4h**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Commit : `6b0964a`
+**2026-05-26 · ~23h00 (UTC+2 Kinshasa) · Session ~6h**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `c600788`
 
 ---
 
@@ -54,7 +54,7 @@ Modèle : Claude Sonnet 4.6 — Branche : `main` — Commit : `6b0964a`
 
 ---
 
-### Session 4 — 2026-05-26 (durée ~4h) ← SESSION ACTUELLE
+### Session 4 — 2026-05-26 ~11h→17h (durée ~6h)
 **Scanner tous rôles + Étiquettes ELA034 + APK robuste**
 
 | Fichier | Changement |
@@ -63,11 +63,25 @@ Modèle : Claude Sonnet 4.6 — Branche : `main` — Commit : `6b0964a`
 | `web/admin.html` | Générateur d'étiquettes ELA034 (70×35mm, 24/feuille A4) dans la fiche produit — types : Code-barres Code128 (code interne maison), EAN-13 (code fabricant), QR Code. Impression via JsBarcode + QRCode.js |
 | `.github/workflows/android-apk.yml` | Réécriture complète — stratégie template `node_modules/react-native/template/` (sans réseau), détection automatique du package name, arm64-v8a (APK ~25-35 MB), `--stacktrace` pour debug |
 
-**Commit pushé :** `6b0964a` — en attente du résultat du build APK GitHub Actions.
+**Commits :** `6b0964a` → `3deabc3` → `7013bcf` → `0b2b1d0`
 
 ---
 
-## État actuel du projet — 2026-05-26
+### Session 5 — 2026-05-26 ~17h→23h (durée ~6h) ← SESSION ACTUELLE
+**Debug APK + KPIs feuille de route + Drill-down roadmap**
+
+| Commit | Fichier | Changement |
+|--------|---------|-----------|
+| `fc4beeb` | `web/admin.html` | Drill-down feuille de route : 4 filtres (Terminées / En cours / Bloquants / Phases). Labels `roadmap` ajoutés dans `openDrill()`. KPI cards cliquables. |
+| `72234d8` | `.github/workflows/android-apk.yml` | Tentative fix AGP : remplacement `sed` → Python `re.sub`. Gradle wrapper écrit directement en 8.7. `VisionCamera_enableCodeScanner=true`. |
+| `3a7bac7` | `.github/workflows/android-apk.yml` | Fix définitif AGP : suppression Python/regex, remplacement par `cat > heredoc`. Écrase `build.gradle` entièrement (AGP 8.6.0, compileSdk 35, buildTools 35.0.0). |
+| `c600788` | `mobile/package.json` | Bump version 1.0.1→1.0.2 pour déclencher le build CI. |
+
+**Diagnostic APK :** 3 builds échoués. Cause racine identifiée : le `sed` (puis le `re.sub` Python) ne modifiaient pas `build.gradle` — le template RN 0.73 utilise un format non prévu. Solution finale : heredoc shell `cat >` qui écrase le fichier entièrement. Build #4 en cours.
+
+---
+
+## État actuel du projet — 2026-05-26 ~23h00
 
 ### Infrastructure ✅ Opérationnel
 | Composant | État | Détail |
@@ -89,7 +103,7 @@ Modèle : Claude Sonnet 4.6 — Branche : `main` — Commit : `6b0964a`
 | Lookup EAN/QR → API | ✅ | `/api/pharmacie/ean/{code}` |
 | Formulaire médicament inconnu | ✅ | `MedicamentInconnuScreen` — one-time, enregistré ensuite |
 | Formulaire mouvement de stock | ✅ | `FormulaireStockScreen` — entrée / sortie |
-| APK Build (GitHub Actions) | ⏳ | Workflow réécrit, build en cours — résultat attendu |
+| APK Build (GitHub Actions) | ⏳ | Build #4 en cours — fix heredoc AGP 8.6.0 |
 | Téléconsultation Jitsi | ⏳ | Déployé sur le futur CX23 dédié |
 | Triage IA (Claude API) | ⏳ | Code présent, clé API à valider en prod |
 | Notifications push Firebase | ⏳ | Non configuré |
@@ -103,6 +117,7 @@ Modèle : Claude Sonnet 4.6 — Branche : `main` — Commit : `6b0964a`
 | Fiche produit éditable | ✅ | EAN, prix, prescription, forme, DCI, dosage |
 | Ajustement de stock depuis la fiche | ✅ | Entrée / sortie / correction |
 | Générateur étiquettes ELA034 | ✅ | Code128 / EAN-13 / QR — impression A4 (session 4) |
+| KPIs feuille de route cliquables | ✅ | Drill-down 4 filtres (session 5) |
 | Abonnements / Mutuelle | ⏳ | Données demo, API non câblée |
 | Consultations | ⏳ | Données demo, API non câblée |
 | Médecins partenaires | ⏳ | Données demo |
@@ -113,7 +128,7 @@ Modèle : Claude Sonnet 4.6 — Branche : `main` — Commit : `6b0964a`
 ## Prochaines priorités
 
 ### Urgent — bloque les tests terrain
-- [ ] **Résultat build APK** : vérifier GitHub Actions, télécharger l'APK arm64 et le distribuer aux testeurs
+- [ ] **Résultat build APK #4** : vérifier GitHub Actions, télécharger l'APK arm64 et le distribuer aux testeurs
 - [ ] **Import base médicaments** : `curl -X POST https://santedirect.kolongono.org/api/pharmacie/ean/import-base` (vérifier si déjà fait)
 - [ ] **Test end-to-end scanner** : login auxiliaire → scanner un code-barres → entrée/sortie stock → vérifier côté admin.html
 
@@ -156,10 +171,15 @@ Modèle : Claude Sonnet 4.6 — Branche : `main` — Commit : `6b0964a`
 
 | Date | Commit | Résumé |
 |------|--------|--------|
-| 2026-05-26 | `6b0964a` | Scanner admin + étiquettes ELA034 + APK workflow robuste |
-| 2026-05-25 | `70a4ac5` | (dernier commit avant session 4) |
+| 2026-05-26 | `c600788` | Bump version pour déclencher build #4 |
+| 2026-05-26 | `3a7bac7` | Fix définitif CI : heredoc shell pour build.gradle (AGP 8.6.0) |
+| 2026-05-26 | `72234d8` | Fix CI tentative 2 : Python re.sub (partiel — wrapper OK, build.gradle KO) |
+| 2026-05-26 | `fc4beeb` | Drill-down feuille de route (4 filtres) |
+| 2026-05-26 | `3deabc3` | Fix CI tentative 1 : AGP 8.1→8.6 + Gradle 8.3→8.7 |
+| 2026-05-26 | `6b0964a` | Scanner admin + étiquettes ELA034 + workflow APK robuste |
+| 2026-05-25 | `70a4ac5` | Dernier commit avant session 4 |
 | 2026-05-22 | initial | Création projet ~33 fichiers |
 
 ---
 
-*Prochaine mise à jour prévue : 2026-05-26 ~23h00 (dans 6h)*
+*Prochaine mise à jour prévue : 2026-05-27 ~05h00 (dans 6h)*
