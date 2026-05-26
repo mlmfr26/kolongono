@@ -29,42 +29,15 @@ jobs:
         working-directory: mobile
         run: npm install --legacy-peer-deps
 
-      # ── 1.5. Vérifier + extraire AARs react-native si absents ────────────────
-      - name: Verify and extract react-native AARs
+      # ── 1.5. Diagnostic AARs react-native ────────────────────────────────────
+      - name: Diagnostic react-native AARs
         run: |
-          RN_VER=$(python3 -c "import json; print(json.load(open('mobile/node_modules/react-native/package.json'))['version'])")
-          ANDROID_DIR="mobile/node_modules/react-native/android"
-          echo "=== react-native v$RN_VER — android/ ==="
-          ls -la "$ANDROID_DIR" 2>/dev/null || echo "ABSENT"
-          AAR_COUNT=$(find "$ANDROID_DIR" -name "*.aar" 2>/dev/null | wc -l)
-          echo "AARs présents : $AAR_COUNT"
-          find "$ANDROID_DIR" -name "*.aar" 2>/dev/null | head -10
-
-          if [ "$AAR_COUNT" -eq 0 ]; then
-            echo "=== AARs ABSENTS après npm install — extraction depuis tarball npm ==="
-            TARBALL_URL="https://registry.npmjs.org/react-native/-/react-native-${RN_VER}.tgz"
-            echo "Téléchargement : $TARBALL_URL"
-            wget -q "$TARBALL_URL" -O /tmp/rn.tgz
-            echo "Taille tarball : $(du -sh /tmp/rn.tgz)"
-
-            echo "AARs dans le tarball :"
-            tar -tzf /tmp/rn.tgz | grep "\.aar$" | head -20
-
-            mkdir -p /tmp/rn_extract
-            tar -xzf /tmp/rn.tgz -C /tmp/rn_extract/ --wildcards "package/android/" 2>/dev/null || \
-              tar -xzf /tmp/rn.tgz -C /tmp/rn_extract/ 2>/dev/null || true
-
-            if [ -d "/tmp/rn_extract/package/android/com" ]; then
-              mkdir -p "$ANDROID_DIR"
-              cp -r /tmp/rn_extract/package/android/. "$GITHUB_WORKSPACE/$ANDROID_DIR/"
-              echo "✓ AARs extraits depuis tarball"
-              find "$GITHUB_WORKSPACE/$ANDROID_DIR" -name "*.aar" | head -10
-            else
-              echo "WARNING: android/com/ absent dans le tarball — le package npm ne contient pas les AARs pré-compilés"
-              echo "Structure package/android/ dans le tarball :"
-              ls -la /tmp/rn_extract/package/android/ 2>/dev/null || echo "absent"
-            fi
-          fi
+          echo "react-native android/ contents:"
+          ls -la mobile/node_modules/react-native/android/ || echo "ABSENT"
+          echo "AAR files found:"
+          find mobile/node_modules/react-native/android -name "*.aar" 2>/dev/null || echo "none"
+          echo "react-native version:"
+          node -e "console.log(require('./mobile/node_modules/react-native/package.json').version)"
 
       # ── 2. Générer android/ depuis le template installé ──────────────────────
       - name: Generate android/ directory
