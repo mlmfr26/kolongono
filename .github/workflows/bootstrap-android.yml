@@ -1,0 +1,119 @@
+name: Bootstrap — Générer et commiter android/
+
+# À exécuter UNE SEULE FOIS manuellement.
+# Génère le dossier android/ et le commite dans main.
+# Après ça, le workflow android-apk.yml n'aura plus besoin de le régénérer.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: write        # nécessaire pour git push
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install JS dependencies
+        working-directory: mobile
+        run: npm install --legacy-peer-deps
+
+      # ── Générer android/ ─────────────────────────────────────────────────────
+      - name: Generate android/ via react-native init
+        env:
+          CI: "true"
+        run: |
+          echo "=== Tentative 1 : template node_modules/react-native/template/ ==="
+          TEMPLATE="$GITHUB_WORKSPACE/mobile/node_modules/react-native/template"
+          if [ -d "$TEMPLATE/android" ]; then
+            echo "✓ Template trouvé"
+            cp -r "$TEMPLATE/android" "$GITHUB_WORKSPACE/mobile/android"
+          else
+            echo "Template absent, init via npx..."
+            cd /tmp
+            npx --yes react-native@0.73.6 init SanteTemp --skip-install 2>&1
+            cp -r /tmp/SanteTemp/android "$GITHUB_WORKSPACE/mobile/android"
+          fi
+
+          echo "=== Contenu généré ==="
+          ls -la "$GITHUB_WORKSPACE/mobile/android/"
+          echo "=== app/build.gradle ==="
+          cat "$GITHUB_WORKSPACE/mobile/android/app/build.gradle"
+
+      # ── Corriger le package name ──────────────────────────────────────────────
+      - name: Fix package name → com.santesd.kolongono
+        run: |
+          DEST="$GITHUB_WORKSPACE/mobile/android"
+
+          echo "=== Contenu app/build.gradle avant correction ==="
+          cat "$DEST/app/build.gradle"
+
+          # Remplacer toutes les occurrences connues du package name de template
+          for OLD in "com.helloworld" "com.santetemp" "com.santeTemp" "com.santeapp"; do
+            find "$DEST" -type f \( -name "*.gradle" -o -name "*.kts" -o -name "*.xml" -o -name "*.kt" -o -name "*.java" \) \
+              -exec grep -l "$OLD" {} \; | while read f; do
+              echo "Replacing $OLD in $f"
+              sed -i "s|$OLD|com.santesd.kolongono|g" "$f"
+            done
+          done
+
+          # Renommer les répertoires Java/Kotlin vers le nouveau package
+          for SRC_ROOT in "$DEST/app/src/main/java" "$DEST/app/src/main/kotlin"; do
+            if [ -d "$SRC_ROOT" ]; then
+              NEW_DIR="$SRC_ROOT/com/santesd/kolongono"
+              mkdir -p "$NEW_DIR"
+              find "$SRC_ROOT" -maxdepth 4 -name "*.kt" -o -name "*.java" | while read f; do
+                fname=$(basename "$f")
+                target="$NEW_DIR/$fname"
+                if [ "$f" != "$target" ]; then
+                  mv "$f" "$target" && echo "Déplacé : $fname → $NEW_DIR/"
+                fi
+              done
+              # Supprimer les anciens répertoires vides
+              find "$SRC_ROOT" -type d -empty ! -path "$SRC_ROOT/com/santesd/kolongono" -delete 2>/dev/null || true
+            fi
+          done
+
+          echo "=== app/build.gradle après correction ==="
+          cat "$DEST/app/build.gradle"
+
+      # ── Ajouter local.properties ──────────────────────────────────────────────
+      - name: Add local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > "$GITHUB_WORKSPACE/mobile/android/local.properties"
+          echo "local.properties : sdk.dir=$ANDROID_HOME"
+
+      # ── Ajouter .gitignore pour android/ ─────────────────────────────────────
+      - name: Create android/.gitignore
+        run: |
+          cat > "$GITHUB_WORKSPACE/mobile/android/.gitignore" << 'EOF'
+          # Généré localement — ne pas commiter
+          local.properties
+          .gradle/
+          build/
+          app/build/
+          *.keystore
+          !debug.keystore
+          EOF
+
+      # ── Commiter android/ dans le repo ───────────────────────────────────────
+      - name: Commit android/ to repository
+        run: |
+          git config user.name  "GitHub Actions — Bootstrap"
+          git config user.email "actions@github.com"
+          git add mobile/android/
+          git status
+          git diff --cached --stat
+          git commit -m "chore(android): bootstrap android/ depuis template react-native 0.73 [ci skip]" \
+            || echo "Rien à commiter (android/ déjà présent)"
+          git push origin main

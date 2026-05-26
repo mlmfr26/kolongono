@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'mobile/**'
-  workflow_dispatch:          # déclenchement manuel depuis GitHub
+  workflow_dispatch:
 
 jobs:
   build-apk:
@@ -13,28 +13,23 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────────────
       - uses: actions/checkout@v4
 
-      # ── 2. Java 17 ───────────────────────────────────────────────────────────
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # ── 3. Node 18 ───────────────────────────────────────────────────────────
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      # ── 4. Install JS deps ───────────────────────────────────────────────────
+      # ── 1. JS deps ────────────────────────────────────────────────────────────
       - name: Install JS dependencies
         working-directory: mobile
         run: npm install --legacy-peer-deps
 
-      # ── 5. Générer android/ depuis le template react-native installé ─────────
-      # Stratégie : copie depuis node_modules/react-native/template/ (aucun réseau)
-      # Fallback : react-native@0.73 init dans /tmp
+      # ── 2. Générer android/ depuis le template installé ──────────────────────
       - name: Generate android/ directory
         env:
           CI: "true"
@@ -46,101 +41,101 @@ jobs:
             echo "✓ Template trouvé dans node_modules/react-native/template/"
             cp -r "$TEMPLATE/android" "$DEST"
           else
-            echo "Template node_modules absent — init via npx dans /tmp..."
+            echo "Fallback : init via npx react-native@0.73.6..."
             cd /tmp
-            npx --yes react-native@0.73.6 init SanteTemp --skip-install
+            npx --yes react-native@0.73.6 init SanteTemp --skip-install 2>&1
             cp -r /tmp/SanteTemp/android "$DEST"
           fi
+          echo "=== android/ généré ==="
+          ls "$DEST"
 
-          echo "Contenu android/ généré :"
-          ls -la "$DEST"
-
-      # ── 6. Corriger le package name ──────────────────────────────────────────
+      # ── 3. Corriger le package name ──────────────────────────────────────────
       - name: Fix package name → com.santesd.kolongono
         run: |
           DEST="$GITHUB_WORKSPACE/mobile/android"
-
-          # Détecter le package name actuel dans build.gradle
-          ORIG=$(grep -oP 'applicationId\s+"?\K[^"]+' "$DEST/app/build.gradle" | head -1 || echo "")
-          if [ -z "$ORIG" ]; then
-            ORIG=$(grep -oP 'namespace\s+"?\K[^"]+' "$DEST/app/build.gradle" | head -1 || echo "com.helloworld")
-          fi
-          echo "Package name d'origine détecté : $ORIG"
-
-          # Remplacer dans tous les fichiers Gradle, XML, Kotlin, Java
-          find "$DEST" -type f \( -name "*.gradle" -o -name "*.kts" -o -name "*.xml" \
-            -o -name "*.kt" -o -name "*.java" \) -print0 \
-            | xargs -0 sed -i "s|${ORIG}|com.santesd.kolongono|g"
-
-          # Cas spécifique HelloWorld / helloworld
-          find "$DEST" -type f \( -name "*.kt" -o -name "*.java" -o -name "*.xml" \) -print0 \
-            | xargs -0 sed -i \
-              -e 's|com\.helloworld|com.santesd.kolongono|g' \
-              -e 's|com\.santeTemp|com.santesd.kolongono|g' \
-              -e 's|com\.santeapp|com.santesd.kolongono|g'
-
-          # Renommer les dossiers Java/Kotlin si package path différent
-          JAVA_SRC="$DEST/app/src/main/java"
-          KOTLIN_SRC="$DEST/app/src/main/kotlin"
-          for SRC_ROOT in "$JAVA_SRC" "$KOTLIN_SRC"; do
-            if [ -d "$SRC_ROOT" ]; then
-              NEW_PKG_PATH="$SRC_ROOT/com/santesd/kolongono"
-              mkdir -p "$NEW_PKG_PATH"
-              find "$SRC_ROOT" -name "*.kt" -o -name "*.java" | while read f; do
-                mv "$f" "$NEW_PKG_PATH/" 2>/dev/null || true
+          for OLD in "com.helloworld" "com.santetemp" "com.santeTemp"; do
+            find "$DEST" -type f \( -name "*.gradle" -o -name "*.kts" -o -name "*.xml" -o -name "*.kt" -o -name "*.java" \) \
+              -exec grep -l "$OLD" {} \; 2>/dev/null | while read f; do
+                sed -i "s|$OLD|com.santesd.kolongono|g" "$f"
               done
-            fi
+          done
+          # Déplacer les sources Kotlin dans le bon package path
+          for SRC in "$DEST/app/src/main/java" "$DEST/app/src/main/kotlin"; do
+            [ -d "$SRC" ] || continue
+            NEW="$SRC/com/santesd/kolongono"
+            mkdir -p "$NEW"
+            find "$SRC" -maxdepth 5 \( -name "*.kt" -o -name "*.java" \) | while read f; do
+              [ "$(dirname "$f")" != "$NEW" ] && mv "$f" "$NEW/" 2>/dev/null || true
+            done
           done
 
-          echo "Package name après correction :"
-          grep -r "applicationId\|namespace\|package " "$DEST/app/build.gradle" || true
-
-      # ── 7. Permissions caméra (react-native-vision-camera) ──────────────────
-      - name: Add camera permissions
+      # ── 4. Mettre à jour AGP 8.1 → 8.6 (requis par vision-camera / core-ktx) ─
+      - name: Upgrade Android Gradle Plugin to 8.6.0
         run: |
-          MANIFEST="$GITHUB_WORKSPACE/mobile/android/app/src/main/AndroidManifest.xml"
-          if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
-            sed -i 's|<uses-permission android:name="android.permission.INTERNET"|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.INTERNET"|' "$MANIFEST"
-          fi
-          echo "Permissions dans AndroidManifest :"
-          grep "uses-permission" "$MANIFEST"
+          DEST="$GITHUB_WORKSPACE/mobile/android"
 
-      # ── 8. ABI arm64-v8a uniquement — APK ~25-35 MB ──────────────────────────
+          echo "=== build.gradle AVANT ==="
+          cat "$DEST/build.gradle"
+
+          # Format classpath (buildscript DSL)
+          sed -i 's|com\.android\.tools\.build:gradle:[0-9.]*|com.android.tools.build:gradle:8.6.0|g' \
+            "$DEST/build.gradle"
+          # Format plugins block (Kotlin DSL ou Groovy modern)
+          sed -i 's|id("com\.android\.application") version "[^"]*"|id("com.android.application") version "8.6.0"|g' \
+            "$DEST/build.gradle"
+          sed -i "s|id 'com\.android\.application' version '[^']*'|id 'com.android.application' version '8.6.0'|g" \
+            "$DEST/build.gradle"
+
+          # Même chose dans settings.gradle si l'AGP y est référencé
+          [ -f "$DEST/settings.gradle" ] && \
+            sed -i 's|com\.android\.tools\.build:gradle:[0-9.]*|com.android.tools.build:gradle:8.6.0|g' \
+              "$DEST/settings.gradle" || true
+
+          echo "=== build.gradle APRÈS ==="
+          cat "$DEST/build.gradle"
+
+          # Gradle wrapper : AGP 8.6 requiert Gradle ≥ 8.7
+          WRAPPER="$DEST/gradle/wrapper/gradle-wrapper.properties"
+          echo "=== gradle-wrapper.properties AVANT ==="
+          cat "$WRAPPER"
+          sed -i 's|gradle-[0-9.]*-\(all\|bin\)\.zip|gradle-8.7-all.zip|g' "$WRAPPER"
+          echo "=== gradle-wrapper.properties APRÈS ==="
+          cat "$WRAPPER"
+
+      # ── 5. ABI arm64-v8a (~25-35 MB) ─────────────────────────────────────────
       - name: Limit ABI to arm64-v8a
         run: |
           python3 - <<'PY'
-          import re, sys
+          import re
           path = "mobile/android/app/build.gradle"
-          with open(path) as f:
-              txt = f.read()
-
-          # Injecter ndk.abiFilters après versionName
-          patched = re.sub(
-              r'(versionName\s+"[^"]*")',
-              r'\1\n        ndk {\n            abiFilters "arm64-v8a"\n        }',
-              txt, count=1
-          )
-          if patched == txt:
-              print("WARNING: versionName non trouvé dans build.gradle", file=sys.stderr)
-              print("Contenu build.gradle :", file=sys.stderr)
-              print(txt[:2000], file=sys.stderr)
+          txt  = open(path).read()
+          if 'abiFilters' in txt:
+              print("abiFilters déjà présent — skip")
           else:
-              print("✓ ABI arm64-v8a injecté")
-
-          with open(path, "w") as f:
-              f.write(patched)
+              patched = re.sub(
+                  r'(versionName\s+"[^"]*")',
+                  r'\1\n        ndk {\n            abiFilters "arm64-v8a"\n        }',
+                  txt, count=1)
+              open(path, "w").write(patched)
+              print("✓ ABI arm64-v8a injecté" if patched != txt else "WARNING: versionName non trouvé")
           PY
 
-      # ── 9. Gradle wrapper permissions + local.properties ────────────────────
+      # ── 6. Permissions caméra ────────────────────────────────────────────────
+      - name: Add camera permissions
+        run: |
+          M="mobile/android/app/src/main/AndroidManifest.xml"
+          grep -q "CAMERA" "$M" && echo "Déjà présent" || \
+            sed -i 's|<uses-permission android:name="android.permission.INTERNET"|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.INTERNET"|' "$M"
+
+      # ── 7. SDK path + Gradle ─────────────────────────────────────────────────
       - name: Prepare Gradle
         working-directory: mobile/android
         run: |
           chmod +x gradlew
-          # Créer local.properties avec le chemin SDK Android de GitHub Actions
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          echo "local.properties créé : sdk.dir=$ANDROID_HOME"
+          echo "✓ sdk.dir=$ANDROID_HOME"
 
-      # ── 10. Build Debug APK ──────────────────────────────────────────────────
+      # ── 8. Build ─────────────────────────────────────────────────────────────
       - name: Build Debug APK
         working-directory: mobile/android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
@@ -148,7 +143,7 @@ jobs:
           JAVA_OPTS: '-Xmx4096m'
           GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4096m'
 
-      # ── 11. Upload artifact ──────────────────────────────────────────────────
+      # ── 9. Upload ─────────────────────────────────────────────────────────────
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
