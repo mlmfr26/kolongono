@@ -7,8 +7,9 @@
 
 ## Dernière mise à jour
 
-**2026-05-26 · 15h30 (UTC+2) · Session 7**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : en cours (fix settings.gradle)
+**2026-05-26 · 17h30 (UTC+2) · Session 8**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `e6e4a82`
+**APK BUILD #29 : ✅ SUCCÈS — 6m41s — artifact `SanteDirect-debug-arm64-29`**
 
 ---
 
@@ -97,12 +98,15 @@ e: Cannot access 'ViewManagerWithGeneratedInterface'
 > Task :react-native-gesture-handler:compileDebugKotlin FAILED
 ```
 
-**Cause racine** (identifiée en session 7, le 26/05 à 14h) :
-Le template génère un `settings.gradle` minimal sans `pluginManagement { includeBuild }`.
-Sans `apply plugin: "com.facebook.react.settings"`, Gradle ne configure pas
-`dependencyResolutionManagement` → `react-android` (contenant `BaseReactPackage`)
-est introuvable. De plus, `node_modules/react-native/android/` ne contient qu'un
-`README.md` — aucun AAR pré-compilé — donc pointer dessus comme Maven repo était inutile.
+**Cause racine (builds 1-23)** : settings.gradle minimal sans composite build + `node_modules/react-native/android/` vide (0 AAR). Diagnostic disponible depuis build #8 — mal interprété à l'époque.
+
+**Cause racine FINALE (builds 24-28, résolue au build #29)** :
+`npm install` avec `"^3.29.0"` → installe `react-native-screens@3.37.0` (ciblant RN 0.74+).
+`npm install` avec `"^2.20.2"` → installe `react-native-gesture-handler@2.20.x` (idem).
+Ces versions utilisent `ViewManagerWithGeneratedInterface` marqué **`internal`** dans
+`react-android 0.73.x`. Aucune configuration Gradle ne peut contourner une restriction
+de visibilité Kotlin entre modules.
+**Fix : force-réinstaller `screens@3.29.0` + `gesture-handler@2.14.0`** (versions publiées pour RN 0.73.x, sans `ViewManagerWithGeneratedInterface`).
 
 **Diagnostic disponible depuis le build #8 mais non lu à l'époque** :
 ```
@@ -197,7 +201,7 @@ L'incident était côté infrastructure GitHub globale, pas lié au compte `mlmf
 ---
 
 ### Session 7 — 2026-05-26 · 13h30 → 15h30 (durée ~2h)
-**Récupération, audit complet, plan détaillé, fix settings.gradle**
+**Récupération, audit complet, plan détaillé, fix settings.gradle — builds #22-#27**
 
 **13h30** — Reprise de session. GitHub dispatch opérationnel mais CDN encore cassé.
 
@@ -212,34 +216,69 @@ L'incident était côté infrastructure GitHub globale, pas lié au compte `mlmf
 
 **15h18** — Incident GitHub entièrement résolu (confirmé par githubstatus.com).
 
-**15h30** — Fix `settings.gradle` appliqué (commit en cours) :
-- `android-apk.yml` step 4a : suppression `allprojects { repositories }` (inutile, dir vide)
-- `android-apk.yml` step 4e : réécriture `settings.gradle` avec mécanisme officiel RN 0.73 :
-  ```groovy
-  pluginManagement {
-      includeBuild("../node_modules/@react-native/gradle-plugin")
-      repositories { google(); mavenCentral(); gradlePluginPortal() }
-  }
-  apply plugin: "com.facebook.react.settings"
-  extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
-      ex.autolinkLibrariesFromCommand()
-  }
-  rootProject.name = 'SanteDirect'
-  include ':app'
-  includeBuild("../node_modules/@react-native/gradle-plugin")
-  ```
-- `mobile/package.json` : bump 1.1.4 → 1.1.5 pour déclencher le build
+**15h04** — Build #25 (`ec127b1`) : ÉCHEC — `Plugin with id 'com.facebook.react.settings' not found`. Ce plugin n'existe que dans RN 0.74+.
+
+**15h08** — Build #26 (`7820fe8`) : ÉCHEC — Régression complète. `resolutionStrategy.force("react-android:0.73.6")` pointait vers un AAR Maven Central incomplet (sans `BaseReactPackage`).
+
+**15h29** — Build #27 (`7820fe8`) : ÉCHEC — Même cause que #26. Dernier commit de la session 7.
+
+Commits session 7 :
+
+| Heure | Commit | Résumé |
+|-------|--------|--------|
+| 26/05 15h04 | `ec127b1` | Fix(ci) : settings.gradle pluginManagement — ÉCHEC |
+| 26/05 15h08 | `7820fe8` | Fix(ci) : resolutionStrategy.force react-android:0.73.6 — ÉCHEC |
+| 26/05 15h10 | `c2bc6af` | Docs : feuille de route sessions 1-7 [ci skip] |
+
+---
+
+### Session 8 — 2026-05-26 · 15h30 → 17h30 (durée ~2h)
+**Débogage final builds #28-#29 — APK ✅ RÉUSSI**
+
+**15h32** — Reprise après compaction du contexte (context window épuisé en session 7).
+
+**15h34** — Analyse cause racine finale :
+- Build #24 avait résolu `BaseReactPackage` (composite build OK)
+- Nouvelle erreur : `Cannot access 'ViewManagerWithGeneratedInterface': it is internal` + `'getModule' overrides nothing`
+- Diagnostic : `react-native-screens@3.37.0` et `gesture-handler@2.20.x` ciblent RN 0.74+. `ViewManagerWithGeneratedInterface` est `internal` dans react-android 0.73.x → aucune config Gradle ne peut contourner ça.
+- Solution : rétrograder ces deux libs vers des versions publiées pour RN 0.73.x.
+
+**15h35** — Commit `81e535a` (build #28) : ÉCHEC — Erreur YAML. Code Python multi-ligne dans `python3 -c "..."` avec lignes à colonne 0 terminait prématurément le bloc scalaire YAML. GitHub affichait le nom du fichier à la place du nom du workflow.
+
+**15h38** — Correction YAML + validation locale (`python -c "import yaml; yaml.safe_load(...)"`) → YAML OK.
+
+**15h39** — Commit `e6e4a82` (build #29) : **✅ SUCCÈS — 6m41s — artifact `SanteDirect-debug-arm64-29`**
+
+**Chronologie builds #25-#29** :
+
+| Run # | Heure (UTC+2) | Commit | Résultat | Cause |
+|-------|---------------|--------|----------|-------|
+| 25 | 15h04 | `ec127b1` | ÉCHEC | Plugin com.facebook.react.settings inexistant en RN 0.73 |
+| 26 | 15h08 | `7820fe8` | ÉCHEC | resolutionStrategy.force → régression BaseReactPackage |
+| 27 | 15h29 | `7820fe8` | ÉCHEC | Idem #26 |
+| 28 | 15h35 | `81e535a` | ÉCHEC | Syntaxe YAML invalide — workflow file issue |
+| **29** | **15h39** | **`e6e4a82`** | **✅ SUCCÈS** | **screens@3.29.0 + gesture-handler@2.14.0** |
+
+Commits session 8 :
+
+| Heure | Commit | Résumé |
+|-------|--------|--------|
+| 26/05 15h35 | `81e535a` | Fix(ci) : rétrograder screens+gesture-handler — YAML invalide |
+| 26/05 15h39 | `e6e4a82` | Fix(ci) : YAML corrigé + downgrade screens@3.29.0/gh@2.14.0 ✅ |
+
+**Leçon retenue** : `"^3.29.0"` laisse npm installer 3.37.0 (RN 0.74+). Quand react-native est fixé à 0.73.x, il faut pincer les libs natives dans le workflow CI. Valider le YAML localement avant tout push.
 
 ---
 
 ## Plan de développement complet — tous blocs
 
 ### BLOC 1 — CI/CD : APK Android
-*Statut : fix appliqué, build #24 en cours*
+*Statut : ✅ BUILD #29 RÉUSSI — 2026-05-26 · 15h39 UTC+2*
 
-- [x] Identifier cause racine (session 7, 14h)
-- [x] Fix `settings.gradle` — mécanisme officiel RN 0.73
-- [ ] Build #24 réussit → télécharger APK arm64
+- [x] Identifier cause racine (sessions 7-8)
+- [x] Fix : rétrograder screens@3.29.0 + gesture-handler@2.14.0 (commit `e6e4a82`)
+- [x] Build #29 réussi (6m41s) → artifact `SanteDirect-debug-arm64-29`
+- [ ] Télécharger APK depuis GitHub Actions → installer sur téléphone test
 - [ ] Distribuer aux testeurs terrain (auxiliaire + médecin)
 - [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
 
@@ -406,7 +445,7 @@ Auth, scanner EAN, consultation, ordonnance.
 
 | Bloc | Effort | Priorité | Débloque |
 |------|--------|----------|----------|
-| **1 — APK CI/CD** | 1-2h | 🔴 Immédiat | Tests terrain |
+| **1 — APK CI/CD** | ~~1-2h~~ | ✅ Terminé | Tests terrain débloqués |
 | **2 — Infrastructure** | 2-3h | 🔴 Immédiat | SSL valide, prod stable |
 | **3 — API FastAPI** | 3-5 jours | 🟠 Semaine 1-2 | Données réelles |
 | **4 — Admin web** | 2-3 jours | 🟠 Semaine 1-2 | Dashboard opérationnel |
@@ -421,7 +460,7 @@ Auth, scanner EAN, consultation, ordonnance.
 
 ---
 
-## État actuel du projet — 2026-05-26 · 15h30
+## État actuel du projet — 2026-05-26 · 17h30
 
 ### Infrastructure ✅ Opérationnel
 | Composant | État | Détail |
@@ -443,7 +482,7 @@ Auth, scanner EAN, consultation, ordonnance.
 | Scanner EAN/QR — Superadmin | ✅ | `PharmacieAdminScreen` |
 | Lookup EAN → API | ✅ | `/api/pharmacie/ean/{code}` |
 | Formulaire mouvement de stock | ✅ | `FormulaireStockScreen` |
-| **APK Build (GitHub Actions)** | ⏳ | **Build #24 en cours** — fix settings.gradle |
+| **APK Build (GitHub Actions)** | ✅ | **Build #29 réussi** — `SanteDirect-debug-arm64-29` (6m41s) |
 | ConsultationScreen → API | ❌ | Écran présent, pas d'appel API réel |
 | AbonnementScreen → API | ❌ | Données hardcodées |
 | Téléconsultation Jitsi | ⏳ | Code présent, CX23 dédié non provisionné |
