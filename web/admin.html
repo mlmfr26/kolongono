@@ -620,7 +620,7 @@
 </div>
 
 <!-- ══ PAGES SIMPLES ══ -->
-<div class="page page-hidden" id="page-revenus"><div class="page"><div class="stats-grid mb-lg"><div class="stat-card stat-amber" onclick="openDrill('revenus','mensuel')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div><div class="stat-val" style="color:var(--color-primary)">$400</div><div class="stat-label">Mai 2026</div><div class="stat-delta up">↑ +5%</div></div></div><div class="stat-card" onclick="openDrill('revenus','impayes')"><div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><div class="stat-val" style="color:var(--color-danger)">$21</div><div class="stat-label">Impayés</div></div></div><div class="stat-card" onclick="openDrill('revenus','mobile_money')"><div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div><div><div class="stat-val" style="color:var(--color-auxiliaire)">78%</div><div class="stat-label">Mobile Money</div></div></div><div class="stat-card" onclick="openDrill('revenus','longonia_bridge')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><div><div class="stat-val" style="color:var(--color-dossier)">22%</div><div class="stat-label">Longonia bridge</div></div></div></div><div class="card"><div class="card-header"><span class="card-title">Derniers paiements</span><button class="btn btn-outline btn-sm">Exporter</button></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Adhérent</th><th>Méthode</th><th>Montant</th><th>Plan</th><th>Statut</th></tr></thead><tbody><tr><td class="text-sm text-muted">22/05</td><td class="font-bold" style="cursor:pointer" onclick="openDetail('adherent','ADH-004')">Paul NKEMBA ↗</td><td>M-Pesa</td><td class="font-bold">$6.67</td><td><span class="badge badge-warning">Premium</span></td><td><span class="badge badge-success">Reçu</span></td></tr><tr><td class="text-sm text-muted">22/05</td><td class="font-bold" style="cursor:pointer" onclick="openDetail('adherent','ADH-001')">Marie KABONGO ↗</td><td>Longonia bridge</td><td class="font-bold">$4.00</td><td><span class="badge" style="background:#BCA9ED;color:#5B21B6">Famille</span></td><td><span class="badge badge-success">Reçu</span></td></tr></tbody></table></div></div></div></div>
+<div class="page page-hidden" id="page-revenus"><div class="page"><div class="stats-grid mb-lg"><div class="stat-card stat-amber" onclick="openDrill('revenus','mensuel')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div><div class="stat-val" style="color:var(--color-primary)">$400</div><div class="stat-label">Mai 2026</div><div class="stat-delta up">↑ +5%</div></div></div><div class="stat-card" onclick="openDrill('revenus','impayes')"><div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><div class="stat-val" style="color:var(--color-danger)">$21</div><div class="stat-label">Impayés</div></div></div><div class="stat-card" onclick="openDrill('revenus','mobile_money')"><div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div><div><div class="stat-val" style="color:var(--color-auxiliaire)">78%</div><div class="stat-label">Mobile Money</div></div></div><div class="stat-card" onclick="openDrill('revenus','longonia_bridge')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><div><div class="stat-val" style="color:var(--color-dossier)">22%</div><div class="stat-label">Longonia bridge</div></div></div></div><div id="revenus-summary"></div><div class="card"><div class="card-header"><span class="card-title">Derniers paiements</span><button class="btn btn-outline btn-sm">Exporter</button></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Adhérent</th><th>Méthode</th><th>Montant</th><th>Plan</th><th>Statut</th></tr></thead><tbody><tr><td class="text-sm text-muted">22/05</td><td class="font-bold" style="cursor:pointer" onclick="openDetail('adherent','ADH-004')">Paul NKEMBA ↗</td><td>M-Pesa</td><td class="font-bold">$6.67</td><td><span class="badge badge-warning">Premium</span></td><td><span class="badge badge-success">Reçu</span></td></tr><tr><td class="text-sm text-muted">22/05</td><td class="font-bold" style="cursor:pointer" onclick="openDetail('adherent','ADH-001')">Marie KABONGO ↗</td><td>Longonia bridge</td><td class="font-bold">$4.00</td><td><span class="badge" style="background:#BCA9ED;color:#5B21B6">Famille</span></td><td><span class="badge badge-success">Reçu</span></td></tr></tbody></table></div></div></div></div>
 <div class="page page-hidden" id="page-rapports">
   <div class="grid-3">
 
@@ -1356,8 +1356,9 @@ function showPage(id) {
   if (id === 'adherents')   loadAdherents();
   if (id === 'medecins')    loadMedecins();
   if (id === 'pharmacie')   loadPharmacie();
-  if (id === 'abonnements') renderAboTable(DATA.adherents);
-  if (id === 'consultations') renderConsultTable(DATA.consultations);
+  if (id === 'abonnements') loadAbonnements();
+  if (id === 'consultations') loadConsultations();
+  if (id === 'revenus') loadRevenus();
   if (id === 'metrics')     renderMetrics();
   if (id === 'rh' && !_rhInited) { _rhInited = true; renderRH(); }
   if (id === 'centres' && !_centresInited) { _centresInited = true; renderPageCentres(); }
@@ -2273,6 +2274,78 @@ async function loadMedecins() {
     renderMedecinsTable(DATA.medecins);
   }
 }
+async function loadConsultations() {
+  var tok = localStorage.getItem('sd_token');
+  var tbody = document.getElementById('consultations-table');
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Chargement…</td></tr>';
+  try {
+    var r = await fetch(_APISD + '/api/admin/consultations?limit=100',
+      { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var d = await r.json();
+    var items = d.items || [];
+    if (!items.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Aucune consultation enregistrée</td></tr>';
+      return;
+    }
+    tbody.innerHTML = items.map(function(c) {
+      return '<tr style="cursor:pointer"><td class="font-bold">' + (c.patient_id||'—') + '</td>' +
+        '<td>' + (c.medecin_id||'—') + '</td>' +
+        '<td class="text-muted">—</td>' +
+        '<td class="text-muted">' + (c.date||'') + ' ' + (c.heure_debut||'') + '</td>' +
+        '<td>' + consultStatutBadge(c.statut) + '</td>' +
+        '<td><span class="badge badge-accent">Jitsi</span></td></tr>';
+    }).join('');
+  } catch(e) {
+    renderConsultTable(DATA.consultations);
+  }
+}
+
+async function loadAbonnements() {
+  var tok = localStorage.getItem('sd_token');
+  var tbody = document.getElementById('abo-table');
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Chargement…</td></tr>';
+  try {
+    var r = await fetch(_APISD + '/api/admin/users?role=adherent&limit=100',
+      { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var d = await r.json();
+    var items = (d.items || []).map(function(u) {
+      return { id:u.id, nom:u.nom+' '+u.prenom, plan:u.plan||'solidaire',
+               statut:u.statut, montant:u.prix_usd||0, renouv:'—' };
+    });
+    if (!items.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Aucun abonnement</td></tr>';
+      return;
+    }
+    renderAboTable(items);
+  } catch(e) {
+    renderAboTable(DATA.adherents);
+  }
+}
+
+async function loadRevenus() {
+  var tok = localStorage.getItem('sd_token');
+  var el = document.getElementById('revenus-summary');
+  if (!el) return;
+  el.innerHTML = '<p class="text-muted text-center" style="padding:24px">Chargement…</p>';
+  try {
+    var r = await fetch(_APISD + '/api/admin/revenus',
+      { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var d = await r.json();
+    el.innerHTML =
+      '<div class="flex gap-xl flex-wrap" style="padding:var(--space-lg) 0">' +
+        '<div class="met-kpi-item"><div class="met-kpi-val" style="color:var(--green-deep)">$' + Number(d.total_revenus_usd||0).toFixed(0) + '</div><div class="met-kpi-lbl">Revenus</div></div>' +
+        '<div class="met-kpi-item"><div class="met-kpi-val" style="color:var(--color-danger)">$' + Number(d.total_depenses_usd||0).toFixed(0) + '</div><div class="met-kpi-lbl">Dépenses</div></div>' +
+        '<div class="met-kpi-item"><div class="met-kpi-val" style="color:var(--color-primary)">$' + Number(d.solde_usd||0).toFixed(0) + '</div><div class="met-kpi-lbl">Solde</div></div>' +
+        '<div class="met-kpi-item"><div class="met-kpi-val" style="color:var(--color-abonnement)">' + Number(d.cotisations_fc||0).toLocaleString() + ' FC</div><div class="met-kpi-lbl">Cotisations</div></div>' +
+      '</div>';
+  } catch(e) {
+    el.innerHTML = '<p class="text-muted text-sm" style="padding:16px">Données revenus indisponibles — API</p>';
+  }
+}
+
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#pharma-search') && !e.target.closest('#pharma-sug'))
     pharmaCloseSug();

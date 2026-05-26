@@ -558,9 +558,12 @@ async def passer_commande(data: CommandePharmacieRequest):
 
 # ── Abonnements mutuelle ──────────────────────────────────────────────────────
 
+USD_FC_RATE = 2800
+
 @app.get("/api/abonnements/plans", tags=["Abonnements"])
 async def get_plans():
-    return {"plans": PLANS_ABONNEMENT}
+    plans = {k: {**v, "prix_fc": round(v["prix_usd"] * USD_FC_RATE)} for k, v in PLANS_ABONNEMENT.items()}
+    return {"plans": plans}
 
 
 @app.post("/api/abonnements", tags=["Abonnements"])
