@@ -78,9 +78,10 @@ jobs:
 
           dest = Path("mobile/android")
 
-          # ── 4a. build.gradle PROJET — écriture complète (pas de regex) ──────────
-          # Pas d'allprojects { repositories } : settings.gradle gère les repos via
-          # dependencyResolutionManagement (piloté par com.facebook.react.settings)
+          # ── 4a. build.gradle PROJET — écriture complète ──────────────────────────
+          # node_modules/react-native/android/ ne contient qu'un README.md (pas d'AARs).
+          # Solution : forcer la version 0.73.6 depuis Maven Central via resolutionStrategy.
+          # com.facebook.react.settings n'existe que dans RN 0.74+ — on n'y touche pas.
           print("=== build.gradle TEMPLATE ===")
           bg = dest / "build.gradle"
           print(bg.read_text() if bg.exists() else "(absent)")
@@ -107,8 +108,24 @@ jobs:
               '}\n'
               '\n'
               'apply plugin: "com.facebook.react.rootproject"\n'
+              '\n'
+              '// react-native/android/ est vide (README.md only) — forcer la version\n'
+              '// depuis Maven Central pour tous les sous-projets (native modules).\n'
+              'allprojects {\n'
+              '    repositories {\n'
+              '        google()\n'
+              '        mavenCentral()\n'
+              '        maven { url "https://www.jitpack.io" }\n'
+              '    }\n'
+              '    configurations.all {\n'
+              '        resolutionStrategy {\n'
+              '            force("com.facebook.react:react-android:0.73.6")\n'
+              '            force("com.facebook.react:hermes-android:0.73.6")\n'
+              '        }\n'
+              '    }\n'
+              '}\n'
           )
-          print("✓ build.gradle → AGP 8.6.0 · compileSdk 35")
+          print("✓ build.gradle → AGP 8.6.0 · compileSdk 35 · resolutionStrategy.force 0.73.6")
 
           # ── 4b. app/build.gradle — JVM 17 ───────────────────────────────────────
           abg = dest / "app" / "build.gradle"
@@ -148,35 +165,12 @@ jobs:
           else:
               print("VisionCamera_enableCodeScanner déjà présent")
 
-          # ── 4e. Réécriture settings.gradle — mécanisme officiel RN 0.73 ────────────
-          # Cause racine des 21 builds échoués : le template génère un settings.gradle
-          # minimal sans pluginManagement ni com.facebook.react.settings.
-          # Sans ce plugin, react-android n'est pas résolu → BaseReactPackage introuvable.
+          # ── 4e. Diagnostic settings.gradle (pas de modification) ────────────────
+          # com.facebook.react.settings n'existe pas dans RN 0.73.6 (@react-native/gradle-plugin).
+          # Il a été introduit dans RN 0.74+. On conserve le settings.gradle du template.
           sg = dest / "settings.gradle"
-          print(f"\n=== settings.gradle ORIGINAL ===")
+          print(f"\n=== settings.gradle (conservé du template) ===")
           print(sg.read_text() if sg.exists() else "(absent)")
-
-          sg.write_text(
-              'pluginManagement {\n'
-              '    includeBuild("../node_modules/@react-native/gradle-plugin")\n'
-              '    repositories {\n'
-              '        google()\n'
-              '        mavenCentral()\n'
-              '        gradlePluginPortal()\n'
-              '    }\n'
-              '}\n'
-              'apply plugin: "com.facebook.react.settings"\n'
-              'extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->\n'
-              '    ex.autolinkLibrariesFromCommand()\n'
-              '}\n'
-              '\n'
-              "rootProject.name = 'SanteDirect'\n"
-              "include ':app'\n"
-              'includeBuild("../node_modules/@react-native/gradle-plugin")\n'
-          )
-          print("✓ settings.gradle → pluginManagement + com.facebook.react.settings")
-          print(f"\n=== settings.gradle NOUVEAU ===")
-          print(sg.read_text())
 
           PY
 
