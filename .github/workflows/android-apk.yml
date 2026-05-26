@@ -49,8 +49,8 @@ jobs:
           echo "=== android/ généré ==="
           ls "$DEST"
 
-      # ── 3. Corriger le package name ──────────────────────────────────────────
-      - name: Fix package name → com.santesd.kolongono
+      # ── 3. Corriger le package name + app name ───────────────────────────────
+      - name: Fix package name → com.santesd.kolongono + app name → SantéDirect
         run: |
           DEST="$GITHUB_WORKSPACE/mobile/android"
           for OLD in "com.helloworld" "com.santetemp" "com.santeTemp"; do
@@ -68,6 +68,13 @@ jobs:
               [ "$(dirname "$f")" != "$NEW" ] && mv "$f" "$NEW/" 2>/dev/null || true
             done
           done
+          # Corriger le nom affiché de l'app (strings.xml)
+          STRINGS="$DEST/app/src/main/res/values/strings.xml"
+          if [ -f "$STRINGS" ]; then
+            sed -i 's|<string name="app_name">[^<]*</string>|<string name="app_name">SantéDirect</string>|' "$STRINGS"
+            echo "✓ app_name → SantéDirect"
+            grep "app_name" "$STRINGS"
+          fi
 
       # ── 4. AGP 8.6 + Gradle 8.7 + compileSdk 35 + JVM 17 ───────────────────────
       - name: Upgrade build config (AGP 8.6 · Gradle 8.7 · compileSdk 35)
@@ -213,6 +220,19 @@ jobs:
           chmod +x gradlew
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           echo "✓ sdk.dir=$ANDROID_HOME"
+
+      # ── 7.5 Bundle JS → index.android.bundle (APK autonome, sans Metro) ───────
+      - name: Bundle JS into APK assets
+        working-directory: mobile
+        run: |
+          mkdir -p android/app/src/main/assets
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res/
+          echo "✓ Bundle: $(du -sh android/app/src/main/assets/index.android.bundle)"
 
       # ── 8. Build ─────────────────────────────────────────────────────────────
       - name: Build Debug APK
