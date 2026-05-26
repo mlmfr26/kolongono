@@ -19,7 +19,7 @@ from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db, AsyncSessionLocal
-from models import User
+from models import User, RendezVous, Ordonnance, Abonnement, Cotisation, Diagnostic, RevenuCentre, DepenseCentre
 
 load_dotenv()
 
@@ -88,7 +88,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://santedirect.kolongono.org",
+        "https://longonia.org",
+        "http://localhost:3000",
+        "http://localhost:8080",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -275,20 +280,24 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
 # ── Adhérents ─────────────────────────────────────────────────────────────────
 
 @app.get("/api/adherents/{patient_id}", tags=["Adhérents"])
-async def get_adherent(patient_id: str):
-    user = next((u for u in USERS_DEMO if u["id"] == patient_id), None)
+async def get_adherent(patient_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == patient_id))
+    user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(404, "Adhérent introuvable")
-    plan_info = PLANS_ABONNEMENT.get(user.get("plan", ""), {})
+    abo_result = await db.execute(select(Abonnement).where(Abonnement.patient_id == patient_id))
+    abo = abo_result.scalar_one_or_none()
+    plan_key = abo.plan if abo else (user.plan or "")
+    plan_info = PLANS_ABONNEMENT.get(plan_key, {})
     return {
-        "id": user["id"],
-        "prenom": user["prenom"],
-        "nom": user["nom"],
-        "email": user["email"],
-        "plan": user.get("plan"),
+        "id": user.id,
+        "prenom": user.prenom,
+        "nom": user.nom,
+        "email": user.email,
+        "plan": plan_key or None,
         "plan_info": plan_info,
         "consultations_restantes": plan_info.get("consultations", 0),
-        "actif": user["actif"],
+        "actif": user.actif,
     }
 
 
@@ -313,7 +322,7 @@ async def get_medecins(
 # ── Consultations ─────────────────────────────────────────────────────────────
 
 @app.post("/api/consultations/reserver", tags=["Consultations"])
-async def reserver_consultation(data: ReservationRequest):
+async def reserver_consultation(data: ReservationRequest, db: AsyncSession = Depends(get_db)):
     medecin = next((m for m in MEDECINS_DEMO if m["id"] == data.medecin_id), None)
     if not medecin:
         raise HTTPException(404, f"Médecin '{data.medecin_id}' introuvable")
@@ -321,15 +330,37 @@ async def reserver_consultation(data: ReservationRequest):
     consultation_id = f"CONS-{datetime.now().year}-{uuid.uuid4().hex[:6].upper()}"
     room_name = f"kolongono-{uuid.uuid4().hex[:10]}"
 
-    # Jitsi : même salle, rôle identifié par le displayName dans l'URL
-    # Tous les 3 accèdent à la même salle — le médecin devient modérateur via config Jitsi
     base_url = _create_video_room(room_name)
     lien_patient    = f"{base_url}#userInfo.displayName=\"Patient\""
     lien_auxiliaire = f"{base_url}#userInfo.displayName=\"Auxiliaire\""
     lien_medecin    = f"{base_url}#userInfo.displayName=\"Dr.%20{medecin['nom']}\""
-    provider = "jitsi"
 
-    # Fallback WebSocket local si Jitsi inaccessible (réseau coupé)
+    now = datetime.now()
+    if data.date_souhaitee:
+        try:
+            dt_rdv = datetime.fromisoformat(data.date_souhaitee)
+        except ValueError:
+            dt_rdv = now
+    else:
+        dt_rdv = now
+
+    rdv = RendezVous(
+        id=consultation_id,
+        medecin_id=data.medecin_id,
+        patient_id=data.patient_id,
+        date=dt_rdv.strftime("%Y-%m-%d"),
+        heure_debut=dt_rdv.strftime("%H:%M"),
+        heure_fin=(dt_rdv + timedelta(minutes=30)).strftime("%H:%M"),
+        motif=data.motif,
+        statut="planifie",
+        room=room_name,
+        lien_patient=lien_patient,
+        lien_auxiliaire=lien_auxiliaire,
+        lien_medecin=lien_medecin,
+    )
+    db.add(rdv)
+    await db.commit()
+
     signaling.get_or_create(room_name)
 
     return {
@@ -339,8 +370,8 @@ async def reserver_consultation(data: ReservationRequest):
         "patient_id": data.patient_id,
         "motif": data.motif,
         "statut": "planifie",
-        "date_heure": data.date_souhaitee or datetime.now().isoformat(),
-        "webrtc_provider": provider,
+        "date_heure": dt_rdv.isoformat(),
+        "webrtc_provider": "jitsi",
         "liens": {
             "patient":    lien_patient,
             "auxiliaire": lien_auxiliaire,
@@ -352,14 +383,43 @@ async def reserver_consultation(data: ReservationRequest):
 
 
 @app.post("/api/consultations/{consultation_id}/signes-vitaux", tags=["Consultations"])
-async def saisir_signes_vitaux(consultation_id: str, data: SignesVitauxRequest):
-    # TODO: Enregistrer en PostgreSQL
+async def saisir_signes_vitaux(consultation_id: str, data: SignesVitauxRequest, db: AsyncSession = Depends(get_db)):
+    import json as _json
+    alerte = (
+        "FIÈVRE ÉLEVÉE — Informer immédiatement le médecin" if data.temperature >= 39.5
+        else "HYPOTENSION — Surveiller" if data.tension_systolique < 90
+        else None
+    )
+    signes = {
+        "temperature": data.temperature,
+        "tension": f"{data.tension_systolique}/{data.tension_diastolique}",
+        "pouls": data.pouls,
+        "saturation_o2": data.saturation_o2,
+        "poids": data.poids,
+        "observation_langue": data.observation_langue,
+        "observation_teint": data.observation_teint,
+        "observation_cou": data.observation_cou,
+        "observations_generales": data.observations_generales,
+        "alerte": alerte,
+        "heure_saisie": datetime.now().isoformat(),
+    }
+    existing = (await db.execute(select(Diagnostic).where(Diagnostic.rdv_id == consultation_id))).scalar_one_or_none()
+    if existing:
+        existing.notes_confidentielles = _json.dumps(signes, ensure_ascii=False)
+    else:
+        db.add(Diagnostic(
+            id=f"DIAG-{uuid.uuid4().hex[:8].upper()}",
+            rdv_id=consultation_id,
+            patient_id=data.consultation_id,
+            notes_confidentielles=_json.dumps(signes, ensure_ascii=False),
+        ))
+    await db.commit()
     return {
         "consultation_id": consultation_id,
         "signes_enregistres": True,
-        "heure_saisie": datetime.now().isoformat(),
+        "heure_saisie": signes["heure_saisie"],
         "temperature": data.temperature,
-        "tension": f"{data.tension_systolique}/{data.tension_diastolique}",
+        "tension": signes["tension"],
         "pouls": data.pouls,
         "saturation_o2": data.saturation_o2,
         "observations": {
@@ -368,18 +428,27 @@ async def saisir_signes_vitaux(consultation_id: str, data: SignesVitauxRequest):
             "cou": data.observation_cou,
             "generales": data.observations_generales,
         },
-        "alerte": (
-            "FIÈVRE ÉLEVÉE — Informer immédiatement le médecin" if data.temperature >= 39.5
-            else "HYPOTENSION — Surveiller" if data.tension_systolique < 90
-            else None
-        ),
+        "alerte": alerte,
     }
 
 
 @app.post("/api/consultations/{consultation_id}/ordonnance", tags=["Consultations"])
-async def emettre_ordonnance(consultation_id: str, data: OrdonnanceRequest):
+async def emettre_ordonnance(consultation_id: str, data: OrdonnanceRequest, db: AsyncSession = Depends(get_db)):
     ordonnance_id = f"ORD-{datetime.now().year}-{uuid.uuid4().hex[:6].upper()}"
-    # TODO: Enregistrer en PostgreSQL + déclencher commande pharmacie
+    prescriptions_txt = f"{data.posologie} — {data.duree_traitement}"
+    ord_obj = Ordonnance(
+        id=ordonnance_id,
+        rdv_id=consultation_id,
+        date=datetime.now().strftime("%Y-%m-%d"),
+        patient_id=data.patient_id,
+        diagnostic=data.diagnostic,
+        prescriptions_texte=prescriptions_txt,
+        produits=data.produits,
+        recommandations=data.recommandations,
+        statut="emise",
+    )
+    db.add(ord_obj)
+    await db.commit()
     return {
         "ordonnance_id": ordonnance_id,
         "consultation_id": consultation_id,
@@ -495,13 +564,27 @@ async def get_plans():
 
 
 @app.post("/api/abonnements", tags=["Abonnements"])
-async def souscrire_abonnement(data: AbonnementRequest):
+async def souscrire_abonnement(data: AbonnementRequest, db: AsyncSession = Depends(get_db)):
     plan = PLANS_ABONNEMENT.get(data.plan)
     if not plan:
         raise HTTPException(400, f"Plan invalide — choisir parmi : {', '.join(PLANS_ABONNEMENT.keys())}")
-    abonnement_id = f"ABO-{uuid.uuid4().hex[:8].upper()}"
+    existing = (await db.execute(select(Abonnement).where(Abonnement.patient_id == data.patient_id))).scalar_one_or_none()
+    now_str = datetime.now().strftime("%Y-%m-%d")
+    if existing:
+        existing.plan = data.plan
+        existing.statut = "actif"
+        existing.date_debut = now_str
+    else:
+        db.add(Abonnement(patient_id=data.patient_id, plan=data.plan, statut="actif", date_debut=now_str))
+    mois_str = datetime.now().strftime("%Y-%m")
+    montant_fc = round(plan["prix_usd"] * 2800)
+    cot_existing = (await db.execute(
+        select(Cotisation).where(Cotisation.patient_id == data.patient_id, Cotisation.mois == mois_str)
+    )).scalar_one_or_none()
+    if not cot_existing:
+        db.add(Cotisation(patient_id=data.patient_id, mois=mois_str, montant_fc=montant_fc, statut="paye", mode_paiement=data.mode_paiement))
+    await db.commit()
     return {
-        "abonnement_id": abonnement_id,
         "patient_id": data.patient_id,
         "plan": data.plan,
         "plan_info": plan,
@@ -515,21 +598,31 @@ async def souscrire_abonnement(data: AbonnementRequest):
 
 
 @app.get("/api/abonnements/{patient_id}", tags=["Abonnements"])
-async def get_abonnement(patient_id: str):
-    user = next((u for u in USERS_DEMO if u["id"] == patient_id), None)
-    if not user or not user.get("plan"):
+async def get_abonnement(patient_id: str, db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import func as sqlfunc
+    abo = (await db.execute(select(Abonnement).where(Abonnement.patient_id == patient_id))).scalar_one_or_none()
+    if not abo or abo.statut != "actif":
         return {"patient_id": patient_id, "actif": False, "plan": None}
-    plan = PLANS_ABONNEMENT.get(user["plan"], {})
+    plan = PLANS_ABONNEMENT.get(abo.plan, {})
+    nb_cons = (await db.execute(
+        select(sqlfunc.count()).select_from(RendezVous)
+        .where(RendezVous.patient_id == patient_id, RendezVous.statut != "annule")
+    )).scalar() or 0
+    nb_impaye = (await db.execute(
+        select(sqlfunc.count()).select_from(Cotisation)
+        .where(Cotisation.patient_id == patient_id, Cotisation.statut == "en_attente")
+    )).scalar() or 0
     return {
         "patient_id": patient_id,
-        "actif": user["actif"],
-        "plan": user["plan"],
+        "actif": True,
+        "plan": abo.plan,
         "plan_info": plan,
-        "consultations_restantes": plan.get("consultations", 0),
-        "consultations_utilisees": 0,
+        "consultations_restantes": max(0, plan.get("consultations", 0) - nb_cons),
+        "consultations_utilisees": nb_cons,
         "prix_usd": plan.get("prix_usd", 0),
+        "date_debut": abo.date_debut,
         "prochain_renouvellement": (datetime.now() + timedelta(days=30)).isoformat(),
-        "nb_mois_impaye": 0,
+        "nb_mois_impaye": nb_impaye,
     }
 
 
@@ -703,6 +796,90 @@ async def admin_stats(
         "total": sum(par_role.values()),
         "adherents_actifs": adherents_actifs,
         "adherents_inactifs": par_role.get("adherent", 0) - adherents_actifs,
+    }
+
+
+@app.get("/api/admin/consultations", tags=["Admin"])
+async def list_consultations_admin(
+    statut: Optional[str] = Query(None),
+    patient_id: Optional[str] = Query(None),
+    medecin_id: Optional[str] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, le=200),
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_user),
+):
+    from sqlalchemy import select, func as sqlfunc
+    q = select(RendezVous)
+    cq = select(sqlfunc.count()).select_from(RendezVous)
+    if statut:
+        q = q.where(RendezVous.statut == statut)
+        cq = cq.where(RendezVous.statut == statut)
+    if patient_id:
+        q = q.where(RendezVous.patient_id == patient_id)
+        cq = cq.where(RendezVous.patient_id == patient_id)
+    if medecin_id:
+        q = q.where(RendezVous.medecin_id == medecin_id)
+        cq = cq.where(RendezVous.medecin_id == medecin_id)
+    total = (await db.execute(cq)).scalar()
+    rows = (await db.execute(q.order_by(RendezVous.date.desc(), RendezVous.heure_debut.desc()).offset(skip).limit(limit))).scalars().all()
+    return {
+        "total": total,
+        "items": [
+            {
+                "id": r.id,
+                "patient_id": r.patient_id,
+                "medecin_id": r.medecin_id,
+                "date": r.date,
+                "heure_debut": r.heure_debut,
+                "heure_fin": r.heure_fin,
+                "motif": r.motif,
+                "statut": r.statut,
+                "room": r.room,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in rows
+        ],
+    }
+
+
+@app.get("/api/admin/revenus", tags=["Admin"])
+async def admin_revenus(
+    mois: Optional[str] = Query(None, description="Format YYYY-MM"),
+    centre_id: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_user),
+):
+    from sqlalchemy import select, func as sqlfunc
+    q_rev = select(RevenuCentre)
+    q_dep = select(DepenseCentre)
+    if mois:
+        q_rev = q_rev.where(RevenuCentre.mois == mois)
+        q_dep = q_dep.where(DepenseCentre.mois == mois)
+    if centre_id:
+        q_rev = q_rev.where(RevenuCentre.centre_id == centre_id)
+        q_dep = q_dep.where(DepenseCentre.centre_id == centre_id)
+    revenus = (await db.execute(q_rev)).scalars().all()
+    depenses = (await db.execute(q_dep)).scalars().all()
+    total_revenus = sum(r.montant_usd for r in revenus)
+    total_depenses = sum(d.montant_usd for d in depenses)
+    cotisations = (await db.execute(
+        select(sqlfunc.sum(Cotisation.montant_fc)).where(Cotisation.statut == "paye")
+    )).scalar() or 0.0
+    return {
+        "total_revenus_usd": total_revenus,
+        "total_depenses_usd": total_depenses,
+        "solde_usd": total_revenus - total_depenses,
+        "cotisations_fc": cotisations,
+        "cotisations_usd": round(cotisations / 2800, 2),
+        "revenus": [
+            {"id": r.id, "centre_id": r.centre_id, "mois": r.mois, "categorie": r.categorie, "montant_usd": r.montant_usd}
+            for r in revenus
+        ],
+        "depenses": [
+            {"id": d.id, "centre_id": d.centre_id, "mois": d.mois, "categorie": d.categorie, "montant_usd": d.montant_usd}
+            for d in depenses
+        ],
     }
 
 
