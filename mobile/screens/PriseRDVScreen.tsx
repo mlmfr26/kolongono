@@ -153,7 +153,7 @@ export default function PriseRDVScreen({ navigation, route }: any) {
           ],
         );
       } else if (e.status === 409) {
-        Alert.alert('Créneau indisponible', 'Ce créneau vient d'être réservé. Choisissez un autre horaire.');
+        Alert.alert('Créneau indisponible', "Ce créneau vient d'être réservé. Choisissez un autre horaire.");
         loadPlanning(currentMois());
       } else {
         Alert.alert('Erreur', e.message || 'Impossible de confirmer le rendez-vous.');
@@ -305,7 +305,7 @@ export default function PriseRDVScreen({ navigation, route }: any) {
           <Text style={styles.emptyTitle}>Aucun créneau en {moisLabel(moisActif)}</Text>
           <Text style={styles.emptyText}>
             {moisData.some(m => m.libres > 0 && m.mois !== moisActif)
-              ? 'Des créneaux sont disponibles dans d'autres mois →'
+              ? "Des créneaux sont disponibles dans d'autres mois →"
               : 'Aucune disponibilité dans les 3 prochains mois.'}
           </Text>
           <TouchableOpacity onPress={loadMore} style={styles.nextMonthBtn}>
