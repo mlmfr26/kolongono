@@ -7,9 +7,9 @@
 
 ## Dernière mise à jour
 
-**2026-05-27 · matin (UTC+2) · Session 9**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `6b51ccd`
-**Build #30 en cours** — Fix bundle JS + app name. APK #29 testait sur device → 2 bugs corrigés.
+**2026-05-27 · nuit (UTC+2) · Session 9 → fin**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `5174793`
+**Build #33 ✅ SUCCÈS** — APK v1.2.2 fonctionnel (55 Mo, arm64-v8a). API DB-persistée. Admin web câblé.
 
 ---
 
@@ -286,55 +286,96 @@ Commits session 8 complets :
 
 ---
 
-### Session 9 — 2026-05-27 · matin (durée en cours)
-**Test APK sur device — 2 bugs trouvés et corrigés — Build #30**
+### Session 9 — 2026-05-27 · matin → nuit (durée ~12h, autonome)
+**Correction builds #30-#33 + API DB-persistée + admin web câblé + APK v1.2.2**
+
+#### Partie 1 : Correction cascade de builds (matin)
 
 **Bugs trouvés lors du premier test sur smartphone (APK #29)** :
 
 **Bug 1 — Nom de l'app affiché : "Hello App Display..."**
-- Cause : le template React Native génère `strings.xml` avec `app_name = HelloWorld` (ou variante). On corrigeait le package name mais pas le label affiché.
-- Fix : `sed -i 's|<string name="app_name">...|<string name="app_name">SantéDirect</string>|' strings.xml` ajouté au step 3 du workflow.
+- Cause : le template React Native génère `strings.xml` avec `app_name = HelloWorld`.
+- Fix : `sed -i 's|<string name="app_name">...|<string name="app_name">SantéDirect</string>|'` au step 3 du workflow.
 
 **Bug 2 — Écran rouge : "Unable to load script. Make sure you're running Metro..."**
-- Cause : un APK debug React Native cherche par défaut le bundle JS sur un serveur Metro (port 8081) au lieu de l'embarquer. Sans Metro sur le réseau local, l'app crashe immédiatement.
-- Fix : step 7.5 ajouté dans le workflow — exécute `npx react-native bundle` avant Gradle pour embarquer `index.android.bundle` dans les assets de l'APK.
+- Cause : APK debug sans bundle JS cherche Metro sur le réseau local → crash au démarrage.
+- Fix : step 7.5 ajouté — `npx react-native bundle --dev false` avant Gradle.
 
-```yaml
-# Step 7.5 ajouté
-- name: Bundle JS into APK assets
-  working-directory: mobile
-  run: |
-    mkdir -p android/app/src/main/assets
-    npx react-native bundle \
-      --platform android --dev false \
-      --entry-file index.js \
-      --bundle-output android/app/src/main/assets/index.android.bundle \
-      --assets-dest android/app/src/main/res/
-```
+**Build #30** (commit `6b51ccd`) — ÉCHEC — `"No Metro config found"` : le projet n'avait pas de `mobile/metro.config.js` (créé manuellement sans `react-native init`).
+- Fix : créer `mobile/metro.config.js` standard.
 
-**Note sur la méthode de test** : la méthode professionnelle serait `npx react-native run-android` via USB (mode développeur). Non utilisée ici faute d'environnement Android Studio local. Investissement matériel prévu prochainement.
+**Build #31** (commit `21a8757`) — ÉCHEC — SyntaxError Metro dans `TriageScreen.tsx:37` :
+- `'Pas d'urgence immédiate'` — apostrophe française dans une chaîne JS à guillemets simples.
+- Fix : remplacer les guillemets simples par doubles autour des chaînes avec apostrophes.
 
-**Build #30** (commit `6b51ccd`) — en cours au moment de cette mise à jour.
+**Build #32** (commit `d1f4b50`) — ÉCHEC — SyntaxError Metro dans `PriseRDVScreen.tsx:156` et `:308`.
+- Même cause : `'Ce créneau vient d'être réservé...'` et `'Des créneaux dans d'autres mois →'`.
+- Fix : double quotes sur toutes les chaînes avec apostrophe dans le fichier.
 
-Commits session 9 :
+**Build #33** (commit `678fce1`) — **✅ SUCCÈS — 6m42s** :
+- APK `SanteDirect-v1.2.2.apk` généré (55 Mo, arm64-v8a).
+- `app_name = SantéDirect`, bundle JS embarqué, nom affiché correct sur le téléphone.
+- Ancien APK `SanteDirect-v1.1.8.apk` supprimé, remplacé dans `apk-release/`.
+
+#### Partie 2 : API FastAPI — persistence DB complète (après-midi)
+
+Tous les endpoints principaux `api/main.py` migrent de données démo vers PostgreSQL réel :
+
+| Endpoint | Avant | Après |
+|----------|-------|-------|
+| `GET /api/adherents/{id}` | USERS_DEMO | `User` + `Abonnement` en DB |
+| `POST /api/consultations/reserver` | return dict | persist `RendezVous` en DB |
+| `POST /api/consultations/{id}/signes-vitaux` | return dict (TODO) | persist `Diagnostic` (signes JSON) |
+| `POST /api/consultations/{id}/ordonnance` | return dict (TODO) | persist `Ordonnance` en DB |
+| `POST /api/abonnements` | return dict | upsert `Abonnement` + `Cotisation` |
+| `GET /api/abonnements/{id}` | USERS_DEMO | `Abonnement` + calcul consult. restantes |
+| `GET /api/abonnements/plans` | static dict | static + `prix_fc = prix_usd × 2800` |
+
+Nouveaux endpoints admin :
+- `GET /api/admin/consultations` : `RendezVous` paginé, filtres statut/patient/médecin
+- `GET /api/admin/revenus` : `RevenuCentre` + `DepenseCentre` + cotisations payées
+
+CORS restrictif : `allow_origins=["*"]` → `["https://santedirect.kolongono.org", "https://longonia.org", "http://localhost:3000"]`.
+
+#### Partie 3 : Admin web + mobile câblés (nuit)
+
+**`web/admin.html`** :
+- Page Consultations : `renderConsultTable(DATA.consultations)` → `loadConsultations()` (GET `/api/admin/consultations`)
+- Page Abonnements : `renderAboTable(DATA.adherents)` → `loadAbonnements()` (GET `/api/admin/users?role=adherent`)
+- Page Revenus : `loadRevenus()` (GET `/api/admin/revenus`) + `<div id="revenus-summary">` pour KPIs live
+
+**Mobile React Native** :
+- `ConsultationScreen.tsx` : déjà câblé sur `/api/consultations/demande` + `/api/consultations/demandes/mes` (router `consultations.py`)
+- `AbonnementScreen.tsx` : déjà câblé sur `/api/abonnements/{id}` + `/api/abonnements/plans` + `/api/abonnements` — fix : plans manquaient `prix_fc` (ajouté côté API)
+
+Commits session 9 complets :
 
 | Heure | Commit | Résumé |
 |-------|--------|--------|
 | 27/05 matin | `6b51ccd` | Fix(apk) : bundle JS embarqué + app name SantéDirect |
+| 27/05 matin | `21a8757` | Fix(apk) : metro.config.js manquant |
+| 27/05 matin | `d1f4b50` | Fix(mobile) : apostrophe TriageScreen.tsx:37 |
+| 27/05 matin | `678fce1` | Fix(mobile) : apostrophes PriseRDVScreen.tsx:156,308 |
+| 27/05 après-midi | `645e393` | Docs : session 9 bilan [ci skip] |
+| 27/05 après-midi | `fd84b84` | Feat(api) : persistence DB + CORS + endpoints admin |
+| 27/05 nuit | `5174793` | Feat : APK v1.2.2 + admin câblé + prix_fc plans |
 
 ---
 
 ## Plan de développement complet — tous blocs
 
 ### BLOC 1 — CI/CD : APK Android
-*Statut : 🔄 Build #30 en cours — corrections bugs device*
+*Statut : ✅ APK v1.2.2 — distributable*
 
 - [x] Identifier cause racine compile (sessions 7-8)
 - [x] Build #29 réussi (6m41s) — artifact `SanteDirect-debug-arm64-29`
 - [x] APK #29 testé sur device → 2 bugs identifiés
-- [x] Bug nom app "Hello App..." → fix strings.xml (commit `6b51ccd`)
-- [x] Bug écran rouge Metro → fix bundle JS embarqué (commit `6b51ccd`)
-- [ ] **Build #30 réussit → APK fonctionnel à distribuer**
+- [x] Bug nom app "Hello App..." → fix strings.xml
+- [x] Bug écran rouge Metro → fix bundle JS embarqué
+- [x] metro.config.js créé (build #30)
+- [x] Apostrophes françaises JS fixées (builds #31-#32-#33)
+- [x] **Build #33 ✅ SUCCÈS — APK v1.2.2 distributable** (commit `678fce1`)
+- [x] `apk-release/SanteDirect-v1.2.2.apk` mis à jour (ancien supprimé)
 - [ ] Distribuer aux testeurs terrain via WhatsApp
 - [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
 - [ ] Icône de l'app (actuellement icône React Native par défaut)
@@ -352,78 +393,85 @@ Commits session 9 :
 **2.2 Import base médicaments** ✅
 - 65 entrées (50 médicaments + 15 accessoires) — `{"created":15,"skipped":50}`
 
-**2.3 CORS en production** ❌ (à faire)
-- `api/main.py` : `allow_origins=["*"]` → `["https://santedirect.kolongono.org", "https://longonia.org"]`
-- Impact : actuellement toute origine est acceptée — risque sécurité mineur en phase de test
+**2.3 CORS en production** ✅ (corrigé session 9)
+- `allow_origins` maintenant restrictif : `santedirect.kolongono.org`, `longonia.org`, `localhost:3000/8080`
 
 ---
 
 ### BLOC 3 — API FastAPI : endpoints manquants (🟠 semaine 1-2)
 
-**3.1 Consultation complète**
-- `POST /api/consultations/reserver` : écrire en table `RendezVous` (actuellement demo)
-- `POST /api/consultations/{id}/signes-vitaux` : enregistrer en base (TODO ligne ~356 main.py)
-- `POST /api/consultations/{id}/rapport` : clôturer + générer ordonnance
-- `GET /api/consultations/{id}/statut` : polling mobile
-- `DELETE /api/consultations/{id}` : annulation RDV
+**3.1 Consultation complète** — partiellement ✅
+- [x] `POST /api/consultations/reserver` : persist `RendezVous` en DB ✅
+- [x] `POST /api/consultations/{id}/signes-vitaux` : persist `Diagnostic` en DB ✅
+- [x] `POST /api/consultations/{id}/ordonnance` : persist `Ordonnance` en DB ✅
+- [ ] `POST /api/consultations/{id}/rapport` : clôturer + mettre statut "termine"
+- [ ] `GET /api/consultations/{id}/statut` : polling mobile
+- [ ] `DELETE /api/consultations/{id}` : annulation RDV
 
 **3.2 Ordonnance numérique**
-- `POST /api/consultations/{id}/ordonnance` : créer table `Ordonnance` (TODO ligne ~382 main.py)
-- Lier automatiquement à mouvement de stock si médicament disponible
-- `GET /api/adherents/{id}/ordonnances` : historique dossier patient
+- [x] `POST /api/consultations/{id}/ordonnance` : table `Ordonnance` ✅
+- [ ] Lier automatiquement à mouvement de stock
+- [ ] `GET /api/adherents/{id}/ordonnances` : historique dossier patient
 
-**3.3 Abonnements → API réelle**
-- `GET /api/abonnements/plans` : retourner les 4 plans depuis DB (pas hardcodé)
-- `POST /api/abonnements/souscrire` : créer `Abonnement` en base
-- `GET /api/adherents/{id}/abonnement` : état abonnement actuel
-- `POST /api/cotisations/payer` : enregistrer paiement → `Cotisation`
+**3.3 Abonnements → API réelle** ✅
+- [x] `GET /api/abonnements/plans` : avec `prix_fc` (prix_usd × 2800) ✅
+- [x] `POST /api/abonnements` : upsert `Abonnement` + `Cotisation` ✅
+- [x] `GET /api/abonnements/{id}` : depuis DB + consultations restantes ✅
+- [x] `GET /api/adherents/{id}` : User + Abonnement depuis DB ✅
+- [ ] `POST /api/cotisations/payer` : endpoint dédié cotisation mensuelle
 
-**3.4 Endpoints admin**
-- `GET /api/admin/adherents` : liste paginée + filtres (statut, centre, impayés)
-- `GET /api/admin/consultations` : toutes consultations filtrables
-- `GET /api/admin/revenus` : agrégats mensuels depuis `RevenuCentre` + `Cotisation`
-- `GET /api/admin/medecins` : liste médecins + stats (consultations/mois)
+**3.4 Endpoints admin** ✅
+- [x] `GET /api/admin/users` : liste paginée avec filtres role/actif ✅
+- [x] `GET /api/admin/stats` : agrégats par rôle ✅
+- [x] `GET /api/admin/consultations` : RendezVous paginé ✅
+- [x] `GET /api/admin/revenus` : RevenuCentre + DepenseCentre + cotisations ✅
+- [ ] `GET /api/admin/medecins` : liste médecins + stats consultations/mois
 
 **3.5 Refresh token JWT**
-- `POST /api/auth/refresh` : nouveau token si l'ancien expire dans < 24h
-- Mobile : intercepteur dans `components/api.ts` pour refresh automatique
+- [ ] `POST /api/auth/refresh` : nouveau token si l'ancien expire dans < 24h
+- [ ] Mobile : intercepteur dans `components/api.ts` pour refresh automatique
 
 ---
 
 ### BLOC 4 — Dashboard admin web (🟠 semaine 1-2)
 
-**4.1 Section Adhérents → API réelle**
-Remplacer tableau statique `[{ id: "ADH-001"... }]` par `fetch('/api/admin/adherents')`.
-Ajouter : filtre "impayés", pagination côté serveur, export CSV.
+**4.1 Section Adhérents → API réelle** ✅
+- [x] `loadAdherents()` via `GET /api/admin/users?role=adherent` ✅
+- [ ] Filtre "impayés" côté serveur, pagination, export CSV
 
-**4.2 Section Consultations → API réelle**
-Remplacer mock par `fetch('/api/admin/consultations?date=today')`.
-Ajouter : polling 30s pour consultations en cours, bouton "clôturer".
+**4.2 Section Consultations → API réelle** ✅
+- [x] `loadConsultations()` via `GET /api/admin/consultations` ✅
+- [ ] Polling 30s, bouton "clôturer", colonne nom médecin réel
 
-**4.3 Section Abonnements → API réelle**
-Remplacer barres statiques par `fetch('/api/admin/stats/abonnements')`.
+**4.3 Section Abonnements → API réelle** ✅
+- [x] `loadAbonnements()` via `GET /api/admin/users?role=adherent` ✅
+- [ ] Afficher réel nb_mois_impaye, boutons relance SMS
 
-**4.4 Section Revenus → API réelle**
-Remplacer `$400 USD / mois` par `fetch('/api/admin/revenus?mois=2026-05')`.
+**4.4 Section Revenus → API réelle** ✅
+- [x] `loadRevenus()` via `GET /api/admin/revenus` + `revenus-summary` div ✅
+- [ ] Tableau détaillé par catégorie, export PDF
 
 **4.5 Statut services**
-Remplacer chips "ok"/"live" statiques par pings réels (Longonia, Jitsi).
+- [ ] Remplacer chips "ok"/"live" statiques par pings réels (Longonia, Jitsi)
 
 ---
 
 ### BLOC 5 — Mobile React Native : câblage API (🟠 semaine 2)
 
-**5.1 `ConsultationScreen.tsx`**
-Câbler `POST /api/consultations/reserver` — actuellement prend un RDV sans appel API.
+**5.1 `ConsultationScreen.tsx`** ✅
+- [x] Câblé sur `POST /api/consultations/demande` (router consultations.py) ✅
+- [x] Câblé sur `GET /api/consultations/demandes/mes` (router consultations.py) ✅
 
-**5.2 `AbonnementScreen.tsx`**
-Câbler `GET /api/abonnements/plans` + `POST /api/abonnements/souscrire`.
+**5.2 `AbonnementScreen.tsx`** ✅
+- [x] `GET /api/abonnements/plans` (avec `prix_fc` ajouté) ✅
+- [x] `GET /api/abonnements/{id}` (depuis DB) ✅
+- [x] `POST /api/abonnements` (persist + Cotisation) ✅
 
 **5.3 Polling statut consultation**
-`TeleconsultationScreen.tsx` : polling `GET /api/consultations/{id}/statut` toutes les 10s.
+- [ ] `TeleconsultationScreen.tsx` : polling `GET /api/consultations/{id}/statut` toutes les 10s
 
 **5.4 Refresh token**
-Intercepteur dans `api.ts` : si 401, tenter refresh avant de déconnecter.
+- [ ] Intercepteur dans `api.ts` : si 401, tenter refresh avant de déconnecter
 
 ---
 
@@ -501,22 +549,22 @@ Auth, scanner EAN, consultation, ordonnance.
 
 | Bloc | Effort restant | Priorité | Statut |
 |------|----------------|----------|--------|
-| **1 — APK CI/CD** | ~1h (build #30) | 🔴 Immédiat | 🔄 Build #30 en cours |
-| **2 — Infrastructure** | 30min (CORS) | 🔴 Immédiat | ✅ 90% — CORS seul restant |
-| **3 — API FastAPI** | 3-5 jours | 🟠 Semaine 1-2 | ❌ ~50% endpoints demo |
-| **4 — Admin web** | 2-3 jours | 🟠 Semaine 1-2 | ❌ 4 sections statiques |
-| **5 — Mobile câblage** | 2-3 jours | 🟠 Semaine 2 | ❌ 2 screens non câblés |
+| **1 — APK CI/CD** | Tests terrain | 🟠 Immédiat | ✅ APK v1.2.2 distributable |
+| **2 — Infrastructure** | Finitions | ✅ Complet | ✅ Complet — CORS, nginx, médicaments |
+| **3 — API FastAPI** | 1-2 jours | 🟠 Semaine 1 | 🔄 ~75% — rapport/clôture + médecins manquants |
+| **4 — Admin web** | 1 jour | 🟠 Semaine 1 | 🔄 ~75% — 4 sections câblées, détails restants |
+| **5 — Mobile câblage** | Finitions | 🟠 Semaine 1 | ✅ ConsultationScreen + AbonnementScreen ✅ |
 | **6 — Jitsi Meet** | 1-2 jours | 🟡 Semaine 2-3 | ⏳ Code présent, serveur manquant |
 | **7 — Firebase** | 1 jour | 🟡 Semaine 3 | ⏳ Code présent, clé manquante |
 | **8 — Mobile Money** | 1-2 semaines | 🟡 Semaine 4-6 | ❌ Non démarré |
 | **9 — Mode offline** | 1-2 semaines | 🟡 Semaine 4-6 | ❌ Non démarré |
 | **10 — Tests** | En continu | 🟢 Permanent | ❌ 0 test écrit |
 
-**MVP testable terrain estimé : 2-3 semaines** (APK fonctionnel + Blocs 3-5).
+**MVP testable terrain estimé : 1 semaine** (APK distribué + Blocs 3-5 finalisés + Jitsi).
 
 ---
 
-## État actuel du projet — 2026-05-27 · matin
+## État actuel du projet — 2026-05-27 · nuit
 
 ### Infrastructure
 | Composant | État | Détail |
@@ -529,7 +577,7 @@ Auth, scanner EAN, consultation, ordonnance.
 | Bridge Longonia | ✅ | API key configurée |
 | HTTP → HTTPS redirect | ✅ | `conf.d/santesd.conf` dans longonia-nginx |
 | Import médicaments | ✅ | 65 entrées en base |
-| CORS | ❌ | `allow_origins=["*"]` — à restreindre |
+| CORS | ✅ | Restrictif : `santedirect.kolongono.org` + `longonia.org` |
 
 ### Application mobile — React Native 0.73
 | Fonctionnalité | État | Notes |
@@ -540,12 +588,12 @@ Auth, scanner EAN, consultation, ordonnance.
 | Scanner EAN/QR — Superadmin | ✅ | `PharmacieAdminScreen` |
 | Lookup EAN → API | ✅ | `/api/pharmacie/ean/{code}` |
 | Formulaire mouvement de stock | ✅ | `FormulaireStockScreen` |
-| **APK Build** | 🔄 | **Build #30 en cours** — bundle JS + app name fixés |
-| Nom affiché sur téléphone | 🔄 | Était "Hello App..." → corrigé en "SantéDirect" (build #30) |
-| Bundle JS autonome | 🔄 | Écran rouge Metro corrigé (build #30) |
+| **APK Build** | ✅ | **Build #33 SUCCÈS** — `SanteDirect-v1.2.2.apk` (55 Mo) |
+| Nom affiché sur téléphone | ✅ | "SantéDirect" via strings.xml fix |
+| Bundle JS autonome | ✅ | `index.android.bundle` embarqué — plus d'écran rouge Metro |
+| ConsultationScreen → API | ✅ | `/api/consultations/demande` + `/api/consultations/demandes/mes` |
+| AbonnementScreen → API | ✅ | `/api/abonnements/{id}` + plans + souscription → DB |
 | Icône de l'app | ❌ | Icône React Native par défaut |
-| ConsultationScreen → API | ❌ | Écran présent, pas d'appel API réel |
-| AbonnementScreen → API | ❌ | Données hardcodées |
 | Téléconsultation Jitsi | ⏳ | Code présent, CX23 dédié non provisionné |
 | Triage IA (Claude API) | ⏳ | Code présent, clé API à valider |
 | Notifications push Firebase | ⏳ | Code présent, clé API manquante |
@@ -558,10 +606,10 @@ Auth, scanner EAN, consultation, ordonnance.
 | Fiche produit éditable | ✅ | EAN, prix, prescription |
 | Générateur étiquettes ELA034 | ✅ | Code128 / EAN-13 / QR — A4 24/feuille |
 | KPIs feuille de route cliquables | ✅ | Drill-down 4 filtres |
-| **Adhérents** | ❌ | Données statiques JS |
-| **Consultations** | ❌ | Données mock |
-| **Abonnements** | ❌ | Barres hardcodées |
-| **Revenus** | ❌ | `$400 USD / mois` statique |
+| **Adhérents** | ✅ | `loadAdherents()` → `/api/admin/users?role=adherent` |
+| **Consultations** | ✅ | `loadConsultations()` → `/api/admin/consultations` |
+| **Abonnements** | ✅ | `loadAbonnements()` → `/api/admin/users?role=adherent` |
+| **Revenus** | ✅ | `loadRevenus()` → `/api/admin/revenus` (KPIs live) |
 | **Statut Longonia/Jitsi** | ❌ | Chips "ok"/"live" statiques |
 
 ---
