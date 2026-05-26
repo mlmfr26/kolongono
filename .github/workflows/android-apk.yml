@@ -29,16 +29,6 @@ jobs:
         working-directory: mobile
         run: npm install --legacy-peer-deps
 
-      # ── 1.5. Diagnostic AARs react-native ────────────────────────────────────
-      - name: Diagnostic react-native AARs
-        run: |
-          echo "react-native android/ contents:"
-          ls -la mobile/node_modules/react-native/android/ || echo "ABSENT"
-          echo "AAR files found:"
-          find mobile/node_modules/react-native/android -name "*.aar" 2>/dev/null || echo "none"
-          echo "react-native version:"
-          node -e "console.log(require('./mobile/node_modules/react-native/package.json').version)"
-
       # ── 2. Générer android/ depuis le template installé ──────────────────────
       - name: Generate android/ directory
         env:
@@ -167,11 +157,11 @@ jobs:
           else:
               print("VisionCamera_enableCodeScanner déjà présent")
 
-          # ── 4e. Diagnostic AARs + patch settings.gradle (dependencyResolutionManagement)
+          # ── 4e. Diagnostic — AARs react-native (résolus via allprojects repos dans build.gradle)
           rn_path = Path("mobile/node_modules/react-native").resolve()
           rn_android_path = rn_path / "android"
 
-          print(f"\n=== Diagnostic react-native/android/ ===")
+          print(f"\n=== Diagnostic react-native/android/ (repo Maven local) ===")
           print(f"  existe: {rn_android_path.exists()}")
           if rn_android_path.exists():
               items = sorted(rn_android_path.iterdir())
@@ -180,36 +170,14 @@ jobs:
               if react_aar_dir.exists():
                   sub = sorted(react_aar_dir.iterdir())
                   print(f"  com/facebook/react/ ({len(sub)} items): {[p.name for p in sub]}")
-          all_aars = sorted(rn_path.glob("**/*.aar"))[:15]
-          print(f"  AARs ({len(all_aars)}): {[str(p.relative_to(rn_path)) for p in all_aars]}")
 
-          # Patch settings.gradle — ajouter dependencyResolutionManagement en tête
+          all_aars = sorted(rn_path.glob("**/*.aar"))[:15]
+          print(f"  AARs trouvés ({len(all_aars)}): {[str(p.relative_to(rn_path)) for p in all_aars]}")
+
           sg = dest / "settings.gradle"
           sg_txt = sg.read_text() if sg.exists() else ""
-          print(f"\n=== settings.gradle ORIGINAL ===")
+          print(f"\n=== settings.gradle ===")
           print(sg_txt)
-
-          if 'dependencyResolutionManagement' not in sg_txt:
-              # $settingsDir = mobile/android/ → ../node_modules = mobile/node_modules/
-              drm = (
-                  'dependencyResolutionManagement {\n'
-                  '    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)\n'
-                  '    repositories {\n'
-                  '        maven { url "$settingsDir/../node_modules/react-native/android" }\n'
-                  '        maven { url "$settingsDir/../node_modules/jsc-android/dist" }\n'
-                  '        google()\n'
-                  '        mavenCentral()\n'
-                  '        maven { url "https://www.jitpack.io" }\n'
-                  '    }\n'
-                  '}\n'
-                  '\n'
-              )
-              sg.write_text(drm + sg_txt)
-              print('✓ dependencyResolutionManagement ajouté en tête de settings.gradle')
-              print('=== settings.gradle PATCHED ===')
-              print(sg.read_text())
-          else:
-              print('dependencyResolutionManagement déjà présent')
 
           PY
 
