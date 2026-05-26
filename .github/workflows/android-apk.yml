@@ -172,26 +172,14 @@ jobs:
       - name: Downgrade screens+gesture-handler (RN 0.73-compatible)
         working-directory: mobile
         run: |
-          # react-native-screens ≥ 3.30 et gesture-handler ≥ 2.17 ciblent RN 0.74+
-          # et utilisent ViewManagerWithGeneratedInterface marqué `internal` dans
-          # react-android 0.73.x → "Cannot access … it is internal in 'com.facebook.react'"
-          python3 -c "
-import json
-for lib in ['react-native-screens','react-native-gesture-handler']:
-    try:
-        d=json.load(open(f'node_modules/{lib}/package.json'))
-        print(f'Avant   {lib}: {d[\"version\"]}')
-    except: print(f'Avant   {lib}: absent')
-"
-          npm install --legacy-peer-deps \
-            react-native-screens@3.29.0 \
-            react-native-gesture-handler@2.14.0
-          python3 -c "
-import json
-for lib in ['react-native-screens','react-native-gesture-handler']:
-    d=json.load(open(f'node_modules/{lib}/package.json'))
-    print(f'Apres   {lib}: {d[\"version\"]}')
-"
+          echo "=== Versions avant rétrogradation ==="
+          python3 -c "import json; print('screens:', json.load(open('node_modules/react-native-screens/package.json'))['version'])" 2>/dev/null || echo "screens: absent"
+          python3 -c "import json; print('gesture-handler:', json.load(open('node_modules/react-native-gesture-handler/package.json'))['version'])" 2>/dev/null || echo "gesture-handler: absent"
+          echo "=== Rétrogradation vers versions RN 0.73-compatibles ==="
+          npm install --legacy-peer-deps react-native-screens@3.29.0 react-native-gesture-handler@2.14.0
+          echo "=== Versions après rétrogradation ==="
+          python3 -c "import json; print('screens:', json.load(open('node_modules/react-native-screens/package.json'))['version'])"
+          python3 -c "import json; print('gesture-handler:', json.load(open('node_modules/react-native-gesture-handler/package.json'))['version'])"
 
       # ── 5. ABI arm64-v8a (~25-35 MB) ─────────────────────────────────────────
       - name: Limit ABI to arm64-v8a
