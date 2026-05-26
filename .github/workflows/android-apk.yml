@@ -104,18 +104,9 @@ jobs:
               '    }\n'
               '}\n'
               '\n'
-              'allprojects {\n'
-              '    repositories {\n'
-              '        maven { url = "$rootDir/../node_modules/react-native/android" }\n'
-              '        maven { url = "$rootDir/../node_modules/@react-native-community/cli-platform-android/android" }\n'
-              '        google()\n'
-              '        mavenCentral()\n'
-              '    }\n'
-              '}\n'
-              '\n'
               'apply plugin: "com.facebook.react.rootproject"\n'
           )
-          print("✓ build.gradle → AGP 8.6.0 · compileSdk 35 · kotlin 1.9.25 · allprojects repos")
+          print("✓ build.gradle → AGP 8.6.0 · compileSdk 35 · kotlin 1.9.25")
 
           # ── 4b. app/build.gradle — JVM 17 ───────────────────────────────────────
           abg = dest / "app" / "build.gradle"
@@ -154,6 +145,45 @@ jobs:
               print("✓ VisionCamera_enableCodeScanner=true ajouté")
           else:
               print("VisionCamera_enableCodeScanner déjà présent")
+
+          # ── 4e. settings.gradle — DRM repos (CRITICAL pour BaseReactPackage) ────
+          sg = dest / "settings.gradle"
+          print("=== settings.gradle AVANT ===")
+          print(sg.read_text() if sg.exists() else "(absent)")
+
+          sg.write_text(
+              'pluginManagement {\n'
+              '    includeBuild("../node_modules/@react-native/gradle-plugin")\n'
+              '    repositories {\n'
+              '        google()\n'
+              '        mavenCentral()\n'
+              '    }\n'
+              '}\n'
+              '\n'
+              'plugins {\n'
+              '    id("com.facebook.react.settings")\n'
+              '}\n'
+              '\n'
+              'extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->\n'
+              '    ex.autolinkLibrariesFromCommand()\n'
+              '}\n'
+              '\n'
+              'dependencyResolutionManagement {\n'
+              '    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)\n'
+              '    repositories {\n'
+              '        maven { url uri("../node_modules/react-native/android") }\n'
+              '        maven { url uri("../node_modules/@react-native/gradle-plugin") }\n'
+              '        google()\n'
+              '        mavenCentral()\n'
+              '        mavenLocal()\n'
+              '    }\n'
+              '}\n'
+              '\n'
+              "rootProject.name = 'SantedirectKolongono'\n"
+              "include ':app'\n"
+              'includeBuild("../node_modules/@react-native/gradle-plugin")\n'
+          )
+          print("✓ settings.gradle → DRM repos locaux react-native/android ajoutés (PREFER_PROJECT)")
           PY
 
       # ── 5. ABI arm64-v8a (~25-35 MB) ─────────────────────────────────────────
