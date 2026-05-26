@@ -105,8 +105,19 @@ jobs:
               '}\n'
               '\n'
               'apply plugin: "com.facebook.react.rootproject"\n'
+              '\n'
+              '// Repositories pour react-android, hermes-android et libs tierces\n'
+              'allprojects {\n'
+              '    repositories {\n'
+              '        maven { url "$rootDir/../node_modules/react-native/android" }\n'
+              '        maven { url "$rootDir/../node_modules/jsc-android/dist" }\n'
+              '        google()\n'
+              '        mavenCentral()\n'
+              '        maven { url "https://www.jitpack.io" }\n'
+              '    }\n'
+              '}\n'
           )
-          print("✓ build.gradle → AGP 8.6.0 · compileSdk 35 · kotlin 1.9.25")
+          print("✓ build.gradle → AGP 8.6.0 · compileSdk 35 · allprojects repos")
 
           # ── 4b. app/build.gradle — JVM 17 ───────────────────────────────────────
           abg = dest / "app" / "build.gradle"
@@ -146,62 +157,27 @@ jobs:
           else:
               print("VisionCamera_enableCodeScanner déjà présent")
 
-          # ── 4e. Patch settings.gradle — ajouter ReactAndroid comme composite build
-          sg = dest / "settings.gradle"
-          sg_txt = sg.read_text() if sg.exists() else ""
-          print("=== settings.gradle ORIGINAL ===")
-          print(sg_txt)
-
+          # ── 4e. Diagnostic — AARs react-native (résolus via allprojects repos dans build.gradle)
           rn_path = Path("mobile/node_modules/react-native").resolve()
           rn_android_path = rn_path / "android"
-          react_android_dir = rn_path / "ReactAndroid"
 
-          print(f"\n=== Diagnostic react-native ===")
-          print(f"  node_modules/react-native/android/ : {rn_android_path.exists()}")
-          print(f"  node_modules/react-native/ReactAndroid/ : {react_android_dir.exists()}")
-
-          # Lister le contenu de android/ (top level)
+          print(f"\n=== Diagnostic react-native/android/ (repo Maven local) ===")
+          print(f"  existe: {rn_android_path.exists()}")
           if rn_android_path.exists():
-              items = list(rn_android_path.iterdir())
-              print(f"  android/ top-level ({len(items)} items): {[p.name for p in items[:15]]}")
+              items = sorted(rn_android_path.iterdir())
+              print(f"  top-level ({len(items)} items): {[p.name for p in items[:20]]}")
+              react_aar_dir = rn_android_path / "com/facebook/react"
+              if react_aar_dir.exists():
+                  sub = sorted(react_aar_dir.iterdir())
+                  print(f"  com/facebook/react/ ({len(sub)} items): {[p.name for p in sub]}")
 
-          # Chercher TOUS les AARs dans react-native (pas seulement android/)
-          all_aars = sorted(rn_path.glob("**/*.aar"))[:10]
-          print(f"  Tous les AARs dans react-native/ : {[str(p) for p in all_aars]}")
+          all_aars = sorted(rn_path.glob("**/*.aar"))[:15]
+          print(f"  AARs trouvés ({len(all_aars)}): {[str(p.relative_to(rn_path)) for p in all_aars]}")
 
-          # settings.gradle de ReactAndroid ?
-          rn_sg = react_android_dir / "settings.gradle"
-          rn_sg_kts = react_android_dir / "settings.gradle.kts"
-          rn_bg = react_android_dir / "build.gradle"
-          rn_bg_kts = react_android_dir / "build.gradle.kts"
-          has_settings = rn_sg.exists() or rn_sg_kts.exists()
-          has_build = rn_bg.exists() or rn_bg_kts.exists()
-          print(f"  ReactAndroid/settings.gradle: {rn_sg.exists()} | settings.gradle.kts: {rn_sg_kts.exists()}")
-          print(f"  ReactAndroid/build.gradle: {rn_bg.exists()} | build.gradle.kts: {rn_bg_kts.exists()}")
-
-          # ── Ajouter ReactAndroid comme composite build si c'est un projet Gradle ──
-          if (has_settings or has_build) and "ReactAndroid" not in sg_txt:
-              substitution = (
-                  f'\n// react-android via ReactAndroid source (com.facebook.react.settings)\n'
-                  f'includeBuild("{react_android_dir}") {{\n'
-                  f'    dependencySubstitution {{\n'
-                  f'        substitute(module("com.facebook.react:react-android")).using(project(":"))\n'
-                  f'        substitute(module("com.facebook.react:hermes-android")).using(project(":"))\n'
-                  f'    }}\n'
-                  f'}}\n'
-              )
-              sg.write_text(sg_txt + substitution)
-              print(f"✓ includeBuild ReactAndroid ajouté à settings.gradle")
-              print("=== settings.gradle PATCHED ===")
-              print(sg.read_text())
-          elif "ReactAndroid" in sg_txt:
-              print("ReactAndroid déjà dans settings.gradle")
-          else:
-              print("WARNING: ReactAndroid n'est pas un projet Gradle valide — skip includeBuild")
-              # Fallback: afficher la structure pour diagnostic
-              if react_android_dir.exists():
-                  items = list(react_android_dir.iterdir())
-                  print(f"  ReactAndroid/ contenu: {[p.name for p in items[:20]]}")
+          sg = dest / "settings.gradle"
+          sg_txt = sg.read_text() if sg.exists() else ""
+          print(f"\n=== settings.gradle ===")
+          print(sg_txt)
 
           PY
 
