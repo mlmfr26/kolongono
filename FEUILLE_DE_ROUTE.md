@@ -1,41 +1,40 @@
 # Feuille de route — SantéDirect Kolongono
 
 > Mise à jour à chaque session par Claude Code.
-> Format horodaté précis — toutes les heures en UTC+2 (heure de Kinshasa).
+> Toutes les heures en UTC+2 (heure de Kinshasa).
 
 ---
 
 ## Dernière mise à jour
 
-**2026-05-26 · 14h30 (UTC+2) · Session 7 (en cours)**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `1a50b1b`
+**2026-05-26 · 15h30 (UTC+2) · Session 7**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : en cours (fix settings.gradle)
 
 ---
 
 ## Chronologie complète des sessions de travail
 
-### Session 1 — 2026-05-22 → 2026-05-24 (~3 jours, durée estimée ~12h)
+### Session 1 — 2026-05-22 → 2026-05-24 (durée estimée ~12h)
 **Création du projet — travail local, avant le premier commit Git**
 
 - Initialisation du mono-repo `SANTE DIRECT - KOLONGONO/`
 - Architecture API (FastAPI port 8002), mobile (React Native 0.73), web (admin HTML)
 - ~33 fichiers créés
-- Modèles SQLAlchemy (`MedicamentEAN`, `StockPharmacie`, `MouvementStock`)
+- Modèles SQLAlchemy (16 tables : `User`, `RendezVous`, `Abonnement`, `Cotisation`, `MedicamentEAN`, etc.)
 - Router `pharmacie_ean.py` — 8 endpoints CRUD + mouvements de stock
 - Base de 50 médicaments essentiels RDC (`api/data/medicaments_base.json`)
 - App mobile : navigation multi-rôles (adhérent / auxiliaire / médecin / admin / superadmin)
 - Screens scanner pharmacie : `ScannerStockScreen`, `MedicamentInconnuScreen`, `FormulaireStockScreen`
 - Dashboard admin `web/admin.html` — KPIs, table médicaments, abonnements
 
-> **Note** : Travail effectué localement. Le dépôt Git n'existait pas encore.
-> Premier commit Git créé le 2026-05-25 à 13h22.
+> Travail effectué localement. Dépôt Git inexistant. Premier commit : 2026-05-25 à 13h22.
 
 ---
 
 ### Session 2 — 2026-05-23 (durée estimée ~3h)
 **Documentation + décisions d'architecture — travail local**
 
-- `DOCUMENTATION_SESSION.md` rédigé (démo ↔ production, bilan réaliste, estimation MVP 10-12 sem.)
+- `DOCUMENTATION_SESSION.md` rédigé (démo ↔ production, bilan réaliste, MVP 10-12 sem.)
 - `DECISIONS_REQUISES.md` : domaine `santedirect.kolongono.org` retenu, `LONGONIA_API_KEY` obtenue
 - `DEPLOIEMENT.md` : guide pas-à-pas Hetzner CX23 + Docker + nginx + certbot
 - Décision : serveur partagé avec Longonia pendant la phase de test (1 CX23 = 3 apps)
@@ -66,9 +65,8 @@ Commits Git horodatés (UTC+2) :
 
 Actions déployées (hors Git) :
 - **Déploiement ✅** : serveur `5.75.149.155`, Docker, nginx, base `santesd`
-- Domaine fonctionnel `santedirect.kolongono.org` (sous-domaine Cloudflare)
-- Endpoint `PATCH /api/pharmacie/ean/{code_interne}` ajouté
-- Endpoint `POST /api/pharmacie/ean/import-base` ajouté
+- Domaine fonctionnel `santedirect.kolongono.org` (Cloudflare)
+- Endpoints `PATCH /api/pharmacie/ean/{code_interne}` et `POST /api/pharmacie/ean/import-base` ajoutés
 - Correction bug `navigation.navigate('PharmacieAdmin')` → `navigate('Main')`
 
 ---
@@ -83,18 +81,13 @@ Actions déployées (hors Git) :
 | 26/05 03h59 | `6b0964a` | Feat : scanner pharmacie admin + étiquettes ELA034 + workflow APK robuste |
 | 26/05 04h05 | `0b2b1d0` | Docs : créer FEUILLE_DE_ROUTE.md |
 
-**1er build CI — Run #1** (26/05 03h36 UTC+2, déclenché par `70a4ac`) :
-- Durée : 3m50s — Résultat : ÉCHEC
-- Erreur : AGP version manquante dans le `build.gradle` du template
+**1er build CI — Run #1** (26/05 03h36 UTC+2) :
+- Durée : 3m50s — Résultat : ÉCHEC — Erreur : AGP version manquante
 
 ---
 
 ### Session 5 — 2026-05-26 · 04h00 → 07h40 (durée ~3h40)
-**Debug APK — 20 builds échoués — cause racine identifiée trop tard**
-
-**Contexte** : L'`android/` est généré à chaque build CI depuis le template RN 0.73.
-Le `build.gradle` et `settings.gradle` du template sont insuffisants pour résoudre
-les dépendances natives (`react-android`, `BaseReactPackage`).
+**Debug APK — 20 builds échoués**
 
 **Erreur persistante sur tous les builds** :
 ```
@@ -105,30 +98,30 @@ e: Cannot access 'ViewManagerWithGeneratedInterface'
 ```
 
 **Cause racine** (identifiée en session 7, le 26/05 à 14h) :
-Le répertoire `node_modules/react-native/android/` ne contient qu'un `README.md`.
-Aucun AAR pré-compilé. Toutes les tentatives basées sur `allprojects { repositories { maven ... } }`
-pointaient vers un répertoire vide. La vraie solution : réécrire `settings.gradle`
-avec `pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }`
-+ `apply plugin: "com.facebook.react.settings"`.
+Le template génère un `settings.gradle` minimal sans `pluginManagement { includeBuild }`.
+Sans `apply plugin: "com.facebook.react.settings"`, Gradle ne configure pas
+`dependencyResolutionManagement` → `react-android` (contenant `BaseReactPackage`)
+est introuvable. De plus, `node_modules/react-native/android/` ne contient qu'un
+`README.md` — aucun AAR pré-compilé — donc pointer dessus comme Maven repo était inutile.
 
-**Diagnostic disponible depuis le build #8** (04h32 UTC+2) mais non lu :
+**Diagnostic disponible depuis le build #8 mais non lu à l'époque** :
 ```
 top-level (1 items): ['README.md']
-AARs trouvés (0): []      ← l'information était là
+AARs trouvés (0): []
 ```
 
-**Chronologie des 21 builds échoués** (tous UTC+2) :
+**Chronologie des 21 builds échoués** (UTC+2) :
 
 | Run # | Heure | Commit | Trigger | Durée | Tentative |
 |-------|-------|--------|---------|-------|-----------|
-| 1 | 26/05 01h36 | `70a4ac` | dispatch | 3m50s | Workflow initial — AGP manquant |
-| 2 | 26/05 03h59 | `6b0964a` | push | 25m | Workflow robuste — premier vrai build |
+| 1 | 26/05 01h36 | `70a4ac` | dispatch | 3m50s | Workflow initial |
+| 2 | 26/05 03h59 | `6b0964a` | push | 25m | Workflow robuste v1 |
 | 3 | 26/05 04h45 | `72234d8` | push | 3m54s | sed → Python pour AGP 8.6 |
-| 4 | 26/05 05h00 | `c600788` | push | 3m53s | Bump version seul |
-| 5 | 26/05 05h06 | `c600788` | dispatch | 4m16s | Re-déclenchement manuel |
+| 4 | 26/05 05h00 | `c600788` | push | 3m53s | Bump version |
+| 5 | 26/05 05h06 | `c600788` | dispatch | 4m16s | Re-déclenchement |
 | 6 | 26/05 05h18 | `37384bd` | push | 4m14s | Kotlin 1.8→1.9.25 |
-| 7 | 26/05 05h27 | `8f25e21` | push | 4m21s | Capture erreurs Kotlin (tee+grep) |
-| 8 | 26/05 05h32 | `0788b56` | push | 5m10s | Step4 Python pur — **diagnostic AARs ajouté** |
+| 7 | 26/05 05h27 | `8f25e21` | push | 4m21s | Capture erreurs Kotlin |
+| 8 | 26/05 05h32 | `0788b56` | push | 5m10s | Step4 Python pur + diagnostic AARs ajouté |
 | 9 | 26/05 05h38 | `38b9f46` | push | 4m45s | allprojects repos (vers dir vide) |
 | 10 | 26/05 05h43 | `44b53a3` | push | 1m12s | Réécriture settings.gradle (DRM) |
 | 11 | 26/05 05h52 | `44b53a3` | dispatch | 1m12s | Re-déclenchement |
@@ -169,78 +162,266 @@ Commits associés :
 ---
 
 ### Session 6 — 2026-05-26 · 07h40 → 13h30 (durée ~5h50)
-**Incident GitHub Actions + revert + analyse**
+**Incident GitHub Actions (10h57-13h18 UTC = 12h57-15h18 UTC+2)**
 
-**07h40 — Début incident GitHub Actions** :
-- `workflow_dispatch` retourne HTTP 500 : "Failed to queue workflow run"
-- Affecte les DEUX workflows du repo
-- Persiste après déconnexion/reconnexion GitHub
-- **Cause** : incident infrastructure GitHub (côté serveur), pas lié au code
+**Incident GitHub — résumé officiel** :
+> *"Incident with Actions and Pages — This incident has been resolved.*
+> *May 26, 10:57 - 13:18 UTC"* (source : githubstatus.com)
 
-**Tentatives pendant l'incident** (aucune n'a pu être construite) :
+**Chronologie de l'incident côté projet** :
 
-| Heure | Commit | Résumé |
-|-------|--------|--------|
-| 26/05 13h00 | `1c31dd5` | Fix(ci) : diagnostic AARs + tarball + DRM (jamais exécuté) |
-| 26/05 13h15 | `7f90f34` | CI : retrigger build #22 (jamais exécuté) |
-| 26/05 13h15 | `7c8d540` | CI : bump 1.1.4 (jamais exécuté) |
-| 26/05 13h28 | `a197bc4` | Fix(ci) : simplifier step 1.5 (jamais exécuté) |
-| 26/05 13h30 | `1a50b1b` | Fix(ci) : revert workflow vers `c59d290` |
+| Heure (UTC+2) | Événement |
+|---------------|-----------|
+| 07h40 | Dernier build normal (run #21, `c59d290`, 4m20s) |
+| ~12h57 | Début incident GitHub — `workflow_dispatch` retourne HTTP 500 |
+| 13h00 | Commit `1c31dd5` — Fix(ci) DRM + tarball (jamais exécuté) |
+| 13h15 | Commits `7f90f34`, `7c8d540` — retriggers (jamais exécutés) |
+| 13h28 | Commit `a197bc4` — simplifier step 1.5 (jamais exécuté) |
+| 13h30 | Commit `1a50b1b` — revert workflow vers `c59d290` |
+| 14h27 | Run #22 — workflow_dispatch fonctionne MAIS CDN encore cassé (6s, échec setup-java) |
+| 14h29 | Run #23 — même erreur CDN (7s) |
+| ~15h18 | Incident GitHub entièrement résolu (13h18 UTC) |
 
-**Diagnostic clé effectué pendant cet incident** :
-En téléchargeant le log du build #21 (run 26434402247), lecture de la sortie du
-diagnostic step 4e :
+**Diagnostic effectué pendant l'incident** :
+Lecture du log du build #21 (run 26434402247) — sortie du diagnostic step 4e :
 ```
 top-level (1 items): ['README.md']
 AARs trouvés (0): []
 ```
-**→ Cause racine identifiée** : `node_modules/react-native/android/` est vide.
-Toutes les approches `allprojects { repositories }` et `dependencyResolutionManagement`
-pointaient vers un répertoire sans AARs. Le vrai correctif est une réécriture de
-`settings.gradle` avec `pluginManagement { includeBuild }` + `apply plugin: "com.facebook.react.settings"`.
+→ **Cause racine identifiée** : `node_modules/react-native/android/` vide.
+→ **Fix identifié** : réécrire `settings.gradle` avec `pluginManagement { includeBuild }` + `apply plugin: "com.facebook.react.settings"`.
 
-**Question du 2ème compte GitHub** : **INUTILE**.
-L'incident était côté infrastructure GitHub, pas lié au compte `mlmfr26`.
-Créer un autre compte n'aurait rien résolu.
+**Sur la création d'un autre compte GitHub** : inutile.
+L'incident était côté infrastructure GitHub globale, pas lié au compte `mlmfr26`.
 
 ---
 
-### Session 7 — 2026-05-26 · 13h30 → en cours (durée ~1h)
-**Récupération incident GitHub + documentation**
+### Session 7 — 2026-05-26 · 13h30 → 15h30 (durée ~2h)
+**Récupération, audit complet, plan détaillé, fix settings.gradle**
 
-**14h27** — `workflow_dispatch` fonctionne à nouveau (HTTP 500 résolu).
-Run 26448025835 déclenché — mais NOUVEL incident : CDN GitHub ne peut pas
-télécharger `actions/setup-java`. Incident GitHub encore partiellement actif.
+**13h30** — Reprise de session. GitHub dispatch opérationnel mais CDN encore cassé.
 
-```
-X Failed to download archive 'https://codeload.github.com/actions/setup-java/...'
-X An action could not be found at the URI '...'
-```
+**14h00** — Audit complet du projet via agent Explore. Résultats :
+- 34 screens mobile, 16 tables SQLAlchemy, ~50 endpoints API (25 réels, 25 demo)
+- `admin.html` : pharmacie câblée sur API, toutes les autres sections en demo-data JS
+- nginx.conf : domaine incorrect (`santedirect-kolongono.cd` au lieu de `santedirect.kolongono.org`)
+- 0 test unitaire/intégration dans tout le projet
+- Maturité globale estimée : ~40-45% MVP-ready
 
-**État GitHub Actions** :
-- ✅ Déclenchement `workflow_dispatch` : fonctionnel
-- ❌ CDN GitHub (téléchargement des actions) : partiellement défaillant
-- → Attendre 30-60 min et réessayer. Pas besoin de créer un autre compte.
+**14h30** — Documentation minutieuse FEUILLE_DE_ROUTE.md (commit `c2bc6af`).
 
-**Prochain correctif à appliquer dès récupération GitHub** :
-Réécriture de `settings.gradle` dans le workflow CI avec le mécanisme officiel RN 0.73 :
-```groovy
-pluginManagement {
-    includeBuild("../node_modules/@react-native/gradle-plugin")
-    repositories { google(); mavenCentral(); gradlePluginPortal() }
-}
-apply plugin: "com.facebook.react.settings"
-extensions.configure(com.facebook.react.ReactSettingsExtension) {
-    ex -> ex.autolinkLibrariesFromCommand()
-}
-rootProject.name = 'SanteDirect'
-include ':app'
-includeBuild('../node_modules/@react-native/gradle-plugin')
-```
+**15h18** — Incident GitHub entièrement résolu (confirmé par githubstatus.com).
+
+**15h30** — Fix `settings.gradle` appliqué (commit en cours) :
+- `android-apk.yml` step 4a : suppression `allprojects { repositories }` (inutile, dir vide)
+- `android-apk.yml` step 4e : réécriture `settings.gradle` avec mécanisme officiel RN 0.73 :
+  ```groovy
+  pluginManagement {
+      includeBuild("../node_modules/@react-native/gradle-plugin")
+      repositories { google(); mavenCentral(); gradlePluginPortal() }
+  }
+  apply plugin: "com.facebook.react.settings"
+  extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+      ex.autolinkLibrariesFromCommand()
+  }
+  rootProject.name = 'SanteDirect'
+  include ':app'
+  includeBuild("../node_modules/@react-native/gradle-plugin")
+  ```
+- `mobile/package.json` : bump 1.1.4 → 1.1.5 pour déclencher le build
 
 ---
 
-## État actuel du projet — 2026-05-26 · 14h30
+## Plan de développement complet — tous blocs
+
+### BLOC 1 — CI/CD : APK Android
+*Statut : fix appliqué, build #24 en cours*
+
+- [x] Identifier cause racine (session 7, 14h)
+- [x] Fix `settings.gradle` — mécanisme officiel RN 0.73
+- [ ] Build #24 réussit → télécharger APK arm64
+- [ ] Distribuer aux testeurs terrain (auxiliaire + médecin)
+- [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
+
+---
+
+### BLOC 2 — Infrastructure serveur (🔴 urgent)
+
+**2.1 nginx.conf — domaine incorrect**
+- Remplacer `santedirect-kolongono.cd` → `santedirect.kolongono.org` dans nginx.conf
+- Sur serveur : `nginx -t && systemctl reload nginx`
+- Renouveler certificat certbot si nécessaire : `certbot renew`
+
+**2.2 Import base médicaments**
+```bash
+curl -X POST https://santedirect.kolongono.org/api/pharmacie/ean/import-base
+```
+Vérifier que les 65 médicaments + accessoires apparaissent dans admin.html.
+
+**2.3 CORS en production**
+- `api/main.py` : `allow_origins=["*"]` → `["https://santedirect.kolongono.org", "https://longonia.org"]`
+
+---
+
+### BLOC 3 — API FastAPI : endpoints manquants (🟠 semaine 1-2)
+
+**3.1 Consultation complète**
+- `POST /api/consultations/reserver` : écrire en table `RendezVous` (actuellement demo)
+- `POST /api/consultations/{id}/signes-vitaux` : enregistrer en base (TODO ligne ~356 main.py)
+- `POST /api/consultations/{id}/rapport` : clôturer + générer ordonnance
+- `GET /api/consultations/{id}/statut` : polling mobile
+- `DELETE /api/consultations/{id}` : annulation RDV
+
+**3.2 Ordonnance numérique**
+- `POST /api/consultations/{id}/ordonnance` : créer table `Ordonnance` (TODO ligne ~382 main.py)
+- Lier automatiquement à mouvement de stock si médicament disponible
+- `GET /api/adherents/{id}/ordonnances` : historique dossier patient
+
+**3.3 Abonnements → API réelle**
+- `GET /api/abonnements/plans` : retourner les 4 plans depuis DB (pas hardcodé)
+- `POST /api/abonnements/souscrire` : créer `Abonnement` en base
+- `GET /api/adherents/{id}/abonnement` : état abonnement actuel
+- `POST /api/cotisations/payer` : enregistrer paiement → `Cotisation`
+
+**3.4 Endpoints admin**
+- `GET /api/admin/adherents` : liste paginée + filtres (statut, centre, impayés)
+- `GET /api/admin/consultations` : toutes consultations filtrables
+- `GET /api/admin/revenus` : agrégats mensuels depuis `RevenuCentre` + `Cotisation`
+- `GET /api/admin/medecins` : liste médecins + stats (consultations/mois)
+
+**3.5 Refresh token JWT**
+- `POST /api/auth/refresh` : nouveau token si l'ancien expire dans < 24h
+- Mobile : intercepteur dans `components/api.ts` pour refresh automatique
+
+---
+
+### BLOC 4 — Dashboard admin web (🟠 semaine 1-2)
+
+**4.1 Section Adhérents → API réelle**
+Remplacer tableau statique `[{ id: "ADH-001"... }]` par `fetch('/api/admin/adherents')`.
+Ajouter : filtre "impayés", pagination côté serveur, export CSV.
+
+**4.2 Section Consultations → API réelle**
+Remplacer mock par `fetch('/api/admin/consultations?date=today')`.
+Ajouter : polling 30s pour consultations en cours, bouton "clôturer".
+
+**4.3 Section Abonnements → API réelle**
+Remplacer barres statiques par `fetch('/api/admin/stats/abonnements')`.
+
+**4.4 Section Revenus → API réelle**
+Remplacer `$400 USD / mois` par `fetch('/api/admin/revenus?mois=2026-05')`.
+
+**4.5 Statut services**
+Remplacer chips "ok"/"live" statiques par pings réels (Longonia, Jitsi).
+
+---
+
+### BLOC 5 — Mobile React Native : câblage API (🟠 semaine 2)
+
+**5.1 `ConsultationScreen.tsx`**
+Câbler `POST /api/consultations/reserver` — actuellement prend un RDV sans appel API.
+
+**5.2 `AbonnementScreen.tsx`**
+Câbler `GET /api/abonnements/plans` + `POST /api/abonnements/souscrire`.
+
+**5.3 Polling statut consultation**
+`TeleconsultationScreen.tsx` : polling `GET /api/consultations/{id}/statut` toutes les 10s.
+
+**5.4 Refresh token**
+Intercepteur dans `api.ts` : si 401, tenter refresh avant de déconnecter.
+
+---
+
+### BLOC 6 — Téléconsultation Jitsi Meet (🟡 semaine 2-3)
+
+**6.1 Provisionner 3e CX23 Hetzner** (~5 EUR/mois)
+Installer Docker + Jitsi Meet self-hosted, sous-domaine `jitsi.kolongono.org`.
+
+**6.2 Intégrer dans l'app mobile**
+`TeleconsultationScreen.tsx` : URL `https://jitsi.kolongono.org/consultation-{rdv_id}`.
+
+**6.3 Sécuriser les rooms**
+API génère un JWT Jitsi par consultation, room expire après 2h.
+
+---
+
+### BLOC 7 — Notifications push Firebase (🟡 semaine 3)
+
+**7.1 Configurer Firebase FCM**
+- Créer projet Firebase, obtenir `FIREBASE_SERVER_KEY`
+- Ajouter dans `.env` serveur + secret GitHub Actions
+- `notifications.py` est déjà codé — il faut seulement la clé
+
+**7.2 Enregistrement device token**
+Au login mobile : enregistrer FCM token via `POST /api/utilisateurs/{id}/fcm-token`.
+
+**7.3 Déclenchements**
+- RDV confirmé → notif patient
+- RDV dans 30 min → rappel patient + médecin
+- Ordonnance disponible → notif patient
+- Rupture de stock → notif admin
+
+---
+
+### BLOC 8 — Mobile Money (🟡 semaine 4-6)
+
+**8.1 M-Pesa RDC (Vodacom)**
+`POST /api/paiements/mpesa/initier` → push USSD → callback Vodacom → créditer `SoldePatient`.
+
+**8.2 Orange Money RDC**
+`POST /api/paiements/orange/initier` — même logique.
+
+**8.3 Écran de paiement mobile**
+Nouveau screen `PaiementScreen.tsx` : choisir opérateur → numéro → confirmer → attendre callback.
+
+---
+
+### BLOC 9 — Mode offline partiel (🟡 semaine 4-6)
+
+**9.1 SQLite local**
+Stocker localement : liste médicaments EAN, dossier patient, ordonnances récentes.
+Sync au retour de réseau via `POST /api/sync`.
+
+**9.2 Queue mouvements de stock offline**
+Si pas de réseau pendant scan EAN → queue locale → sync automatique dès reconnexion.
+
+---
+
+### BLOC 10 — Tests & Qualité (🟢 en continu)
+
+**10.1 Tests API (pytest)**
+Auth, scanner EAN, consultation, ordonnance.
+
+**10.2 Tests mobile (Jest)**
+Écrans critiques : Login, Scanner, Formulaire stock.
+
+**10.3 Monitoring serveur**
+- Logs structurés FastAPI → fichier rotatif
+- Alerte si API down > 5 min
+- Alerte rupture de stock automatique
+
+---
+
+## Tableau de synthèse — priorisation
+
+| Bloc | Effort | Priorité | Débloque |
+|------|--------|----------|----------|
+| **1 — APK CI/CD** | 1-2h | 🔴 Immédiat | Tests terrain |
+| **2 — Infrastructure** | 2-3h | 🔴 Immédiat | SSL valide, prod stable |
+| **3 — API FastAPI** | 3-5 jours | 🟠 Semaine 1-2 | Données réelles |
+| **4 — Admin web** | 2-3 jours | 🟠 Semaine 1-2 | Dashboard opérationnel |
+| **5 — Mobile câblage** | 2-3 jours | 🟠 Semaine 2 | App complète |
+| **6 — Jitsi Meet** | 1-2 jours | 🟡 Semaine 2-3 | Téléconsultation |
+| **7 — Firebase** | 1 jour | 🟡 Semaine 3 | Notifications |
+| **8 — Mobile Money** | 1-2 semaines | 🟡 Semaine 4-6 | Modèle économique |
+| **9 — Mode offline** | 1-2 semaines | 🟡 Semaine 4-6 | Terrain sans réseau |
+| **10 — Tests** | En continu | 🟢 Permanent | Qualité |
+
+**MVP testable terrain estimé : 3-4 semaines** (Blocs 1-5 complétés).
+
+---
+
+## État actuel du projet — 2026-05-26 · 15h30
 
 ### Infrastructure ✅ Opérationnel
 | Composant | État | Détail |
@@ -251,6 +432,7 @@ includeBuild('../node_modules/@react-native/gradle-plugin')
 | API FastAPI | ✅ | Port 8002, accessible via HTTPS |
 | DNS / Domaine | ✅ | `santedirect.kolongono.org` (Cloudflare) |
 | Bridge Longonia | ✅ | API key configurée |
+| nginx.conf domaine | ❌ | Encore `santedirect-kolongono.cd` — à corriger |
 
 ### Application mobile — React Native 0.73
 | Fonctionnalité | État | Notes |
@@ -260,49 +442,27 @@ includeBuild('../node_modules/@react-native/gradle-plugin')
 | Scanner EAN/QR — Admin local | ✅ | `CentreDashboardScreen` |
 | Scanner EAN/QR — Superadmin | ✅ | `PharmacieAdminScreen` |
 | Lookup EAN → API | ✅ | `/api/pharmacie/ean/{code}` |
-| Formulaire médicament inconnu | ✅ | `MedicamentInconnuScreen` |
 | Formulaire mouvement de stock | ✅ | `FormulaireStockScreen` |
-| **APK Build (GitHub Actions)** | ❌ | **21 builds échoués** — fix settings.gradle prêt, bloqué CDN GitHub |
-| Téléconsultation Jitsi | ⏳ | Planifié — CX23 dédié |
+| **APK Build (GitHub Actions)** | ⏳ | **Build #24 en cours** — fix settings.gradle |
+| ConsultationScreen → API | ❌ | Écran présent, pas d'appel API réel |
+| AbonnementScreen → API | ❌ | Données hardcodées |
+| Téléconsultation Jitsi | ⏳ | Code présent, CX23 dédié non provisionné |
 | Triage IA (Claude API) | ⏳ | Code présent, clé API à valider |
-| Notifications push Firebase | ⏳ | Non configuré |
+| Notifications push Firebase | ⏳ | Code présent, clé API manquante |
 
 ### Dashboard admin web (admin.html)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| KPIs pharmacie + drill-down | ✅ | Stock, alertes, valeur, dispensations |
+| KPIs pharmacie + drill-down | ✅ | Câblé API réelle |
 | Table médicaments + recherche | ✅ | 100/page, filtre texte |
-| Fiche produit éditable | ✅ | EAN, prix, prescription, forme, DCI |
-| Ajustement de stock | ✅ | Entrée / sortie / correction |
+| Fiche produit éditable | ✅ | EAN, prix, prescription |
 | Générateur étiquettes ELA034 | ✅ | Code128 / EAN-13 / QR — A4 24/feuille |
 | KPIs feuille de route cliquables | ✅ | Drill-down 4 filtres |
-| Abonnements / Consultations / Médecins | ⏳ | Données demo — API non câblée |
-| Comptabilité | ⏳ | Données demo |
-
----
-
-## Prochaines priorités
-
-### Urgent — bloque les tests terrain
-- [ ] **Attendre récupération CDN GitHub** (~30-60 min), puis appliquer fix `settings.gradle`
-- [ ] **Import base médicaments** : `curl -X POST https://santedirect.kolongono.org/api/pharmacie/ean/import-base`
-- [ ] **Test end-to-end scanner** : login auxiliaire → scanner → stock → admin.html
-
-### Court terme (< 1 semaine)
-- [ ] **nginx.conf** : remplacer `santedirect-kolongono.cd` par `kolongono.org`
-- [ ] **Câbler admin.html → API réelle** : consultations, abonnements
-- [ ] **Test étiquettes ELA034** : ouvrir admin.html → fiche produit → planche A4
-
-### Moyen terme (semaines 2-4)
-- [ ] **Jitsi Meet** : déploiement sur 3e CX23 dédié
-- [ ] **Triage IA** : valider `ANTHROPIC_API_KEY` en production
-- [ ] **Notifications push** : configurer Firebase FCM
-- [ ] **Mobile Money** : M-Pesa / Orange Money RDC
-- [ ] **Mode offline partiel** : SQLite local + sync
-
-### Long terme (mois 2-3)
-- [ ] Tests d'intégration — monitoring — conformité légale Ministère Santé RDC
-- [ ] Migration vers CX23 dédié SantéDirect
+| **Adhérents** | ❌ | Données statiques JS |
+| **Consultations** | ❌ | Données mock |
+| **Abonnements** | ❌ | Barres hardcodées |
+| **Revenus** | ❌ | `$400 USD / mois` statique |
+| **Statut Longonia/Jitsi** | ❌ | Chips "ok"/"live" statiques |
 
 ---
 
@@ -321,10 +481,12 @@ includeBuild('../node_modules/@react-native/gradle-plugin')
 
 ---
 
-## Journal des commits
+## Journal des commits (du plus récent au plus ancien)
 
 | Date/Heure (UTC+2) | Commit | Résumé |
 |--------------------|--------|--------|
+| 26/05 15h30 | *(en cours)* | Fix(ci) : settings.gradle → pluginManagement + com.facebook.react.settings |
+| 26/05 14h30 | `c2bc6af` | Docs : feuille de route sessions 1-7 chronologie complète |
 | 26/05 13h30 | `1a50b1b` | Revert workflow vers c59d290 |
 | 26/05 13h28 | `a197bc4` | Fix(ci) : simplifier step 1.5 |
 | 26/05 13h15 | `7c8d540` | CI : bump 1.1.4 |
