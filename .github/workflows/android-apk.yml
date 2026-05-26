@@ -109,23 +109,17 @@ jobs:
               '\n'
               'apply plugin: "com.facebook.react.rootproject"\n'
               '\n'
-              '// react-native/android/ est vide (README.md only) — forcer la version\n'
-              '// depuis Maven Central pour tous les sous-projets (native modules).\n'
               'allprojects {\n'
               '    repositories {\n'
+              '        maven { url "$rootDir/../node_modules/react-native/android" }\n'
+              '        maven { url "$rootDir/../node_modules/jsc-android/dist" }\n'
               '        google()\n'
               '        mavenCentral()\n'
               '        maven { url "https://www.jitpack.io" }\n'
               '    }\n'
-              '    configurations.all {\n'
-              '        resolutionStrategy {\n'
-              '            force("com.facebook.react:react-android:0.73.6")\n'
-              '            force("com.facebook.react:hermes-android:0.73.6")\n'
-              '        }\n'
-              '    }\n'
               '}\n'
           )
-          print("✓ build.gradle → AGP 8.6.0 · compileSdk 35 · resolutionStrategy.force 0.73.6")
+          print("✓ build.gradle → AGP 8.6.0 · compileSdk 35 · allprojects repos")
 
           # ── 4b. app/build.gradle — JVM 17 ───────────────────────────────────────
           abg = dest / "app" / "build.gradle"
@@ -174,15 +168,30 @@ jobs:
 
           PY
 
-      # ── 4.5 Diagnostic libs natives (build.gradle complet) ───────────────────
-      - name: Diagnostic native libs build.gradle
+      # ── 4.5 Rétrograder libs incompatibles avec react-android 0.73.x ─────────
+      - name: Downgrade screens+gesture-handler (RN 0.73-compatible)
+        working-directory: mobile
         run: |
-          echo "=== react-native-screens/android/build.gradle COMPLET ==="
-          cat mobile/node_modules/react-native-screens/android/build.gradle 2>/dev/null || echo "(absent)"
-          echo "=== react-native-gesture-handler/android/build.gradle (60 lignes) ==="
-          head -60 mobile/node_modules/react-native-gesture-handler/android/build.gradle 2>/dev/null || echo "(absent)"
-          echo "=== react-native-screens version ==="
-          python3 -c "import json; d=json.load(open('mobile/node_modules/react-native-screens/package.json')); print(d.get('version','?'), '| peerDeps:', d.get('peerDependencies',{}).get('react-native','?'))" 2>/dev/null || echo "?"
+          # react-native-screens ≥ 3.30 et gesture-handler ≥ 2.17 ciblent RN 0.74+
+          # et utilisent ViewManagerWithGeneratedInterface marqué `internal` dans
+          # react-android 0.73.x → "Cannot access … it is internal in 'com.facebook.react'"
+          python3 -c "
+import json
+for lib in ['react-native-screens','react-native-gesture-handler']:
+    try:
+        d=json.load(open(f'node_modules/{lib}/package.json'))
+        print(f'Avant   {lib}: {d[\"version\"]}')
+    except: print(f'Avant   {lib}: absent')
+"
+          npm install --legacy-peer-deps \
+            react-native-screens@3.29.0 \
+            react-native-gesture-handler@2.14.0
+          python3 -c "
+import json
+for lib in ['react-native-screens','react-native-gesture-handler']:
+    d=json.load(open(f'node_modules/{lib}/package.json'))
+    print(f'Apres   {lib}: {d[\"version\"]}')
+"
 
       # ── 5. ABI arm64-v8a (~25-35 MB) ─────────────────────────────────────────
       - name: Limit ABI to arm64-v8a
