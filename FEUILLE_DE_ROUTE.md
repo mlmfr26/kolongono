@@ -7,8 +7,8 @@
 
 ## Dernière mise à jour
 
-**2026-05-26 · ~23h00 (UTC+2 Kinshasa) · Session ~6h**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `c600788`
+**2026-05-27 · ~01h00 (UTC+2 Kinshasa) · Session ~8h (continue)**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `c59d290`
 
 ---
 
@@ -67,21 +67,33 @@ Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `c600788`
 
 ---
 
-### Session 5 — 2026-05-26 ~17h→23h (durée ~6h) ← SESSION ACTUELLE
+### Session 5 — 2026-05-26 ~17h→23h (durée ~6h)
 **Debug APK + KPIs feuille de route + Drill-down roadmap**
 
 | Commit | Fichier | Changement |
 |--------|---------|-----------|
 | `fc4beeb` | `web/admin.html` | Drill-down feuille de route : 4 filtres (Terminées / En cours / Bloquants / Phases). Labels `roadmap` ajoutés dans `openDrill()`. KPI cards cliquables. |
 | `72234d8` | `.github/workflows/android-apk.yml` | Tentative fix AGP : remplacement `sed` → Python `re.sub`. Gradle wrapper écrit directement en 8.7. `VisionCamera_enableCodeScanner=true`. |
-| `3a7bac7` | `.github/workflows/android-apk.yml` | Fix définitif AGP : suppression Python/regex, remplacement par `cat > heredoc`. Écrase `build.gradle` entièrement (AGP 8.6.0, compileSdk 35, buildTools 35.0.0). |
-| `c600788` | `mobile/package.json` | Bump version 1.0.1→1.0.2 pour déclencher le build CI. |
-
-**Diagnostic APK :** 3 builds échoués. Cause racine identifiée : le `sed` (puis le `re.sub` Python) ne modifiaient pas `build.gradle` — le template RN 0.73 utilise un format non prévu. Solution finale : heredoc shell `cat >` qui écrase le fichier entièrement. Build #4 en cours.
+| `3a7bac7` | `.github/workflows/android-apk.yml` | Fix définitif AGP : heredoc shell `cat >` qui écrase `build.gradle` (AGP 8.6.0, compileSdk 35). |
+| `c600788` | `mobile/package.json` | Bump version 1.0.1→1.0.2 pour déclencher build CI. |
 
 ---
 
-## État actuel du projet — 2026-05-26 ~23h00
+### Session 6 — 2026-05-26 ~23h→2026-05-27 ~01h (durée ~2h) ← SESSION ACTUELLE
+**Debug APK — cause racine `BaseReactPackage` identifiée et corrigée**
+
+**Analyse :** 15+ builds échoués avec `Unresolved reference: BaseReactPackage` dans `react-native-screens` et `react-native-gesture-handler`. Cause racine : le `build.gradle` réécrit par Python ne contenait pas de bloc `allprojects { repositories }`, contrairement au template RN d'origine. Sans ce bloc, Gradle ne peut pas résoudre `com.facebook.react:react-android` (contient `BaseReactPackage`).
+
+Tentatives infructueuses en session 6 :
+- ReactAndroid composite build → échoue sur `alias(libs.plugins.android.library)` (version catalog absent)
+
+| Commit | Fichier | Changement |
+|--------|---------|-----------|
+| `c59d290` | `.github/workflows/android-apk.yml` + `mobile/package.json` | **Fix cause racine** : ajout `allprojects { repositories }` dans `build.gradle` (node_modules/react-native/android, jsc-android, google, mavenCentral, jitpack). Bump react-native 0.73.0 → 0.73.6. Suppression ReactAndroid composite build. |
+
+---
+
+## État actuel du projet — 2026-05-27 ~01h00
 
 ### Infrastructure ✅ Opérationnel
 | Composant | État | Détail |
@@ -103,7 +115,7 @@ Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `c600788`
 | Lookup EAN/QR → API | ✅ | `/api/pharmacie/ean/{code}` |
 | Formulaire médicament inconnu | ✅ | `MedicamentInconnuScreen` — one-time, enregistré ensuite |
 | Formulaire mouvement de stock | ✅ | `FormulaireStockScreen` — entrée / sortie |
-| APK Build (GitHub Actions) | ⏳ | Build #4 en cours — fix heredoc AGP 8.6.0 |
+| APK Build (GitHub Actions) | ⏳ | Build en cours — fix allprojects repos + RN 0.73.6 (commit c59d290) |
 | Téléconsultation Jitsi | ⏳ | Déployé sur le futur CX23 dédié |
 | Triage IA (Claude API) | ⏳ | Code présent, clé API à valider en prod |
 | Notifications push Firebase | ⏳ | Non configuré |
@@ -128,7 +140,7 @@ Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `c600788`
 ## Prochaines priorités
 
 ### Urgent — bloque les tests terrain
-- [ ] **Résultat build APK #4** : vérifier GitHub Actions, télécharger l'APK arm64 et le distribuer aux testeurs
+- [ ] **Résultat build APK** : vérifier GitHub Actions commit `c59d290`, télécharger l'APK arm64 et le distribuer aux testeurs
 - [ ] **Import base médicaments** : `curl -X POST https://santedirect.kolongono.org/api/pharmacie/ean/import-base` (vérifier si déjà fait)
 - [ ] **Test end-to-end scanner** : login auxiliaire → scanner un code-barres → entrée/sortie stock → vérifier côté admin.html
 
@@ -171,15 +183,15 @@ Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `c600788`
 
 | Date | Commit | Résumé |
 |------|--------|--------|
-| 2026-05-26 | `c600788` | Bump version pour déclencher build #4 |
+| 2026-05-27 | `c59d290` | **Fix cause racine** : allprojects repos + RN 0.73.6 (BaseReactPackage) |
+| 2026-05-26 | `f30b4a8` | ReactAndroid composite build dans settings.gradle (échoue version catalog) |
+| 2026-05-26 | `96822d1` | Injection directe react-android.aar via compileOnly files() |
+| 2026-05-26 | `c600788` | Bump version pour déclencher build CI |
 | 2026-05-26 | `3a7bac7` | Fix définitif CI : heredoc shell pour build.gradle (AGP 8.6.0) |
-| 2026-05-26 | `72234d8` | Fix CI tentative 2 : Python re.sub (partiel — wrapper OK, build.gradle KO) |
 | 2026-05-26 | `fc4beeb` | Drill-down feuille de route (4 filtres) |
-| 2026-05-26 | `3deabc3` | Fix CI tentative 1 : AGP 8.1→8.6 + Gradle 8.3→8.7 |
 | 2026-05-26 | `6b0964a` | Scanner admin + étiquettes ELA034 + workflow APK robuste |
-| 2026-05-25 | `70a4ac5` | Dernier commit avant session 4 |
 | 2026-05-22 | initial | Création projet ~33 fichiers |
 
 ---
 
-*Prochaine mise à jour prévue : 2026-05-27 ~05h00 (dans 6h)*
+*Prochaine mise à jour prévue : 2026-05-27 ~07h00 (dans 6h)*
