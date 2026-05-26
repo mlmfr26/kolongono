@@ -685,10 +685,10 @@
 
   <!-- Compteurs globaux -->
   <div class="stats-grid mb-xl">
-    <div class="stat-card stat-green"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="stat-val" style="color:var(--green-deep)">53</div><div class="stat-label">Tâches terminées</div></div></div>
-    <div class="stat-card stat-amber"><div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></div><div><div class="stat-val" style="color:var(--color-abonnement)">4</div><div class="stat-label">En cours / partiel</div></div></div>
-    <div class="stat-card stat-danger"><div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div><div><div class="stat-val" style="color:var(--color-danger)">6</div><div class="stat-label">Bloquants</div></div></div>
-    <div class="stat-card stat-blue"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></div><div><div class="stat-val" style="color:var(--blue-deep)">9</div><div class="stat-label">Phases déploiement</div></div></div>
+    <div class="stat-card stat-green" onclick="openDrill('roadmap','terminees')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="stat-val" style="color:var(--green-deep)">59</div><div class="stat-label">Tâches terminées</div><div class="stat-delta up">↑ +6 session 4</div></div></div>
+    <div class="stat-card stat-amber" onclick="openDrill('roadmap','encours')"><div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></div><div><div class="stat-val" style="color:var(--color-abonnement)">4</div><div class="stat-label">En cours / partiel</div><div class="stat-delta" style="color:var(--color-text-muted)">Voir le détail</div></div></div>
+    <div class="stat-card stat-danger" onclick="openDrill('roadmap','bloquants')"><div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div><div><div class="stat-val" style="color:var(--color-danger)">5</div><div class="stat-label">Bloquants</div><div class="stat-delta dn">Action requise</div></div></div>
+    <div class="stat-card stat-blue" onclick="openDrill('roadmap','phases')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></div><div><div class="stat-val" style="color:var(--blue-deep)">9</div><div class="stat-label">Phases déploiement</div><div class="stat-delta" style="color:var(--color-text-muted)">Voir le détail</div></div></div>
   </div>
 
   <!-- Journal des sessions -->
@@ -1392,6 +1392,7 @@ function openDrill(module, filtre) {
     revenus: { mensuel:'Revenus Mai 2026', impayes:'Paiements impayés', mobile_money:'Via Mobile Money', longonia_bridge:'Via Longonia bridge' },
     jitsi: { sessions:'Sessions vidéo', actives:'Sessions actives', qualite:'Qualité réseau', duree:'Durée des appels' },
     longonia: { verifications:'Vérifications adhérents', debits:'Débits réussis', echecs:'Débits échoués', volume:'Volume débité' },
+    roadmap: { terminees:'Tâches terminées', encours:'En cours', bloquants:'Bloquants', phases:'Phases de déploiement' },
   };
 
   crumb.innerHTML = `<span>${PAGE_TITLES[module] || module}</span><span class="breadcrumb-sep">›</span><span>${labels[module]?.[filtre] || filtre}</span>`;
@@ -1515,6 +1516,80 @@ function buildDrillBody(module, filtre) {
       <tr onclick="openDetail('paiement','orange')" style="cursor:pointer"><td class="font-bold">Orange Money</td><td>$132</td><td>33</td><td><div class="stock-bar"><div class="stock-fill" style="width:33%;background:var(--color-warning)"></div></div></td></tr>
       <tr onclick="openDetail('paiement','longonia')" style="cursor:pointer"><td class="font-bold">Longonia bridge</td><td>$88</td><td>22</td><td><div class="stock-bar"><div class="stock-fill" style="width:22%;background:var(--color-accent)"></div></div></td></tr>
     </tbody></table></div>`;
+  }
+
+  if (module === 'roadmap') {
+    if (filtre === 'terminees') {
+      const cats = [
+        { label:'Infrastructure serveur', items:['Hetzner CX23 — 5.75.149.155','Docker + nginx reverse proxy','PostgreSQL DB santesd','FastAPI port 8002 HTTPS','DNS santedirect.kolongono.org (Cloudflare)','Bridge Longonia API key'] },
+        { label:'API FastAPI', items:['Modèles SQLAlchemy MedicamentEAN / StockPharmacie / MouvementStock','Router pharmacie_ean.py — 8 endpoints CRUD','PATCH /api/pharmacie/ean/{code_interne}','POST /api/pharmacie/ean/import-base','Base 50 médicaments essentiels RDC','Authentification JWT multi-rôles','Router consultations + ordonnances (structure)','Router adhérents + abonnements (structure)'] },
+        { label:'Application mobile React Native', items:['Navigation multi-rôles (6 rôles)','AuxiliaireHomeScreen — scanner Réceptionner/Dispenser','CentreDashboardScreen — scanner admin/gestionnaire','PharmacieAdminScreen — 5 points d\'entrée superadmin','ScannerStockScreen — lecture EAN-13 + QR Code','MedicamentInconnuScreen — formulaire produit inconnu','FormulaireStockScreen — entrée/sortie/correction','AuthContext.tsx — champ centre_id','API client — préfixe /api corrigé sur 3 screens'] },
+        { label:'Dashboard admin web', items:['KPIs pharmacie + drill-down','Table médicaments paginée + recherche (100/page)','Fiche produit éditable (EAN, prix, prescription)','Ajustement de stock depuis la fiche','Générateur étiquettes ELA034 (Code128 / EAN-13 / QR)','Drill-down toutes sections','KPIs feuille de route cliquables'] },
+        { label:'CI/CD GitHub Actions', items:['android-apk.yml — build APK arm64 (AGP 8.6.0, Gradle 8.7)','bootstrap-android.yml — commit android/ une seule fois','Artefact SanteDirect-debug-arm64-{N} 14 jours'] },
+      ];
+      return cats.map(c => `
+        <div class="mb-lg">
+          <div class="font-bold text-sm mb-md" style="color:var(--green-deep)">${c.label} <span class="badge badge-success">${c.items.length}</span></div>
+          <div class="table-wrap"><table><tbody>
+            ${c.items.map(i => `<tr><td style="padding:6px 10px"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--green-deep)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><polyline points="20 6 9 17 4 12"/></svg>${i}</td></tr>`).join('')}
+          </tbody></table></div>
+        </div>`).join('');
+    }
+    if (filtre === 'encours') {
+      const items = [
+        { titre:'Bridge Longonia — réservation créneaux', detail:'La fonction block-slot (réserver un créneau médecin via Longonia) est partiellement implémentée côté mobile. L\'endpoint /longonia/block-slot est câblé mais non testé en prod.', badge:'badge-warning', label:'Test requis' },
+        { titre:'Migration PostgreSQL — données de démo', detail:'Plusieurs pages admin (consultations, abonnements, médecins) affichent des données JS statiques. Le câblage vers l\'API réelle (port 8002) est la prochaine étape.', badge:'badge-warning', label:'API à câbler' },
+        { titre:'MedecinsAdminScreen', detail:'La navigation admin dispose d\'un écran MedecinsAdmin mais la liste/fiche médecin n\'est pas encore construite.', badge:'badge-amber', label:'UI manquante' },
+        { titre:'Font Outfit TTF — mobile', detail:'La police Outfit est référencée dans les styles React Native mais les fichiers TTF ne sont pas encore copiés dans assets/fonts/.', badge:'badge-amber', label:'Asset manquant' },
+      ];
+      return `<div class="table-wrap"><table><thead><tr><th>Élément</th><th>Statut</th><th>Détail</th></tr></thead><tbody>
+        ${items.map(i => `<tr>
+          <td class="font-bold text-sm" style="min-width:200px">${i.titre}</td>
+          <td style="white-space:nowrap"><span class="badge ${i.badge}">${i.label}</span></td>
+          <td class="text-xs text-muted">${i.detail}</td>
+        </tr>`).join('')}
+      </tbody></table></div>`;
+    }
+    if (filtre === 'bloquants') {
+      const items = [
+        { titre:'APK build — résultat attendu', detail:'Workflow réécrit avec AGP 8.6.0 + Gradle 8.7 pour corriger l\'erreur core-ktx:1.16.0. Build en cours sur GitHub Actions.', action:'Vérifier Actions → android-apk', couleur:'var(--color-danger)' },
+        { titre:'nginx.conf — domaine obsolète', detail:'Le fichier nginx.conf référence encore santedirect-kolongono.cd au lieu de kolongono.org. Risque de rupture si Cloudflare change.', action:'sed -i sur le serveur 5.75.149.155', couleur:'var(--color-danger)' },
+        { titre:'Import base médicaments', detail:'L\'endpoint POST /api/pharmacie/ean/import-base doit être appelé une fois pour peupler les 50+15 médicaments de base. Statut inconnu.', action:'curl -X POST https://santedirect.kolongono.org/api/pharmacie/ean/import-base', couleur:'var(--color-warning)' },
+        { titre:'Firebase FCM — push notifications', detail:'Le code mobile référence FCM mais aucun google-services.json n\'est configuré. Les notifs push sont muettes.', action:'Créer projet Firebase + télécharger google-services.json', couleur:'var(--color-warning)' },
+        { titre:'Test end-to-end scanner', detail:'Aucun test terrain réel du flux auxiliaire → scanner → mouvement stock → vérification admin.html.', action:'Tester avec un compte auxiliaire réel', couleur:'var(--color-warning)' },
+      ];
+      return `<div class="table-wrap"><table><thead><tr><th>Bloquant</th><th>Action requise</th></tr></thead><tbody>
+        ${items.map(i => `<tr>
+          <td style="min-width:220px">
+            <div class="font-bold text-sm" style="color:${i.couleur}">${i.titre}</div>
+            <div class="text-xs text-muted mt-md">${i.detail}</div>
+          </td>
+          <td><code style="font-size:11px;background:var(--surface-alt);padding:3px 6px;border-radius:4px;display:inline-block">${i.action}</code></td>
+        </tr>`).join('')}
+      </tbody></table></div>`;
+    }
+    if (filtre === 'phases') {
+      const phases = [
+        { n:1, titre:'Initialisation mono-repo', statut:'✅ Terminée', detail:'33 fichiers créés, architecture API+mobile+web' },
+        { n:2, titre:'API pharmacie (CRUD + mouvements)', statut:'✅ Terminée', detail:'8 endpoints, 50 médicaments base RDC' },
+        { n:3, titre:'Navigation multi-rôles mobile', statut:'✅ Terminée', detail:'6 rôles, stacks isolés' },
+        { n:4, titre:'Scanner code-barres + QR', statut:'✅ Terminée', detail:'Auxiliaire + admin + superadmin' },
+        { n:5, titre:'Déploiement production', statut:'✅ Terminée', detail:'5.75.149.155, Docker, nginx, SSL Cloudflare' },
+        { n:6, titre:'Dashboard admin drill-down', statut:'✅ Terminée', detail:'Fiche produit, étiquettes ELA034, KPIs cliquables' },
+        { n:7, titre:'Câblage API réelle admin.html', statut:'⏳ En cours', detail:'Consultations, abonnements encore en démo JS' },
+        { n:8, titre:'APK stable distribuable', statut:'⏳ En cours', detail:'Build AGP 8.6.0 en attente de validation' },
+        { n:9, titre:'Tests terrain + stabilisation', statut:'⏳ À venir', detail:'Scanner réel, import médicaments, Firebase FCM, offline mode' },
+      ];
+      return `<div class="table-wrap"><table><thead><tr><th>Phase</th><th>Titre</th><th>Statut</th><th>Notes</th></tr></thead><tbody>
+        ${phases.map(p => `<tr>
+          <td class="font-bold" style="text-align:center;width:50px">${p.n}</td>
+          <td class="font-bold text-sm">${p.titre}</td>
+          <td style="white-space:nowrap">${p.statut}</td>
+          <td class="text-xs text-muted">${p.detail}</td>
+        </tr>`).join('')}
+      </tbody></table></div>`;
+    }
+    return `<div class="alert alert-info"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Filtre non reconnu.</span></div>`;
   }
 
   return `<div class="alert alert-info"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Données détaillées disponibles après connexion à l'API (port 8002).</span></div>`;
