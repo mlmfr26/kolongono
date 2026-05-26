@@ -69,38 +69,101 @@ jobs:
             done
           done
 
-      # ── 4. Mettre à jour AGP 8.1 → 8.6 (requis par vision-camera / core-ktx) ─
-      - name: Upgrade Android Gradle Plugin to 8.6.0
+      # ── 4. Mettre à jour AGP 8.1 → 8.6 · Gradle 8.7 · compileSdk 35 ────────────
+      - name: Upgrade build config (AGP 8.6 · Gradle 8.7 · compileSdk 35)
         run: |
-          DEST="$GITHUB_WORKSPACE/mobile/android"
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
 
-          echo "=== build.gradle AVANT ==="
-          cat "$DEST/build.gradle"
+          BASE = Path("mobile/android")
 
-          # Format classpath (buildscript DSL)
-          sed -i 's|com\.android\.tools\.build:gradle:[0-9.]*|com.android.tools.build:gradle:8.6.0|g' \
-            "$DEST/build.gradle"
-          # Format plugins block (Kotlin DSL ou Groovy modern)
-          sed -i 's|id("com\.android\.application") version "[^"]*"|id("com.android.application") version "8.6.0"|g' \
-            "$DEST/build.gradle"
-          sed -i "s|id 'com\.android\.application' version '[^']*'|id 'com.android.application' version '8.6.0'|g" \
-            "$DEST/build.gradle"
+          # ── 4a. build.gradle (projet) ─────────────────────────────────────────
+          bg = BASE / "build.gradle"
+          print("=== build.gradle AVANT ===")
+          print(bg.read_text())
 
-          # Même chose dans settings.gradle si l'AGP y est référencé
-          [ -f "$DEST/settings.gradle" ] && \
-            sed -i 's|com\.android\.tools\.build:gradle:[0-9.]*|com.android.tools.build:gradle:8.6.0|g' \
-              "$DEST/settings.gradle" || true
+          txt = bg.read_text()
+          # AGP classpath DSL : classpath 'com.android.tools.build:gradle:X.Y.Z'
+          txt = re.sub(
+              r'com\.android\.tools\.build:gradle:[0-9.]+',
+              'com.android.tools.build:gradle:8.6.0',
+              txt)
+          # AGP plugins block double-quote : id("com.android.application") version "X.Y.Z"
+          txt = re.sub(
+              r'id\("com\.android\.application"\)\s+version\s+"[^"]+"',
+              'id("com.android.application") version "8.6.0"',
+              txt)
+          # AGP plugins block single-quote : id 'com.android.application' version 'X.Y.Z'
+          txt = re.sub(
+              r"id\s+'com\.android\.application'\s+version\s+'[^']+'",
+              "id 'com.android.application' version '8.6.0'",
+              txt)
+          # compileSdkVersion = 34
+          txt = re.sub(r'compileSdkVersion\s*=\s*\d+', 'compileSdkVersion = 35', txt)
+          # buildToolsVersion = "X.Y.Z"
+          txt = re.sub(r'buildToolsVersion\s*=\s*"[^"]+"', 'buildToolsVersion = "35.0.0"', txt)
+          bg.write_text(txt)
+          print("=== build.gradle APRES ===")
+          print(bg.read_text())
 
-          echo "=== build.gradle APRÈS ==="
-          cat "$DEST/build.gradle"
+          # ── 4b. settings.gradle : AGP dans plugins{} ──────────────────────────
+          sg = BASE / "settings.gradle"
+          if sg.exists():
+              stxt = sg.read_text()
+              stxt = re.sub(
+                  r'com\.android\.tools\.build:gradle:[0-9.]+',
+                  'com.android.tools.build:gradle:8.6.0',
+                  stxt)
+              # plugins block dans settings.gradle (catalog)
+              stxt = re.sub(
+                  r'(id\s*["\']com\.android\.tools\.build\.gradle["\']\s+version\s*["\'])[^"\']+(["\'])',
+                  r'\g<1>8.6.0\2',
+                  stxt)
+              sg.write_text(stxt)
+              print("=== settings.gradle APRES ===")
+              print(sg.read_text())
 
-          # Gradle wrapper : AGP 8.6 requiert Gradle ≥ 8.7
-          WRAPPER="$DEST/gradle/wrapper/gradle-wrapper.properties"
-          echo "=== gradle-wrapper.properties AVANT ==="
-          cat "$WRAPPER"
-          sed -i 's|gradle-[0-9.]*-\(all\|bin\)\.zip|gradle-8.7-all.zip|g' "$WRAPPER"
-          echo "=== gradle-wrapper.properties APRÈS ==="
-          cat "$WRAPPER"
+          # ── 4c. app/build.gradle : compileSdk + targetSdk ─────────────────────
+          abg = BASE / "app" / "build.gradle"
+          print("=== app/build.gradle AVANT ===")
+          print(abg.read_text())
+
+          atxt = abg.read_text()
+          # compileSdk 34  ou  compileSdkVersion 34
+          atxt = re.sub(r'compileSdk(Version)?\s+\d+', lambda m: f'compileSdk{m.group(1) or ""} 35', atxt)
+          # targetSdk 34   ou  targetSdkVersion 34  → garder à 34 (compatibilité)
+          # (on ne touche pas targetSdk intentionnellement)
+          abg.write_text(atxt)
+          print("=== app/build.gradle APRES ===")
+          print(abg.read_text())
+
+          # ── 4d. gradle-wrapper.properties : écriture directe ─────────────────
+          wrapper = BASE / "gradle" / "wrapper" / "gradle-wrapper.properties"
+          wrapper.parent.mkdir(parents=True, exist_ok=True)
+          wrapper_content = (
+              "distributionBase=GRADLE_USER_HOME\n"
+              "distributionPath=wrapper/dists\n"
+              "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-all.zip\n"
+              "networkTimeout=10000\n"
+              "validateDistributionUrl=true\n"
+              "zipStoreBase=GRADLE_USER_HOME\n"
+              "zipStorePath=wrapper/dists\n"
+          )
+          wrapper.write_text(wrapper_content)
+          print("=== gradle-wrapper.properties APRES ===")
+          print(wrapper.read_text())
+
+          # ── 4e. gradle.properties : VisionCamera ─────────────────────────────
+          gp = BASE / "gradle.properties"
+          gp_txt = gp.read_text() if gp.exists() else ""
+          if "VisionCamera_enableCodeScanner" not in gp_txt:
+              gp_txt += "\nVisionCamera_enableCodeScanner=true\n"
+              gp.write_text(gp_txt)
+              print("✓ VisionCamera_enableCodeScanner ajouté dans gradle.properties")
+          else:
+              print("VisionCamera_enableCodeScanner déjà présent — skip")
+          PY
 
       # ── 5. ABI arm64-v8a (~25-35 MB) ─────────────────────────────────────────
       - name: Limit ABI to arm64-v8a
