@@ -160,7 +160,19 @@ jobs:
       # ── 8. Build ─────────────────────────────────────────────────────────────
       - name: Build Debug APK
         working-directory: mobile/android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          set +e
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+          EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ]; then
+            echo ""
+            echo "══════════════════════════════════════════"
+            echo "  ERREURS DE COMPILATION (lignes e: / FAILED)"
+            echo "══════════════════════════════════════════"
+            grep -E "^e:|error:|> Task.*FAILED" /tmp/build.log | head -80 || true
+            echo "══════════════════════════════════════════"
+          fi
+          exit $EXIT
         env:
           JAVA_OPTS: '-Xmx4096m'
           GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4096m'
