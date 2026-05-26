@@ -69,60 +69,83 @@ jobs:
             done
           done
 
-      # ── 4. AGP 8.6 + Gradle 8.7 + compileSdk 35 ─────────────────────────────
+      # ── 4. AGP 8.6 + Gradle 8.7 + compileSdk 35 + JVM 17 ───────────────────────
       - name: Upgrade build config (AGP 8.6 · Gradle 8.7 · compileSdk 35)
         run: |
-          DEST="$GITHUB_WORKSPACE/mobile/android"
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
 
-          echo "=== build.gradle TEMPLATE (diagnostic) ==="
-          cat "$DEST/build.gradle"
+          dest = Path("mobile/android")
 
-          # Écraser build.gradle entièrement — pas de regex, garantie 100%
-          cat > "$DEST/build.gradle" << 'GRADLE'
-          buildscript {
-              ext {
-                  buildToolsVersion = "35.0.0"
-                  minSdkVersion = 23
-                  compileSdkVersion = 35
-                  targetSdkVersion = 34
-                  ndkVersion = "25.1.8937393"
-                  kotlinVersion = "1.9.25"
-              }
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath("com.android.tools.build:gradle:8.6.0")
-                  classpath("com.facebook.react:react-native-gradle-plugin")
-                  classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
-              }
-          }
-          apply plugin: "com.facebook.react.rootproject"
-          GRADLE
+          # ── 4a. build.gradle PROJET — écriture complète (pas de regex) ──────────
+          print("=== build.gradle TEMPLATE ===")
+          bg = dest / "build.gradle"
+          print(bg.read_text() if bg.exists() else "(absent)")
 
-          echo "✓ build.gradle → AGP 8.6.0 · compileSdk 35"
-          cat "$DEST/build.gradle"
+          bg.write_text(
+              'buildscript {\n'
+              '    ext {\n'
+              '        buildToolsVersion = "35.0.0"\n'
+              '        minSdkVersion = 23\n'
+              '        compileSdkVersion = 35\n'
+              '        targetSdkVersion = 34\n'
+              '        ndkVersion = "25.1.8937393"\n'
+              '        kotlinVersion = "1.9.25"\n'
+              '    }\n'
+              '    repositories {\n'
+              '        google()\n'
+              '        mavenCentral()\n'
+              '    }\n'
+              '    dependencies {\n'
+              '        classpath("com.android.tools.build:gradle:8.6.0")\n'
+              '        classpath("com.facebook.react:react-native-gradle-plugin")\n'
+              '        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")\n'
+              '    }\n'
+              '}\n'
+              '\n'
+              'apply plugin: "com.facebook.react.rootproject"\n'
+          )
+          print("✓ build.gradle → AGP 8.6.0 · compileSdk 35 · kotlin 1.9.25")
 
-          # Gradle wrapper → 8.7
-          cat > "$DEST/gradle/wrapper/gradle-wrapper.properties" << 'PROPS'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-all.zip
-          networkTimeout=10000
-          validateDistributionUrl=true
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          PROPS
+          # ── 4b. app/build.gradle — JVM 17 ───────────────────────────────────────
+          abg = dest / "app" / "build.gradle"
+          atxt = abg.read_text()
+          atxt = re.sub(r'JavaVersion\.VERSION_\w+', 'JavaVersion.VERSION_17', atxt)
+          if 'jvmTarget' in atxt:
+              atxt = re.sub(r'jvmTarget\s*=\s*"[^"]+"', 'jvmTarget = "17"', atxt)
+          else:
+              atxt = re.sub(
+                  r'(compileOptions\s*\{[^}]+\})',
+                  r'\1\n    kotlinOptions {\n        jvmTarget = "17"\n    }',
+                  atxt, flags=re.DOTALL)
+          abg.write_text(atxt)
+          print("✓ app/build.gradle → JVM 17")
 
-          echo "✓ gradle-wrapper.properties → Gradle 8.7"
-          cat "$DEST/gradle/wrapper/gradle-wrapper.properties"
+          # ── 4c. gradle-wrapper.properties — Gradle 8.7 ──────────────────────────
+          wrapper = dest / "gradle" / "wrapper" / "gradle-wrapper.properties"
+          wrapper.parent.mkdir(parents=True, exist_ok=True)
+          wrapper.write_text(
+              "distributionBase=GRADLE_USER_HOME\n"
+              "distributionPath=wrapper/dists\n"
+              "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-all.zip\n"
+              "networkTimeout=10000\n"
+              "validateDistributionUrl=true\n"
+              "zipStoreBase=GRADLE_USER_HOME\n"
+              "zipStorePath=wrapper/dists\n"
+          )
+          print("✓ gradle-wrapper.properties → Gradle 8.7")
 
-          # VisionCamera CodeScanner
-          GP="$DEST/gradle.properties"
-          grep -q "VisionCamera_enableCodeScanner" "$GP" 2>/dev/null || \
-            echo "VisionCamera_enableCodeScanner=true" >> "$GP"
-          echo "✓ VisionCamera_enableCodeScanner configuré"
+          # ── 4d. gradle.properties — VisionCamera ────────────────────────────────
+          gp = dest / "gradle.properties"
+          gp_txt = gp.read_text() if gp.exists() else ""
+          if "VisionCamera_enableCodeScanner" not in gp_txt:
+              gp_txt += "\nVisionCamera_enableCodeScanner=true\n"
+              gp.write_text(gp_txt)
+              print("✓ VisionCamera_enableCodeScanner=true ajouté")
+          else:
+              print("VisionCamera_enableCodeScanner déjà présent")
+          PY
 
       # ── 5. ABI arm64-v8a (~25-35 MB) ─────────────────────────────────────────
       - name: Limit ABI to arm64-v8a
@@ -177,7 +200,17 @@ jobs:
           JAVA_OPTS: '-Xmx4096m'
           GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4096m'
 
-      # ── 9. Upload ─────────────────────────────────────────────────────────────
+      # ── 9. Log complet en cas d'échec ────────────────────────────────────────
+      - name: Upload build log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-log-${{ github.run_number }}
+          path: /tmp/build.log
+          retention-days: 3
+          if-no-files-found: ignore
+
+      # ── 10. Upload APK ────────────────────────────────────────────────────────
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
