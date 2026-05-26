@@ -7,9 +7,9 @@
 
 ## Dernière mise à jour
 
-**2026-05-26 · 17h30 (UTC+2) · Session 8**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `e6e4a82`
-**APK BUILD #29 : ✅ SUCCÈS — 6m41s — artifact `SanteDirect-debug-arm64-29`**
+**2026-05-27 · matin (UTC+2) · Session 9**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `6b51ccd`
+**Build #30 en cours** — Fix bundle JS + app name. APK #29 testait sur device → 2 bugs corrigés.
 
 ---
 
@@ -232,8 +232,8 @@ Commits session 7 :
 
 ---
 
-### Session 8 — 2026-05-26 · 15h30 → 17h30 (durée ~2h)
-**Débogage final builds #28-#29 — APK ✅ RÉUSSI**
+### Session 8 — 2026-05-26 · 15h30 → 20h00 (durée ~4h30)
+**Débogage final builds #28-#29 — APK ✅ RÉUSSI + infrastructure serveur**
 
 **15h32** — Reprise après compaction du contexte (context window épuisé en session 7).
 
@@ -268,37 +268,93 @@ Commits session 8 :
 
 **Leçon retenue** : `"^3.29.0"` laisse npm installer 3.37.0 (RN 0.74+). Quand react-native est fixé à 0.73.x, il faut pincer les libs natives dans le workflow CI. Valider le YAML localement avant tout push.
 
+**17h00** — Infrastructure serveur :
+- `curl /api/status` → 200 ✅ — API accessible en prod
+- Import médicaments : `curl -X POST /api/pharmacie/ean/import-base` → `{"created":15,"skipped":50}` — 65 entrées ✅
+- nginx.conf corrigé dans le repo : `santedirect-kolongono.cd` → `santedirect.kolongono.org` (commit `ac34124`)
+- Architecture découverte : `longonia-nginx` (port 80, HTTP uniquement) + `lx-caddy` (port 443, HTTPS). Notre nginx.conf avait des blocs `listen 443` inutiles car Caddy gère le SSL.
+- Redirect HTTP→HTTPS ajouté : `docker exec longonia-nginx sh -c 'cat > /etc/nginx/conf.d/santesd.conf'` — testé : `http://santedirect.kolongono.org` → 301 ✅
+
+Commits session 8 complets :
+
+| Heure | Commit | Résumé |
+|-------|--------|--------|
+| 26/05 15h35 | `81e535a` | Fix(ci) : rétrograder screens+gesture-handler — YAML invalide |
+| 26/05 15h39 | `e6e4a82` | Fix(ci) : YAML corrigé + downgrade screens@3.29.0/gh@2.14.0 ✅ |
+| 26/05 17h00 | `5891d6f` | Docs : session 8 + APK réussi [ci skip] |
+| 26/05 17h10 | `ac34124` | Fix(nginx) : domaine santedirect-kolongono.cd → santedirect.kolongono.org |
+
+---
+
+### Session 9 — 2026-05-27 · matin (durée en cours)
+**Test APK sur device — 2 bugs trouvés et corrigés — Build #30**
+
+**Bugs trouvés lors du premier test sur smartphone (APK #29)** :
+
+**Bug 1 — Nom de l'app affiché : "Hello App Display..."**
+- Cause : le template React Native génère `strings.xml` avec `app_name = HelloWorld` (ou variante). On corrigeait le package name mais pas le label affiché.
+- Fix : `sed -i 's|<string name="app_name">...|<string name="app_name">SantéDirect</string>|' strings.xml` ajouté au step 3 du workflow.
+
+**Bug 2 — Écran rouge : "Unable to load script. Make sure you're running Metro..."**
+- Cause : un APK debug React Native cherche par défaut le bundle JS sur un serveur Metro (port 8081) au lieu de l'embarquer. Sans Metro sur le réseau local, l'app crashe immédiatement.
+- Fix : step 7.5 ajouté dans le workflow — exécute `npx react-native bundle` avant Gradle pour embarquer `index.android.bundle` dans les assets de l'APK.
+
+```yaml
+# Step 7.5 ajouté
+- name: Bundle JS into APK assets
+  working-directory: mobile
+  run: |
+    mkdir -p android/app/src/main/assets
+    npx react-native bundle \
+      --platform android --dev false \
+      --entry-file index.js \
+      --bundle-output android/app/src/main/assets/index.android.bundle \
+      --assets-dest android/app/src/main/res/
+```
+
+**Note sur la méthode de test** : la méthode professionnelle serait `npx react-native run-android` via USB (mode développeur). Non utilisée ici faute d'environnement Android Studio local. Investissement matériel prévu prochainement.
+
+**Build #30** (commit `6b51ccd`) — en cours au moment de cette mise à jour.
+
+Commits session 9 :
+
+| Heure | Commit | Résumé |
+|-------|--------|--------|
+| 27/05 matin | `6b51ccd` | Fix(apk) : bundle JS embarqué + app name SantéDirect |
+
 ---
 
 ## Plan de développement complet — tous blocs
 
 ### BLOC 1 — CI/CD : APK Android
-*Statut : ✅ BUILD #29 RÉUSSI — 2026-05-26 · 15h39 UTC+2*
+*Statut : 🔄 Build #30 en cours — corrections bugs device*
 
-- [x] Identifier cause racine (sessions 7-8)
-- [x] Fix : rétrograder screens@3.29.0 + gesture-handler@2.14.0 (commit `e6e4a82`)
-- [x] Build #29 réussi (6m41s) → artifact `SanteDirect-debug-arm64-29`
-- [ ] Télécharger APK depuis GitHub Actions → installer sur téléphone test
-- [ ] Distribuer aux testeurs terrain (auxiliaire + médecin)
+- [x] Identifier cause racine compile (sessions 7-8)
+- [x] Build #29 réussi (6m41s) — artifact `SanteDirect-debug-arm64-29`
+- [x] APK #29 testé sur device → 2 bugs identifiés
+- [x] Bug nom app "Hello App..." → fix strings.xml (commit `6b51ccd`)
+- [x] Bug écran rouge Metro → fix bundle JS embarqué (commit `6b51ccd`)
+- [ ] **Build #30 réussit → APK fonctionnel à distribuer**
+- [ ] Distribuer aux testeurs terrain via WhatsApp
 - [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
+- [ ] Icône de l'app (actuellement icône React Native par défaut)
 
 ---
 
-### BLOC 2 — Infrastructure serveur (🔴 urgent)
+### BLOC 2 — Infrastructure serveur
+*Statut : ✅ Quasi-complet*
 
-**2.1 nginx.conf — domaine incorrect**
-- Remplacer `santedirect-kolongono.cd` → `santedirect.kolongono.org` dans nginx.conf
-- Sur serveur : `nginx -t && systemctl reload nginx`
-- Renouveler certificat certbot si nécessaire : `certbot renew`
+**2.1 nginx — domaine** ✅
+- nginx.conf repo corrigé : `santedirect-kolongono.cd` → `santedirect.kolongono.org`
+- Redirect HTTP→HTTPS ajouté via `/etc/nginx/conf.d/santesd.conf` sur le serveur
+- Architecture réelle : `lx-caddy` gère HTTPS, `longonia-nginx` gère HTTP
 
-**2.2 Import base médicaments**
-```bash
-curl -X POST https://santedirect.kolongono.org/api/pharmacie/ean/import-base
-```
-Vérifier que les 65 médicaments + accessoires apparaissent dans admin.html.
+**2.2 Import base médicaments** ✅
+- 65 entrées (50 médicaments + 15 accessoires) — `{"created":15,"skipped":50}`
 
-**2.3 CORS en production**
+**2.3 CORS en production** ❌ (à faire)
 - `api/main.py` : `allow_origins=["*"]` → `["https://santedirect.kolongono.org", "https://longonia.org"]`
+- Impact : actuellement toute origine est acceptée — risque sécurité mineur en phase de test
 
 ---
 
@@ -443,35 +499,37 @@ Auth, scanner EAN, consultation, ordonnance.
 
 ## Tableau de synthèse — priorisation
 
-| Bloc | Effort | Priorité | Débloque |
-|------|--------|----------|----------|
-| **1 — APK CI/CD** | ~~1-2h~~ | ✅ Terminé | Tests terrain débloqués |
-| **2 — Infrastructure** | 2-3h | 🔴 Immédiat | SSL valide, prod stable |
-| **3 — API FastAPI** | 3-5 jours | 🟠 Semaine 1-2 | Données réelles |
-| **4 — Admin web** | 2-3 jours | 🟠 Semaine 1-2 | Dashboard opérationnel |
-| **5 — Mobile câblage** | 2-3 jours | 🟠 Semaine 2 | App complète |
-| **6 — Jitsi Meet** | 1-2 jours | 🟡 Semaine 2-3 | Téléconsultation |
-| **7 — Firebase** | 1 jour | 🟡 Semaine 3 | Notifications |
-| **8 — Mobile Money** | 1-2 semaines | 🟡 Semaine 4-6 | Modèle économique |
-| **9 — Mode offline** | 1-2 semaines | 🟡 Semaine 4-6 | Terrain sans réseau |
-| **10 — Tests** | En continu | 🟢 Permanent | Qualité |
+| Bloc | Effort restant | Priorité | Statut |
+|------|----------------|----------|--------|
+| **1 — APK CI/CD** | ~1h (build #30) | 🔴 Immédiat | 🔄 Build #30 en cours |
+| **2 — Infrastructure** | 30min (CORS) | 🔴 Immédiat | ✅ 90% — CORS seul restant |
+| **3 — API FastAPI** | 3-5 jours | 🟠 Semaine 1-2 | ❌ ~50% endpoints demo |
+| **4 — Admin web** | 2-3 jours | 🟠 Semaine 1-2 | ❌ 4 sections statiques |
+| **5 — Mobile câblage** | 2-3 jours | 🟠 Semaine 2 | ❌ 2 screens non câblés |
+| **6 — Jitsi Meet** | 1-2 jours | 🟡 Semaine 2-3 | ⏳ Code présent, serveur manquant |
+| **7 — Firebase** | 1 jour | 🟡 Semaine 3 | ⏳ Code présent, clé manquante |
+| **8 — Mobile Money** | 1-2 semaines | 🟡 Semaine 4-6 | ❌ Non démarré |
+| **9 — Mode offline** | 1-2 semaines | 🟡 Semaine 4-6 | ❌ Non démarré |
+| **10 — Tests** | En continu | 🟢 Permanent | ❌ 0 test écrit |
 
-**MVP testable terrain estimé : 3-4 semaines** (Blocs 1-5 complétés).
+**MVP testable terrain estimé : 2-3 semaines** (APK fonctionnel + Blocs 3-5).
 
 ---
 
-## État actuel du projet — 2026-05-26 · 17h30
+## État actuel du projet — 2026-05-27 · matin
 
-### Infrastructure ✅ Opérationnel
+### Infrastructure
 | Composant | État | Détail |
 |-----------|------|--------|
 | Serveur | ✅ | Hetzner CX23 — `5.75.149.155` |
-| Docker + nginx | ✅ | Conteneurs up, reverse proxy actif |
+| Docker (santesd-api, longonia-nginx, lx-caddy) | ✅ | Tous up |
 | Base de données | ✅ | PostgreSQL, DB `santesd` |
-| API FastAPI | ✅ | Port 8002, accessible via HTTPS |
+| API FastAPI | ✅ | `https://santedirect.kolongono.org/api/status` → 200 |
 | DNS / Domaine | ✅ | `santedirect.kolongono.org` (Cloudflare) |
 | Bridge Longonia | ✅ | API key configurée |
-| nginx.conf domaine | ❌ | Encore `santedirect-kolongono.cd` — à corriger |
+| HTTP → HTTPS redirect | ✅ | `conf.d/santesd.conf` dans longonia-nginx |
+| Import médicaments | ✅ | 65 entrées en base |
+| CORS | ❌ | `allow_origins=["*"]` — à restreindre |
 
 ### Application mobile — React Native 0.73
 | Fonctionnalité | État | Notes |
@@ -482,7 +540,10 @@ Auth, scanner EAN, consultation, ordonnance.
 | Scanner EAN/QR — Superadmin | ✅ | `PharmacieAdminScreen` |
 | Lookup EAN → API | ✅ | `/api/pharmacie/ean/{code}` |
 | Formulaire mouvement de stock | ✅ | `FormulaireStockScreen` |
-| **APK Build (GitHub Actions)** | ✅ | **Build #29 réussi** — `SanteDirect-debug-arm64-29` (6m41s) |
+| **APK Build** | 🔄 | **Build #30 en cours** — bundle JS + app name fixés |
+| Nom affiché sur téléphone | 🔄 | Était "Hello App..." → corrigé en "SantéDirect" (build #30) |
+| Bundle JS autonome | 🔄 | Écran rouge Metro corrigé (build #30) |
+| Icône de l'app | ❌ | Icône React Native par défaut |
 | ConsultationScreen → API | ❌ | Écran présent, pas d'appel API réel |
 | AbonnementScreen → API | ❌ | Données hardcodées |
 | Téléconsultation Jitsi | ⏳ | Code présent, CX23 dédié non provisionné |
@@ -522,14 +583,45 @@ Auth, scanner EAN, consultation, ordonnance.
 
 ## Journal des commits (du plus récent au plus ancien)
 
-| Date/Heure (UTC+2) | Commit | Résumé |
-|--------------------|--------|--------|
-| 26/05 15h30 | *(en cours)* | Fix(ci) : settings.gradle → pluginManagement + com.facebook.react.settings |
-| 26/05 14h30 | `c2bc6af` | Docs : feuille de route sessions 1-7 chronologie complète |
-| 26/05 13h30 | `1a50b1b` | Revert workflow vers c59d290 |
-| 26/05 13h28 | `a197bc4` | Fix(ci) : simplifier step 1.5 |
-| 26/05 13h15 | `7c8d540` | CI : bump 1.1.4 |
-| 26/05 13h15 | `7f90f34` | CI : retrigger build #22 |
+| Date/Heure (UTC+2) | Commit | Build | Résumé |
+|--------------------|--------|-------|--------|
+| 27/05 matin | `6b51ccd` | #30 🔄 | Fix(apk) : bundle JS embarqué + app name SantéDirect |
+| 26/05 17h10 | `ac34124` | — | Fix(nginx) : domaine santedirect-kolongono.cd → santedirect.kolongono.org |
+| 26/05 17h00 | `5891d6f` | — | Docs : session 8 + APK réussi [ci skip] |
+| 26/05 15h39 | `e6e4a82` | #29 ✅ | Fix(ci) : YAML + downgrade screens@3.29.0/gesture-handler@2.14.0 |
+| 26/05 15h35 | `81e535a` | #28 ❌ | Fix(ci) : rétrograder libs — YAML invalide (workflow file issue) |
+| 26/05 15h10 | `c2bc6af` | — | Docs : feuille de route sessions 1-7 [ci skip] |
+| 26/05 15h08 | `7820fe8` | #26-27 ❌ | Fix(ci) : resolutionStrategy.force react-android:0.73.6 — régression |
+| 26/05 15h04 | `ec127b1` | #25 ❌ | Fix(ci) : settings.gradle pluginManagement — plugin inexistant en RN 0.73 |
+| 26/05 13h30 | `1a50b1b` | — | Revert workflow vers c59d290 |
+| 26/05 07h36 | `c59d290` | #21 ❌ | Fix(ci) : allprojects repos + RN 0.73.6 |
+| 26/05 06h47 | `f30b4a8` | #17-20 ❌ | Fix(ci) : ReactAndroid composite build |
+| 26/05 06h20 | `96822d1` | #16 ❌ | Fix(ci) : injection directe react-android.aar |
+| 26/05 06h06 | `5b1787a` | #13 ❌ | Fix(ci) : patch settings |
+| 26/05 05h43 | `44b53a3` | #10-12 ❌ | Fix(ci) : réécrire settings.gradle DRM |
+| 26/05 05h38 | `38b9f46` | #9 ❌ | Fix(ci) : allprojects repos |
+| 26/05 05h32 | `0788b56` | #8 ❌ | Fix(ci) : step4 Python pur + diagnostic AARs |
+| 26/05 05h27 | `8f25e21` | #7 ❌ | Fix(ci) : capture erreurs Kotlin |
+| 26/05 05h18 | `37384bd` | #6 ❌ | Fix(ci) : kotlin 1.9.25 |
+| 26/05 04h59 | `c600788` | #4-5 ❌ | Chore : bump version |
+| 26/05 04h45 | `72234d8` | #3 ❌ | Fix(ci) : remplace sed par Python |
+| 26/05 04h07 | `7013bcf` | — | Fix(ci) : npm install + local.properties |
+| 26/05 03h59 | `6b0964a` | #2 ❌ | Feat : scanner pharmacie admin + étiquettes ELA034 |
+| 26/05 01h29 | `70a4ac` | #1 ❌ | CI : GitHub Actions workflow APK (première version) |
+| 26/05 00h20 | `ccb8f38` | — | Feat : drill-down KPIs + fiche produit éditable |
+| 25/05 23h41 | `111484` | — | Feat : câble scanner pharmacie EAN pour auxiliaire |
+| 25/05 23h00 | `e642ca3` | — | Feat : drill-down 4 KPIs Pharmacie |
+| 25/05 22h55 | `c29558e` | — | Feat : 15 accessoires médicaux |
+| 25/05 22h29 | `8a23b81` | — | Fix : déplacer GET /ean/list avant GET /ean/{code} |
+| 25/05 22h24 | `775609b` | — | Feat : endpoints admin /users et /stats |
+| 25/05 22h00 | `886097` | — | Fix : fusion showPage — suppression boucle infinie |
+| 25/05 21h53 | `2fbe6fb` | — | Feat : inventaire pharmacie branché sur API réelle |
+| 25/05 21h17 | `b88d0a7` | — | Feat : auth guard toutes pages + login JWT |
+| 25/05 20h38 | `337c3c3` | — | Fix : interface web à la racine /, route /api/status |
+| 25/05 20h37 | `e9f86cc` | — | Fix : monter web/ en volume dans le conteneur |
+| 25/05 20h26 | `654d78e` | — | URL prod mobile, interface web via StaticFiles |
+| 25/05 13h59 | `f17d7dc` | — | Alembic migration — schéma complet |
+| 25/05 13h22 | `0fab7bd` | — | **Initial commit** — SantéDirect Kolongono (~33 fichiers) |
 | 26/05 13h00 | `1c31dd5` | Fix(ci) : diagnostic AARs + DRM |
 | 26/05 07h37 | `5826fe0` | Docs : feuille de route session 6 |
 | 26/05 07h36 | `c59d290` | Fix(ci) : allprojects repos + RN 0.73.6 |
