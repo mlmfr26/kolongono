@@ -41,30 +41,10 @@ const URGENCE_AUX = {
   eleve:  { bg: '#FEF3C7', text: '#92400E', label: 'Élevée'   },
 };
 
-const DEMO_DEMANDES_AUX: DemandeAux[] = [
-  {
-    id: 'DEM-002',
-    patient: { id: 'ADH-003', prenom: 'Cécile', nom: 'NGOY' },
-    motif: 'Douleurs thoraciques',
-    symptomes: 'Douleur dans la poitrine depuis hier matin, légère dyspnée.',
-    urgence: 'eleve',
-    created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'DEM-003',
-    patient: { id: 'ADH-004', prenom: 'Paul', nom: 'ILUNGA' },
-    motif: 'Éruption cutanée',
-    symptomes: 'Boutons sur le bras droit, légères démangeaisons, pas de fièvre.',
-    urgence: 'faible',
-    created_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
-  },
-];
-
-
 export default function AuxiliaireHomeScreen({ navigation }: any) {
   const { user, token } = useAuth();
   const [consultations, setConsultations] = useState<ConsAux[]>([]);
-  const [demandes,      setDemandes]      = useState<DemandeAux[]>(DEMO_DEMANDES_AUX);
+  const [demandes,      setDemandes]      = useState<DemandeAux[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [refreshing,    setRefreshing]    = useState(false);
 

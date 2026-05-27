@@ -93,7 +93,7 @@ export default function AdmissionScreen({ navigation }: any) {
   const { user, token } = useAuth();
   const centreId = (user as any)?.centre_id as string | null;
 
-  const [admissions, setAdmissions] = useState<Admission[]>(DEMO_ADMISSIONS);
+  const [admissions, setAdmissions] = useState<Admission[]>([]);
   const [tabActif, setTabActif]     = useState<StatutAdmission>('en_attente');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 

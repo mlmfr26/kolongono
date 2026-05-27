@@ -31,25 +31,9 @@ const STATUT_CONFIG = {
   annule:              { label: 'Annulé',            bg: '#FEE2E2',          text: '#B91C1C',           icon: 'x-circle'  as const },
 };
 
-const DEMO_LIVRAISONS: Livraison[] = [
-  {
-    id: 'LIV-001',
-    ordonnance_id: 'ORD-2026-DEMO01',
-    date_commande: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-    statut: 'en_cours_livraison',
-    medecin: 'Dr. Emmanuel LUKUSA',
-    diagnostic: 'Paludisme simple',
-    produits: [
-      { nom: 'Artéméther/Luméfantrine 20/120mg', quantite: 2, posologie: '4 cp matin et soir · 3 jours' },
-      { nom: 'Paracétamol 500mg', quantite: 1, posologie: '2 cp toutes les 6h si fièvre' },
-    ],
-    livreur: 'Jean-Pierre M.',
-  },
-];
-
 export default function PharmacieScreen() {
   const { user, token } = useAuth();
-  const [livraisons, setLivraisons] = useState<Livraison[]>(DEMO_LIVRAISONS);
+  const [livraisons, setLivraisons] = useState<Livraison[]>([]);
   const [loading,    setLoading]    = useState(false);
 
   useFocusEffect(useCallback(() => {

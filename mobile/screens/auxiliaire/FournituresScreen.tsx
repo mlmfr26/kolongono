@@ -41,39 +41,13 @@ type OrdonnanceRenouvelable = {
 
 type CartItem = { fourniture: Fourniture; quantite: number };
 
-const DEMO_FOURNITURES: Fourniture[] = [
-  { id: 'FOU-001', nom: 'Alcool iodé 250ml',       categorie: 'Antiseptique', unite: 'flacon', stock: 24, prix: 500 },
-  { id: 'FOU-002', nom: 'Mercurochrome 30ml',       categorie: 'Antiseptique', unite: 'flacon', stock: 18, prix: 400 },
-  { id: 'FOU-003', nom: 'Gaze stérile 10×10 cm',   categorie: 'Pansement',    unite: 'sachet de 5', stock: 60, prix: 300 },
-  { id: 'FOU-004', nom: 'Bandelettes adhésives',    categorie: 'Pansement',    unite: 'boîte 20', stock: 35, prix: 600 },
-  { id: 'FOU-005', nom: 'Coton hydrophile 100g',    categorie: 'Pansement',    unite: 'sachet', stock: 40, prix: 450 },
-  { id: 'FOU-006', nom: 'Sérum physiologique 9%',   categorie: 'Irrigation',   unite: 'flacon 500ml', stock: 12, prix: 800 },
-  { id: 'FOU-007', nom: 'Gants d\'examen (L) ×50', categorie: 'Protection',   unite: 'boîte', stock: 8,  prix: 2500 },
-  { id: 'FOU-008', nom: 'Masques chirurgicaux ×50', categorie: 'Protection',   unite: 'boîte', stock: 15, prix: 1500 },
-  { id: 'FOU-009', nom: 'SRO - Sachets réhydratation', categorie: 'Réhydratation', unite: 'sachet', stock: 30, prix: 200 },
-  { id: 'FOU-010', nom: 'Thermomètre digital',      categorie: 'Équipement',   unite: 'pièce', stock: 4,  prix: 3500 },
-];
-
-const DEMO_ORDONNANCES: OrdonnanceRenouvelable[] = [
-  {
-    id: 'ORD-2026-DEMO02',
-    patient: { id: 'ADH-002', prenom: 'Joseph', nom: 'MUTOMBO' },
-    medecin: 'Dr. Béatrice MWAMBA',
-    diagnostic: 'Hypertension artérielle',
-    date: '2026-05-10',
-    produits: [{ nom: 'Amlodipine 5mg', posologie: '1 cp par jour le matin', quantite: 3 }],
-    nb_renouvellements_restants: 2,
-    date_expiration: '2026-08-10',
-  },
-];
-
 type Tab = 'fournitures' | 'renouvellements';
 
 export default function FournituresScreen({ navigation }: any) {
   const { user, token } = useAuth();
   const [tab,          setTab]          = useState<Tab>('fournitures');
-  const [fournitures,  setFournitures]  = useState<Fourniture[]>(DEMO_FOURNITURES);
-  const [ordonnances,  setOrdonnances]  = useState<OrdonnanceRenouvelable[]>(DEMO_ORDONNANCES);
+  const [fournitures,  setFournitures]  = useState<Fourniture[]>([]);
+  const [ordonnances,  setOrdonnances]  = useState<OrdonnanceRenouvelable[]>([]);
   const [panier,       setPanier]       = useState<CartItem[]>([]);
   const [categorie,    setCategorie]    = useState('Tous');
   const [recherche,    setRecherche]    = useState('');
