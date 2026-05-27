@@ -432,7 +432,13 @@ def _rdv_to_dict(r: RendezVous) -> dict:
     }
 
 
+_STATUT_NORM = {
+    "en_attente_pharmacie": "commandee",
+    "dispensee": "delivree",
+}
+
 def _ordonnance_to_dict(o: Ordonnance) -> dict:
+    statut_mobile = _STATUT_NORM.get(o.statut, o.statut)
     return {
         "id": o.id,
         "rdv_id": o.rdv_id,
@@ -444,7 +450,7 @@ def _ordonnance_to_dict(o: Ordonnance) -> dict:
         "prescriptions_texte": o.prescriptions_texte,
         "produits": o.produits or [],
         "recommandations": o.recommandations,
-        "statut": o.statut,
+        "statut": statut_mobile,
         "renouvellement_autorise": o.renouvellement_autorise,
         "nb_renouvellements_restants": o.nb_renouvellements_restants,
         "date_expiration": o.date_expiration,
