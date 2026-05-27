@@ -1,21 +1,44 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../components/AuthContext';
+import { api } from '../../components/api';
 import { colors, spacing, radius, fontSize, fontWeight, shadow, palette } from '../../components/theme';
 import { Icon, IconName } from '../../components/Icons';
 
+type KPIs = { adherents: string; consultations: string; revenus: string; medecins: string; sku: string };
+
 export default function AdminDashboardScreen({ navigation }: any) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const [kpi, setKpi] = useState<KPIs>({ adherents: '…', consultations: '…', revenus: '…', medecins: '…', sku: '…' });
+
+  useFocusEffect(useCallback(() => {
+    Promise.all([
+      api.get<{ adherents_actifs: number }>('/api/admin/stats', token).catch(() => null),
+      api.get<{ total: number }>('/api/admin/consultations?limit=1', token).catch(() => null),
+      api.get<{ cotisations_fc: number }>('/api/admin/revenus', token).catch(() => null),
+      api.get<{ total: number }>('/api/admin/medecins', token).catch(() => null),
+      api.get<{ total: number }>('/api/pharmacie/ean/list?limit=1', token).catch(() => null),
+    ]).then(([stats, cons, rev, med, sku]) => {
+      const cotFC = rev?.cotisations_fc ?? 0;
+      setKpi({
+        adherents:    stats ? stats.adherents_actifs.toString() : '—',
+        consultations: cons ? cons.total.toString() : '—',
+        revenus:      cotFC >= 1_000_000 ? `${(cotFC / 1_000_000).toFixed(1)}M` : cotFC >= 1000 ? `${(cotFC / 1000).toFixed(0)}k` : cotFC.toString(),
+        medecins:     med ? med.total.toString() : '—',
+        sku:          sku ? sku.total.toString() : '—',
+      });
+    });
+  }, [token]));
 
   const stats: { iconName: IconName; label: string; val: string; color: string; bg: string }[] = [
-    { iconName: 'users',       label: 'Adhérents actifs',      val: '342',  color: palette.blueDeep,   bg: palette.blue   },
-    { iconName: 'stethoscope', label: 'Consultations ce mois', val: '487',  color: palette.greenDeep,  bg: palette.green  },
-    { iconName: 'pill',        label: 'Commandes pharmacie',   val: '213',  color: palette.purpleDeep, bg: palette.purple },
-    { iconName: 'coins',       label: 'Revenus FC (mois)',     val: '1.2M', color: palette.amber,      bg: palette.warningLight },
-    { iconName: 'user-check',  label: 'Médecins actifs',       val: '12',   color: palette.blueDeep,   bg: palette.blueSoft    },
-    { iconName: 'package',     label: 'Stock pharmacie (SKU)', val: '48',   color: palette.purpleDeep, bg: palette.purpleSoft  },
+    { iconName: 'users',       label: 'Adhérents actifs',      val: kpi.adherents,    color: palette.blueDeep,   bg: palette.blue   },
+    { iconName: 'stethoscope', label: 'Consultations total',   val: kpi.consultations, color: palette.greenDeep,  bg: palette.green  },
+    { iconName: 'coins',       label: 'Cotisations FC',        val: kpi.revenus,      color: palette.amber,      bg: palette.warningLight },
+    { iconName: 'user-check',  label: 'Médecins partenaires',  val: kpi.medecins,     color: palette.blueDeep,   bg: palette.blueSoft    },
+    { iconName: 'package',     label: 'Stock pharmacie (SKU)', val: kpi.sku,          color: palette.purpleDeep, bg: palette.purpleSoft  },
   ];
 
   const modules: { iconName: IconName; label: string; screen: string; color: string; bg: string }[] = [

@@ -1,33 +1,58 @@
-﻿import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useAuth } from '../../components/AuthContext';
+import { api } from '../../components/api';
 import { colors, spacing, radius, fontSize, fontWeight, shadow, palette } from '../../components/theme';
 
-const DEMO_ADHERENTS = [
-  { id: 'ADH-001', nom: 'Marie KABONGO',     plan: 'famille',   montant: 12000, statut: 'actif',   dateRenouv: '2026-06-22' },
-  { id: 'ADH-002', nom: 'Joseph MUTOMBO',    plan: 'standard',  montant: 5000,  statut: 'actif',   dateRenouv: '2026-06-15' },
-  { id: 'ADH-003', nom: 'Claire TSHIABA',    plan: 'solidaire', montant: 2000,  statut: 'impaye',  dateRenouv: '2026-05-10' },
-  { id: 'ADH-004', nom: 'Paul NKEMBA',       plan: 'premium',   montant: 20000, statut: 'actif',   dateRenouv: '2026-07-01' },
-  { id: 'ADH-005', nom: 'Ève MULUMBA',       plan: 'famille',   montant: 12000, statut: 'inactif', dateRenouv: null },
-];
+type Abonnement = {
+  id: string;
+  nom: string;
+  plan: string | null;
+  montant_usd: number;
+  statut: string;
+  date_renouvellement: string | null;
+  nb_mois_impaye: number;
+};
 
 const PLAN_COLORS: Record<string, string> = { solidaire: '#16A34A', standard: '#0891B2', famille: '#7C3AED', premium: '#D97706' };
 
 export default function AbonnementsAdminScreen() {
+  const { token } = useAuth();
+  const [abonnements, setAbonnements] = useState<Abonnement[]>([]);
+  const [loading,     setLoading]     = useState(true);
   const [filtre, setFiltre] = useState<'tous' | 'actif' | 'impaye' | 'inactif'>('tous');
 
-  const filtered = DEMO_ADHERENTS.filter(a => filtre === 'tous' || a.statut === filtre);
-  const totalFC  = DEMO_ADHERENTS.filter(a => a.statut === 'actif').reduce((s, a) => s + a.montant, 0);
+  useFocusEffect(useCallback(() => {
+    let cancelled = false;
+    setLoading(true);
+    api.get<{ abonnements: Abonnement[] }>('/api/admin/abonnements', token)
+      .then(d => { if (!cancelled && d.abonnements) setAbonnements(d.abonnements); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [token]));
+
+  const filtered  = abonnements.filter(a => filtre === 'tous' || a.statut === filtre);
+  const actifs    = abonnements.filter(a => a.statut === 'actif');
+  const impayes   = abonnements.filter(a => a.statut === 'impaye');
+  const totalFC   = actifs.reduce((s, a) => s + a.montant_usd * 2800, 0);
 
   return (
     <View style={styles.root}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Abonnements Mutuelle</Text>
         <View style={styles.headerStats}>
-          <StatItem val={DEMO_ADHERENTS.filter(a => a.statut === 'actif').length.toString()}    lbl="actifs"   />
-          <StatDiv />
-          <StatItem val={DEMO_ADHERENTS.filter(a => a.statut === 'impaye').length.toString()}   lbl="impayés"  color="#FDE68A" />
-          <StatDiv />
-          <StatItem val={`${(totalFC / 1000).toFixed(0)}k FC`} lbl="revenus/mois" />
+          {loading
+            ? <ActivityIndicator color="#FFF" style={{ flex: 1 }} />
+            : <>
+                <StatItem val={actifs.length.toString()}                       lbl="actifs"       />
+                <StatDiv />
+                <StatItem val={impayes.length.toString()}                      lbl="impayés"      color="#FDE68A" />
+                <StatDiv />
+                <StatItem val={`${(totalFC / 1000).toFixed(0)}k FC`}          lbl="revenus/mois" />
+              </>
+          }
         </View>
       </View>
 
@@ -41,39 +66,61 @@ export default function AbonnementsAdminScreen() {
       </ScrollView>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {filtered.map(a => (
-          <View key={a.id} style={styles.adhCard}>
-            <View style={styles.adhHeader}>
-              <View style={styles.adhAvatar}>
-                <Text style={styles.adhAvatarText}>{a.nom[0]}</Text>
-              </View>
-              <View style={styles.adhInfo}>
-                <Text style={styles.adhNom}>{a.nom}</Text>
-                <Text style={styles.adhId}>{a.id}</Text>
-              </View>
-              <View style={[styles.adhStatut, {
-                backgroundColor: a.statut === 'actif' ? colors.primaryLight : a.statut === 'impaye' ? colors.warningLight : colors.bg,
-              }]}>
-                <Text style={[styles.adhStatutText, {
-                  color: a.statut === 'actif' ? colors.primaryDark : a.statut === 'impaye' ? colors.warning : colors.textMuted,
-                }]}>
-                  {a.statut.charAt(0).toUpperCase() + a.statut.slice(1)}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.adhDetails}>
-              <View style={[styles.adhPlanBadge, { backgroundColor: (PLAN_COLORS[a.plan] ?? colors.primary) + '18' }]}>
-                <Text style={[styles.adhPlanText, { color: PLAN_COLORS[a.plan] ?? colors.primary }]}>
-                  Plan {a.plan.charAt(0).toUpperCase() + a.plan.slice(1)}
-                </Text>
-              </View>
-              <Text style={styles.adhMontant}>{a.montant.toLocaleString()} FC/mois</Text>
-              {a.dateRenouv && (
-                <Text style={styles.adhRenouv}>Renouvellement : {a.dateRenouv}</Text>
-              )}
-            </View>
+        {loading && (
+          <View style={{ alignItems: 'center', paddingVertical: 48 }}>
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
-        ))}
+        )}
+
+        {!loading && filtered.length === 0 && (
+          <View style={{ alignItems: 'center', paddingVertical: 48 }}>
+            <Text style={{ color: colors.textMuted, fontSize: fontSize.md }}>Aucun abonnement</Text>
+          </View>
+        )}
+
+        {filtered.map(a => {
+          const planLabel = a.plan ? a.plan.charAt(0).toUpperCase() + a.plan.slice(1) : 'Sans plan';
+          const planColor = PLAN_COLORS[a.plan ?? ''] ?? colors.primary;
+          const montantFC = a.montant_usd * 2800;
+          return (
+            <View key={a.id} style={styles.adhCard}>
+              <View style={styles.adhHeader}>
+                <View style={styles.adhAvatar}>
+                  <Text style={styles.adhAvatarText}>{a.nom[0] ?? '?'}</Text>
+                </View>
+                <View style={styles.adhInfo}>
+                  <Text style={styles.adhNom}>{a.nom}</Text>
+                  <Text style={styles.adhId}>{a.id}</Text>
+                </View>
+                <View style={[styles.adhStatut, {
+                  backgroundColor: a.statut === 'actif' ? colors.primaryLight : a.statut === 'impaye' ? colors.warningLight : colors.bg,
+                }]}>
+                  <Text style={[styles.adhStatutText, {
+                    color: a.statut === 'actif' ? colors.primaryDark : a.statut === 'impaye' ? colors.warning : colors.textMuted,
+                  }]}>
+                    {a.statut.charAt(0).toUpperCase() + a.statut.slice(1)}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.adhDetails}>
+                {a.plan && (
+                  <View style={[styles.adhPlanBadge, { backgroundColor: planColor + '18' }]}>
+                    <Text style={[styles.adhPlanText, { color: planColor }]}>Plan {planLabel}</Text>
+                  </View>
+                )}
+                {montantFC > 0 && (
+                  <Text style={styles.adhMontant}>{montantFC.toLocaleString()} FC/mois</Text>
+                )}
+                {a.nb_mois_impaye > 0 && (
+                  <Text style={[styles.adhRenouv, { color: colors.warning }]}>{a.nb_mois_impaye} mois impayé{a.nb_mois_impaye > 1 ? 's' : ''}</Text>
+                )}
+                {a.date_renouvellement && (
+                  <Text style={styles.adhRenouv}>Renouvellement : {a.date_renouvellement}</Text>
+                )}
+              </View>
+            </View>
+          );
+        })}
         <View style={{ height: 120 }} />
       </ScrollView>
     </View>
@@ -94,7 +141,7 @@ const styles = StyleSheet.create({
   root:  { flex: 1, backgroundColor: colors.bg },
   header: { backgroundColor: palette.dark, paddingTop: 52, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
   headerTitle:  { color: palette.white, fontSize: fontSize.xl, fontWeight: fontWeight.black, marginBottom: spacing.md },
-  headerStats:  { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: radius.lg, padding: spacing.md },
+  headerStats:  { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: radius.lg, padding: spacing.md, minHeight: 56, alignItems: 'center' },
 
   filterScroll:  { maxHeight: 44 },
   filterContent: { paddingHorizontal: spacing.lg, gap: spacing.sm, paddingVertical: spacing.xs },
