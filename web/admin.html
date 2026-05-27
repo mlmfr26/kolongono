@@ -1509,8 +1509,8 @@ function buildDrillBody(module, filtre) {
       src.forEach(function(m){ bySpec[m.spec] = (bySpec[m.spec]||0)+1; });
       var specs = Object.entries(bySpec).sort(function(a,b){ return b[1]-a[1]; });
       var summary = `<div class="stats-grid mb-lg" style="grid-template-columns:repeat(3,1fr)">
-        <div class="stat-card stat-blue"><div><div class="stat-val" style="color:var(--blue-deep)">${src.length}</div><div class="stat-label">Total partenaires</div></div></div>
-        <div class="stat-card stat-green"><div><div class="stat-val" style="color:var(--green-deep)">${actifs.length}</div><div class="stat-label">Disponibles</div></div></div>
+        <div class="stat-card stat-blue" style="cursor:pointer" onclick="openDrill('medecins','tous')"><div><div class="stat-val" style="color:var(--blue-deep)">${src.length}</div><div class="stat-label">Total partenaires ▶</div></div></div>
+        <div class="stat-card stat-green" style="cursor:pointer" onclick="openDrill('medecins','actifs')"><div><div class="stat-val" style="color:var(--green-deep)">${actifs.length}</div><div class="stat-label">Disponibles ▶</div></div></div>
         <div class="stat-card stat-purple"><div><div class="stat-val" style="color:var(--purple-deep)">${specs.length}</div><div class="stat-label">Spécialités</div></div></div>
       </div>`;
       return summary + `<div class="table-wrap"><table><thead><tr><th>Spécialité</th><th>Partenaires</th><th>Disponibles</th><th>%</th></tr></thead><tbody>
@@ -1554,7 +1554,7 @@ function buildDrillBody(module, filtre) {
     }
 
     var summary = `<div class="stats-grid mb-lg" style="grid-template-columns:repeat(3,1fr)">
-      <div class="stat-card stat-blue"><div><div class="stat-val" style="color:var(--blue-deep)">${src.length}</div><div class="stat-label">Total partenaires</div></div></div>
+      <div class="stat-card stat-blue" style="cursor:pointer" onclick="openDrill('medecins','tous')"><div><div class="stat-val" style="color:var(--blue-deep)">${src.length}</div><div class="stat-label">Total partenaires ▶</div></div></div>
       <div class="stat-card stat-green" style="cursor:pointer" onclick="openDrill('medecins','actifs')"><div><div class="stat-val" style="color:var(--green-deep)">${actifs.length}</div><div class="stat-label">Disponibles ▶</div></div></div>
       <div class="stat-card stat-danger" style="cursor:pointer" onclick="openDrill('medecins','inactifs')"><div><div class="stat-val" style="color:var(--color-danger)">${inactifs.length}</div><div class="stat-label">Non disponibles ▶</div></div></div>
     </div>`;
