@@ -6,7 +6,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, radius, fontSize, fontWeight, shadow, palette } from '../components/theme';
 import { Icon } from '../components/Icons';
-import { ApiClient } from '../components/api';
+import { api } from '../components/api';
+import { useAuth } from '../components/AuthContext';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ function groupByDate(creneaux: Creneau[]): Record<string, Creneau[]> {
 
 export default function PriseRDVScreen({ navigation, route }: any) {
   const { medecin_id, patient_id, patient_nom, triage_id, motif, mode } = route.params || {};
+  const { token } = useAuth();
 
   const [medecin, setMedecin]           = useState<Medecin | null>(null);
   const [moisData, setMoisData]         = useState<MoisData[]>([]);
@@ -94,18 +96,18 @@ export default function PriseRDVScreen({ navigation, route }: any) {
 
   // Charger profil médecin
   useEffect(() => {
-    ApiClient.get(`/api/consultations/medecins/${medecin_id}`)
+    api.get<Medecin>(`/api/consultations/medecins/${medecin_id}`, token)
       .then(setMedecin)
       .catch(() => {});
-  }, [medecin_id]);
+  }, [medecin_id, token]);
 
   // Charger planning 3 mois dès le départ
   const loadPlanning = useCallback(async (moisDebut: string) => {
     setLoadingPlan(true);
     setMoisData([]);
     try {
-      const data = await ApiClient.get(
-        `/api/consultations/planning/${medecin_id}?mois=${moisDebut}&nb_mois=${NB_MOIS}`
+      const data = await api.get<{ mois_data: MoisData[] }>(
+        `/api/consultations/planning/${medecin_id}?mois=${moisDebut}&nb_mois=${NB_MOIS}`, token
       );
       const months: MoisData[] = data.mois_data || [];
       setMoisData(months);
@@ -130,7 +132,7 @@ export default function PriseRDVScreen({ navigation, route }: any) {
     if (!selected) return;
     setLoadingRdv(true);
     try {
-      const data = await ApiClient.post('/api/consultations/rdv', {
+      const data = await api.post('/api/consultations/rdv', {
         medecin_id,
         patient_id,
         date: selected.date,
@@ -138,7 +140,7 @@ export default function PriseRDVScreen({ navigation, route }: any) {
         heure_fin: selected.heure_fin,
         motif: motif || '',
         triage_id: triage_id || null,
-      });
+      }, token);
       setRdvResult(data);
       setModalConfirm(false);
     } catch (e: any) {

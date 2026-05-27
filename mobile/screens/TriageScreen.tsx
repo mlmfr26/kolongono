@@ -6,7 +6,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../components/theme';
 import { Icon, IconName } from '../components/Icons';
-import { ApiClient } from '../components/api';
+import { api } from '../components/api';
+import { useAuth } from '../components/AuthContext';
 
 // ─── Symptômes prédéfinis (contexte RDC) ────────────────────────────────────
 
@@ -49,6 +50,7 @@ const SEVERITE_CONFIG: Record<string, { color: string; bg: string; iconName: Ico
 // ─── Écran Triage ────────────────────────────────────────────────────────────
 
 export default function TriageScreen({ navigation, route }: any) {
+  const { token } = useAuth();
   const patientId = route.params?.patient_id || 'ADH-001';
   const patientNom = route.params?.patient_nom || 'Patient';
 
@@ -84,7 +86,7 @@ export default function TriageScreen({ navigation, route }: any) {
         urgence_percue: urgence,
       };
       if (route.params?.age_patient) body.age_patient = route.params.age_patient;
-      const data = await ApiClient.post('/api/consultations/triage', body);
+      const data = await api.post('/api/consultations/triage', body, token);
       setResult(data);
     } catch (e: any) {
       Alert.alert('Erreur triage', e.message || 'Impossible de contacter le serveur.');
