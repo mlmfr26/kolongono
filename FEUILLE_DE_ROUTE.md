@@ -7,9 +7,9 @@
 
 ## Dernière mise à jour
 
-**2026-05-27 · fin de nuit (UTC+2) · Session 11 (autonome)**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `6261054`
-**Build #38 ✅ SUCCÈS** — APK v1.2.6 (icon pure Python, tout stable). **Build #39 🔄 EN COURS** — APK v1.2.7 (MedecinDashboard API wiring).
+**2026-05-27 · après-midi/soir (UTC+2) · Session 12 (autonome)**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `7a2ecc2`
+**Build #40 ✅ SUCCÈS** — APK v1.2.8. **Builds #41-43 🔄 EN COURS** — APK v1.2.10 (admin screens + catalogue ordonnance EAN).
 
 ---
 
@@ -435,10 +435,37 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 
 ---
 
+### Session 12 — 2026-05-27 · après-midi/soir (autonome, suite session 11)
+**Mobile API wiring massif + catalogue ordonnance EAN + admin KPIs live**
+
+**Build #39** ✅ SUCCÈS — 6m33s — APK v1.2.7 (56 Mo) — MedecinDashboard câblé
+**Build #40** ✅ SUCCÈS — 6m49s — APK v1.2.8 — AuxiliaireHomeScreen + admin screens câblés
+**Builds #41-#43** 🔄 EN COURS — APK v1.2.9-1.2.10 — catalogue ordonnance EAN + fixes
+
+**Commits session 12** :
+
+| Commit | Résumé |
+|--------|--------|
+| `9323a4c` | Feat(mobile): AuxiliaireHomeScreen câblé API + APK v1.2.7 swap |
+| `533d804` | Feat(mobile/admin): AbonnementsAdmin + AdminDashboard API wiring |
+| `4e0123f` | Chore: bump 1.2.8 → build #40 |
+| `1f9db1b` | Feat(mobile/medecin): catalogue ordonnance chargé depuis EAN API (50 médicaments) |
+| `39c63e3` | Chore: bump 1.2.9 → build #41 |
+| `48d85b7` | Fix(mobile/admin): AbonnementsAdmin types alignés avec API (items vs abonnements) |
+| `7a2ecc2` | Chore: bump 1.2.10 → build consolidé |
+
+**Écrans câblés sur API réelle** :
+- `AuxiliaireHomeScreen` : consultations du jour depuis `GET /api/consultations/rdv?auxiliaire_id=&date=today`, pull-to-refresh fonctionnel, empty/loading states
+- `AbonnementsAdminScreen` : chargé depuis `GET /api/admin/abonnements` — KPIs live (actifs, impayés, cotisations FC), type aligné sur réponse API `{items}`
+- `AdminDashboardScreen` : 5 KPIs en parallel calls (`/api/admin/stats`, `/consultations`, `/revenus`, `/medecins`, `/pharmacie/ean/list`)
+- `OrdonnanceDigitaleScreen` : catalogue médical depuis `GET /api/pharmacie/ean/list?limit=200`, affiche stock par médicament
+
+---
+
 ## Plan de développement complet — tous blocs
 
 ### BLOC 1 — CI/CD : APK Android
-*Statut : ✅ Build #38 SUCCÈS — APK v1.2.6 stable. Build #39 en cours (v1.2.7)*
+*Statut : ✅ Build #40 SUCCÈS — APK v1.2.8 stable. Builds #41-43 en cours (v1.2.9/1.2.10)*
 
 - [x] Identifier cause racine compile (sessions 7-8)
 - [x] Build #29 ✅ APK v1.2.2 (base)
@@ -449,8 +476,10 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 - [x] ErrorBoundary ajouté (erreurs JS visibles à l'écran)
 - [x] Icône générée en CI en pure Python (stdlib struct+zlib, pas d'ImageMagick)
 - [x] **APK v1.2.6 (build #38) ✅** — 54 Mo, arm64-v8a debug, stable
-- [x] **APK v1.2.7 (build #39) 🔄 EN COURS** — + MedecinDashboard API wiring
-- [ ] **Distribuer APK v1.2.6 aux testeurs terrain via WhatsApp**
+- [x] **APK v1.2.7 (build #39) ✅** — + MedecinDashboard API wiring
+- [x] **APK v1.2.8 (build #40) ✅** — + AuxiliaireHomeScreen + admin screens câblés
+- 🔄 **APK v1.2.10 (build #43) EN COURS** — + catalogue ordonnance EAN + fixes
+- [ ] **Distribuer APK v1.2.10 aux testeurs terrain via WhatsApp** (une fois build terminé)
 - [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
 
 ---
@@ -555,6 +584,22 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 **5.3 MedecinDashboardScreen** ✅
 - [x] `MedecinDashboardScreen` : câblé `GET /api/consultations/rdv?medecin_id=&date=today` ✅
 - [x] Compteurs réels (à venir / terminées / total), useFocusEffect ✅
+
+**5.6 AuxiliaireHomeScreen** ✅
+- [x] Consultations du jour : `GET /api/consultations/rdv?auxiliaire_id=&date=today` ✅
+- [x] Demandes + consultations en parallel, pull-to-refresh, empty/loading states ✅
+
+**5.7 AdminDashboardScreen** ✅
+- [x] KPIs live : adherents_actifs, total consultations, cotisations FC, médecins, stock SKU ✅
+- [x] 5 appels parallèles depuis `/api/admin/stats`, `/consultations`, `/revenus`, `/medecins`, `/pharmacie/ean/list` ✅
+
+**5.8 AbonnementsAdminScreen** ✅
+- [x] `GET /api/admin/abonnements` → items, KPIs live, filtre statut ✅
+
+**5.9 OrdonnanceDigitaleScreen** ✅
+- [x] Catalogue médical depuis `GET /api/pharmacie/ean/list?limit=200` (50 médicaments) ✅
+- [x] Affiche stock par médicament ("Rupture" si stock=0) ✅
+- [x] Fallback sur 12 médicaments statiques si API indisponible ✅
 
 **5.4 Refresh token** ✅
 - [x] Intercepteur dans `api.ts` : si 401 → POST /api/auth/refresh → retry ✅
