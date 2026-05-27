@@ -137,11 +137,11 @@
     <div class="hero-title">Centres de santé</div>
     <div class="hero-sub">Structures sanitaires intégrées dans le réseau Kolongono — téléconsultation, soins de proximité, pharmacie communautaire</div>
     <div class="hero-stats">
-      <div class="hero-stat"><div class="hero-stat-val">3</div><div class="hero-stat-lbl">Centres actifs</div></div>
-      <div class="hero-stat"><div class="hero-stat-val">21</div><div class="hero-stat-lbl">Lits au total</div></div>
-      <div class="hero-stat"><div class="hero-stat-val">2</div><div class="hero-stat-lbl">Lits maternité</div></div>
-      <div class="hero-stat"><div class="hero-stat-val">3</div><div class="hero-stat-lbl">Pharmacies</div></div>
-      <div class="hero-stat"><div class="hero-stat-val">22</div><div class="hero-stat-lbl">Personnel total</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="rs-centres">3</div><div class="hero-stat-lbl">Centres actifs</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="rs-lits">21</div><div class="hero-stat-lbl">Lits au total</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="rs-adherents">—</div><div class="hero-stat-lbl">Adhérents actifs</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="rs-consultations">—</div><div class="hero-stat-lbl">Consultations SD</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="rs-medecins">—</div><div class="hero-stat-lbl">Médecins partenaires</div></div>
     </div>
   </div>
 
@@ -537,6 +537,31 @@
   function closeModal() { document.getElementById('infoModal').classList.remove('open'); }
   function handleOverlayClick(e) { if (e.target === document.getElementById('infoModal')) closeModal(); }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // ── Statistiques réseau live depuis API ───────────────────────────────────
+  (async function loadReseauStats() {
+    var api = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://localhost:8002' : 'https://santedirect.kolongono.org';
+    var tok = localStorage.getItem('sd_token');
+    var h   = tok ? { 'Authorization': 'Bearer ' + tok } : {};
+    function setTxt(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
+    try {
+      var [statsR, consR, medsR] = await Promise.allSettled([
+        fetch(api + '/api/admin/stats',                    { headers: h }).then(r => r.ok ? r.json() : null),
+        fetch(api + '/api/admin/consultations?limit=1',    { headers: h }).then(r => r.ok ? r.json() : null),
+        fetch(api + '/api/admin/medecins',                 { headers: h }).then(r => r.ok ? r.json() : null),
+      ]);
+      var stats = statsR.status === 'fulfilled' ? statsR.value : null;
+      var cons  = consR.status  === 'fulfilled' ? consR.value  : null;
+      var meds  = medsR.status  === 'fulfilled' ? medsR.value  : null;
+      if (stats) {
+        if (stats.adherents_actifs  != null) setTxt('rs-adherents', stats.adherents_actifs);
+        if (stats.centres_partenaires != null) setTxt('rs-centres', stats.centres_partenaires);
+      }
+      if (cons && cons.total != null) setTxt('rs-consultations', cons.total);
+      if (meds && Array.isArray(meds.medecins)) setTxt('rs-medecins', meds.medecins.length);
+    } catch(e) {}
+  })();
   </script>
 
 </body>
