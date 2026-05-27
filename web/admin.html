@@ -3308,6 +3308,55 @@ let _centresInited = false;
     setTimeout(() => showPage(targetPage), 0);
   }
 })();
+
+/* ── Chips de statut topbar — pings réels ──────────────────────────────────── */
+(async function pingStatut() {
+  var _api = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:8002' : '';
+  var chipSessions = document.getElementById('tb-sessions');
+  var chipLongonia = document.getElementById('tb-longonia');
+  var chipSync = document.getElementById('tb-sync');
+
+  function _setChip(el, cls, text) {
+    if (!el) return;
+    el.className = 'tb-chip ' + cls;
+    var dot = el.querySelector('.tb-chip-dot');
+    el.textContent = text;
+    if (dot) el.insertBefore(dot, el.firstChild);
+  }
+
+  function _fmtTime(d) {
+    return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+  }
+
+  async function _ping() {
+    try {
+      var r = await fetch(_api + '/api/status', { signal: AbortSignal.timeout(4000) });
+      if (r.ok) {
+        var d = await r.json();
+        var salles = d.salles_actives || 0;
+        _setChip(chipSessions, salles > 0 ? 'live' : 'ok',
+          salles > 0 ? salles + ' session' + (salles > 1 ? 's' : '') + ' active' + (salles > 1 ? 's' : '') : 'Aucune session');
+        _setChip(chipSync, '', _fmtTime(new Date()));
+      } else {
+        _setChip(chipSessions, 'err', 'API down');
+      }
+    } catch(e) {
+      _setChip(chipSessions, 'err', 'API injoignable');
+    }
+
+    try {
+      var rl = await fetch(_api + '/api/longonia/verify-adherent/test-ping',
+        { signal: AbortSignal.timeout(3000) });
+      _setChip(chipLongonia, 'ok', 'Longonia');
+    } catch(e) {
+      _setChip(chipLongonia, 'err', 'Longonia');
+    }
+  }
+
+  _ping();
+  setInterval(_ping, 60000);
+})();
 </script>
 
 <!-- ── Panneau notifications ── -->
