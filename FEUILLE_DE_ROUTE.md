@@ -7,9 +7,10 @@
 
 ## Dernière mise à jour
 
-**2026-05-27 · après-midi/soir (UTC+2) · Session 12 (autonome)**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `7a2ecc2`
-**Build #40 ✅ SUCCÈS** — APK v1.2.8. **Builds #41-43 🔄 EN COURS** — APK v1.2.10 (admin screens + catalogue ordonnance EAN).
+**2026-05-27 · soir (UTC+2) · Session 12 (autonome)**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `7bf6419`
+**Builds #40-44 ✅ SUCCÈS** — APK v1.2.10 téléchargé et déployé (build #44, 54 MB).
+**En cours : build #45** — APK v1.2.11 (MedecinsAdminScreen câblé API).
 
 ---
 
@@ -440,7 +441,9 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 
 **Build #39** ✅ SUCCÈS — 6m33s — APK v1.2.7 (56 Mo) — MedecinDashboard câblé
 **Build #40** ✅ SUCCÈS — 6m49s — APK v1.2.8 — AuxiliaireHomeScreen + admin screens câblés
-**Builds #41-#43** 🔄 EN COURS — APK v1.2.9-1.2.10 — catalogue ordonnance EAN + fixes
+**Builds #41-#43** ✅ SUCCÈS — APK v1.2.9-1.2.10 — catalogue ordonnance EAN + fixes
+**Build #44** ✅ SUCCÈS — APK v1.2.10 téléchargé (54 Mo) — déployé dans `apk-release/`
+**Build #45** 🔄 EN COURS — APK v1.2.11 — MedecinsAdminScreen câblé API
 
 **Commits session 12** :
 
@@ -453,19 +456,21 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 | `39c63e3` | Chore: bump 1.2.9 → build #41 |
 | `48d85b7` | Fix(mobile/admin): AbonnementsAdmin types alignés avec API (items vs abonnements) |
 | `7a2ecc2` | Chore: bump 1.2.10 → build consolidé |
+| `7bf6419` | Feat(mobile/admin): MedecinsAdminScreen câblé API + APK v1.2.10 swap |
 
 **Écrans câblés sur API réelle** :
 - `AuxiliaireHomeScreen` : consultations du jour depuis `GET /api/consultations/rdv?auxiliaire_id=&date=today`, pull-to-refresh fonctionnel, empty/loading states
 - `AbonnementsAdminScreen` : chargé depuis `GET /api/admin/abonnements` — KPIs live (actifs, impayés, cotisations FC), type aligné sur réponse API `{items}`
 - `AdminDashboardScreen` : 5 KPIs en parallel calls (`/api/admin/stats`, `/consultations`, `/revenus`, `/medecins`, `/pharmacie/ean/list`)
 - `OrdonnanceDigitaleScreen` : catalogue médical depuis `GET /api/pharmacie/ean/list?limit=200`, affiche stock par médicament
+- `MedecinsAdminScreen` : 60 médecins hardcodés → `GET /api/admin/medecins` — type aligné (id, nom complet, specialite, pays, ville, disponible, note ⭐, nb_consultations_via_sd)
 
 ---
 
 ## Plan de développement complet — tous blocs
 
 ### BLOC 1 — CI/CD : APK Android
-*Statut : ✅ Build #40 SUCCÈS — APK v1.2.8 stable. Builds #41-43 en cours (v1.2.9/1.2.10)*
+*Statut : ✅ Build #44 SUCCÈS — APK v1.2.10 stable et distribué. Build #45 en cours (v1.2.11)*
 
 - [x] Identifier cause racine compile (sessions 7-8)
 - [x] Build #29 ✅ APK v1.2.2 (base)
@@ -478,8 +483,9 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 - [x] **APK v1.2.6 (build #38) ✅** — 54 Mo, arm64-v8a debug, stable
 - [x] **APK v1.2.7 (build #39) ✅** — + MedecinDashboard API wiring
 - [x] **APK v1.2.8 (build #40) ✅** — + AuxiliaireHomeScreen + admin screens câblés
-- 🔄 **APK v1.2.10 (build #43) EN COURS** — + catalogue ordonnance EAN + fixes
-- [ ] **Distribuer APK v1.2.10 aux testeurs terrain via WhatsApp** (une fois build terminé)
+- [x] **APK v1.2.10 (build #44) ✅** — + catalogue ordonnance EAN + fixes admin types
+- 🔄 **APK v1.2.11 (build #45) EN COURS** — + MedecinsAdminScreen câblé API
+- [ ] **Distribuer APK v1.2.11 aux testeurs terrain via WhatsApp** (une fois build terminé)
 - [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
 
 ---
