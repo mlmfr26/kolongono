@@ -581,28 +581,11 @@ FOURNITURES_PREMIER_SECOURS = [
     {"id": "FOUR-010", "nom": "Paracétamol 500mg",          "categorie": "Analgésiques",    "unite": "boîte 20 cp",   "prix_usd": 0.20, "stock": 250},
 ]
 
-DEMO_LIVRAISONS = [
-    {
-        "id": "LIV-001",
-        "ordonnance_id": "ORD-2026-DEMO01",
-        "date_commande": "2026-05-23T10:30:00",
-        "statut": "en_cours_livraison",
-        "medecin": "Dr. Emmanuel LUKUSA",
-        "diagnostic": "Paludisme simple",
-        "produits": [
-            {"nom": "Artéméther/Luméfantrine 20/120mg", "quantite": 2, "posologie": "4 cp matin et soir · 3 jours"},
-            {"nom": "Paracétamol 500mg", "quantite": 1, "posologie": "2 cp toutes les 6h si fièvre"},
-        ],
-        "livreur": "Jean-Pierre M.",
-        "date_livraison": None,
-    }
-]
-
 
 @app.get("/api/pharmacie/livraisons", tags=["Pharmacie"])
 async def get_livraisons(patient_id: str = Query(...), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Ordonnance).where(Ordonnance.patient_id == patient_id).order_by(Ordonnance.date_emission.desc()).limit(20)
+        select(Ordonnance).where(Ordonnance.patient_id == patient_id).order_by(Ordonnance.created_at.desc()).limit(20)
     )
     ords = result.scalars().all()
     livraisons = []
@@ -617,15 +600,13 @@ async def get_livraisons(patient_id: str = Query(...), db: AsyncSession = Depend
             "id": f"LIV-{o.id[:8].upper()}",
             "ordonnance_id": o.id,
             "date_commande": o.created_at.isoformat() if o.created_at else o.date,
-            "statut": "livree" if o.statut == "dispensee" else "en_cours_livraison",
+            "statut": "livre" if o.statut == "dispensee" else "en_cours_livraison",
             "medecin": med_nom,
             "diagnostic": o.diagnostic or (rdv.motif if rdv else ""),
             "produits": [{"nom": m.get("nom", ""), "quantite": m.get("quantite", 1), "posologie": m.get("posologie", "")} for m in (o.produits or [])],
             "livreur": None,
             "date_livraison": None,
         })
-    if not livraisons:
-        return {"livraisons": DEMO_LIVRAISONS, "total": len(DEMO_LIVRAISONS), "source": "demo"}
     return {"livraisons": livraisons, "total": len(livraisons)}
 
 
@@ -1112,6 +1093,18 @@ async def admin_revenus(
             for d in depenses
         ],
     }
+
+
+@app.get("/api/admin/jitsi/actives", tags=["Admin"])
+async def admin_jitsi_actives(
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_user),
+):
+    from sqlalchemy import select, func as sqlfunc
+    actives = (await db.execute(
+        select(sqlfunc.count()).select_from(RendezVous).where(RendezVous.statut == "en_cours")
+    )).scalar() or 0
+    return {"actives": actives, "domaine": "meet.jit.si", "mode": "public"}
 
 
 @app.get("/api/pharmacie/mouvements", tags=["Pharmacie"])
