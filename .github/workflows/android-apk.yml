@@ -219,6 +219,47 @@ jobs:
               print("✓ ABI arm64-v8a injecté" if patched != txt else "WARNING: versionName non trouvé")
           PY
 
+      # ── 5.5 Icône de l'app ───────────────────────────────────────────────────
+      - name: Generate app icon (cross médical sur fond sombre)
+        run: |
+          python3 - <<'PY'
+          import struct, zlib, base64, os
+
+          # Icône SVG → PNG via ImageMagick (disponible sur ubuntu-latest)
+          # Fond #1A1A2E (dark) + croix blanche — matching SplashScreen
+          svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+            <rect width="192" height="192" rx="42" fill="#1A1A2E"/>
+            <rect x="76" y="40" width="40" height="112" rx="10" fill="white"/>
+            <rect x="40" y="76" width="112" height="40" rx="10" fill="white"/>
+          </svg>"""
+
+          with open("/tmp/icon.svg", "w") as f:
+              f.write(svg)
+
+          sizes = {
+              "mipmap-mdpi":    48,
+              "mipmap-hdpi":    72,
+              "mipmap-xhdpi":   96,
+              "mipmap-xxhdpi":  144,
+              "mipmap-xxxhdpi": 192,
+          }
+
+          import subprocess
+          dest_base = "mobile/android/app/src/main/res"
+          for folder, size in sizes.items():
+              out_dir = f"{dest_base}/{folder}"
+              os.makedirs(out_dir, exist_ok=True)
+              for name in ("ic_launcher.png", "ic_launcher_round.png"):
+                  out_path = f"{out_dir}/{name}"
+                  subprocess.run([
+                      "convert", "-background", "none",
+                      "-resize", f"{size}x{size}",
+                      "/tmp/icon.svg", out_path
+                  ], check=True)
+              print(f"✓ {folder} → {size}x{size}")
+          print("=== Icônes générées ===")
+          PY
+
       # ── 6. Permissions caméra ────────────────────────────────────────────────
       - name: Add camera permissions
         run: |

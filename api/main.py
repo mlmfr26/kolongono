@@ -277,6 +277,20 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     }
 
 
+@app.post("/api/auth/refresh", tags=["Auth"])
+async def refresh_token(current=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == current["sub"]))
+    user = result.scalar_one_or_none()
+    if not user or not user.actif:
+        raise HTTPException(401, "Compte inactif ou introuvable")
+    token = create_token({"sub": user.id, "role": user.role, "email": user.email})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {"id": user.id, "prenom": user.prenom, "nom": user.nom, "email": user.email, "role": user.role, "plan": user.plan},
+    }
+
+
 # ── Adhérents ─────────────────────────────────────────────────────────────────
 
 @app.get("/api/adherents/{patient_id}", tags=["Adhérents"])
@@ -466,8 +480,25 @@ async def emettre_ordonnance(consultation_id: str, data: OrdonnanceRequest, db: 
 
 
 @app.get("/api/consultations/{consultation_id}", tags=["Consultations"])
-async def get_consultation(consultation_id: str):
-    return {"consultation_id": consultation_id, "statut": "planifie", "signes_vitaux": None}
+async def get_consultation(consultation_id: str, db: AsyncSession = Depends(get_db)):
+    rdv = await db.get(RendezVous, consultation_id)
+    if not rdv:
+        raise HTTPException(404, "Consultation introuvable")
+    import json as _json
+    diag = (await db.execute(select(Diagnostic).where(Diagnostic.rdv_id == consultation_id))).scalar_one_or_none()
+    signes = _json.loads(diag.notes_confidentielles) if diag and diag.notes_confidentielles else None
+    return {
+        "consultation_id": consultation_id,
+        "statut": rdv.statut,
+        "medecin_id": rdv.medecin_id,
+        "patient_id": rdv.patient_id,
+        "date": rdv.date,
+        "heure_debut": rdv.heure_debut,
+        "motif": rdv.motif,
+        "room": rdv.room,
+        "lien_patient": rdv.lien_patient,
+        "signes_vitaux": signes,
+    }
 
 
 # ── Pharmacie ─────────────────────────────────────────────────────────────────
@@ -844,6 +875,36 @@ async def list_consultations_admin(
             for r in rows
         ],
     }
+
+
+@app.get("/api/admin/medecins", tags=["Admin"])
+async def admin_medecins(
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_user),
+):
+    from sqlalchemy import select, func as sqlfunc
+    from routers.consultations import MEDECINS
+    rows = (await db.execute(
+        select(RendezVous.medecin_id, sqlfunc.count(RendezVous.id))
+        .where(RendezVous.statut != "annule")
+        .group_by(RendezVous.medecin_id)
+    )).all()
+    nb_map = {mid: cnt for mid, cnt in rows}
+    result = []
+    for m in MEDECINS:
+        nb = nb_map.get(m["id"], 0)
+        result.append({
+            "id": m["id"],
+            "nom": f"Dr. {m['prenom']} {m['nom']}",
+            "specialite": m["specialite"],
+            "pays": m["pays"],
+            "ville": m["ville"],
+            "disponible": m["disponible"],
+            "note": m.get("note"),
+            "nb_consultations_total": m.get("consultations", 0),
+            "nb_consultations_via_sd": nb,
+        })
+    return {"medecins": result, "total": len(result)}
 
 
 @app.get("/api/admin/revenus", tags=["Admin"])
