@@ -344,7 +344,7 @@
         Super Administration · En direct
       </div>
       <div class="dash-hero-title">SantéDirect<br>Kolongono</div>
-      <div class="dash-hero-sub">Kolongono, RDC · Mai 2026 · 342 adhérents actifs</div>
+      <div class="dash-hero-sub" id="dash-hero-sub">Kolongono, RDC · chargement…</div>
     </div>
 
     <!-- Colonne droite : KPI cliquables compacts -->
@@ -373,10 +373,10 @@
 
   </div>
 
-  <!-- Alerte rupture stock ────────────────────────────────────── -->
-  <div class="alert alert-warning mb-lg" style="border-radius:var(--radius-xl)">
+  <!-- Alerte rupture stock — masquée par défaut, affichée dynamiquement -->
+  <div class="alert alert-warning mb-lg" id="stock-alert-banner" style="border-radius:var(--radius-xl);display:none">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <span><strong>3 produits en rupture</strong> — <a onclick="showPage('pharmacie')" style="cursor:pointer;font-weight:700;text-decoration:underline">Voir le stock →</a></span>
+    <span><strong id="stock-alert-text">0 produit(s) en rupture</strong> — <a onclick="showPage('pharmacie')" style="cursor:pointer;font-weight:700;text-decoration:underline">Voir le stock →</a></span>
   </div>
 
   <div class="section-label">Indicateurs — Cliquer pour explorer</div>
@@ -2440,60 +2440,75 @@ async function loadDashboardStats() {
   var tok = localStorage.getItem('sd_token');
   var h = tok ? {'Authorization':'Bearer '+tok} : {};
   function _s(id, v) { var e=document.getElementById(id); if(e) e.textContent=v; }
+  var today = new Date().toISOString().slice(0,10);
   try {
-    var [statsR, consR, revR, pharmaR, aboR] = await Promise.allSettled([
+    var [statsR, consR, revR, pharmaR, aboR, medsR] = await Promise.allSettled([
       fetch(_APISD+'/api/admin/stats', {headers:h}).then(r=>r.ok?r.json():null),
-      fetch(_APISD+'/api/admin/consultations?limit=200', {headers:h}).then(r=>r.ok?r.json():null),
+      fetch(_APISD+'/api/admin/consultations?limit=500', {headers:h}).then(r=>r.ok?r.json():null),
       fetch(_APISD+'/api/admin/revenus', {headers:h}).then(r=>r.ok?r.json():null),
       fetch(_APISD+'/api/pharmacie/ean/list?limit=500', {headers:h}).then(r=>r.ok?r.json():null),
-      fetch(_APISD+'/api/admin/abonnements?limit=200', {headers:h}).then(r=>r.ok?r.json():null),
+      fetch(_APISD+'/api/admin/abonnements?limit=500', {headers:h}).then(r=>r.ok?r.json():null),
+      fetch(_APISD+'/api/admin/medecins', {headers:h}).then(r=>r.ok?r.json():null),
     ]);
+
     if (statsR.status==='fulfilled' && statsR.value) {
       var st = statsR.value;
-      _s('dash-stat-adherents', st.adherents_actifs || st.par_role?.adherent || '—');
-      _s('dash-stat-medecins', st.par_role?.medecin || '—');
+      _s('dash-stat-adherents', st.adherents_actifs ?? st.par_role?.adherent ?? '—');
     }
+
+    if (medsR.status==='fulfilled' && medsR.value) {
+      _s('dash-stat-medecins', medsR.value.total ?? (medsR.value.medecins||[]).length);
+    }
+
     if (consR.status==='fulfilled' && consR.value) {
-      var cons = consR.value.consultations || consR.value.items || [];
+      var cons = consR.value.items || consR.value.consultations || [];
+      var today_cons = cons.filter(function(c){ return (c.date||'').startsWith(today); });
       var enCours = cons.filter(function(c){ return c.statut==='en_cours'; }).length;
       _s('dash-stat-consultations', cons.length);
-      _s('hero-kpi-cons', cons.length);
-      _s('hero-kpi-cons-live', enCours + ' en cours');
+      _s('hero-kpi-cons', today_cons.length);
+      _s('hero-kpi-cons-live', enCours > 0 ? enCours+' en cours' : 'aucune en cours');
     }
+
     if (revR.status==='fulfilled' && revR.value) {
       var rev = revR.value;
       var revStr = '$' + Number(rev.total_revenus_usd||0).toFixed(0);
       _s('dash-stat-revenus', revStr);
       _s('hero-kpi-revenus', revStr);
     }
+
     if (pharmaR.status==='fulfilled' && pharmaR.value) {
       var items = pharmaR.value.items || [];
       var ruptures = items.filter(function(p){ return (p.stock_total||0)===0; }).length;
       _s('dash-stat-pharmacie', items.length);
       _s('dash-stat-ruptures', ruptures);
       _s('hero-kpi-ruptures', ruptures);
+      var banner = document.getElementById('stock-alert-banner');
       if (ruptures > 0) {
-        _s('dash-stat-pharmacie-delta', ruptures+' ruptures ⚠');
+        _s('dash-stat-pharmacie-delta', ruptures+' rupture'+(ruptures>1?'s':'')+' ⚠');
+        _s('dash-stat-ruptures-delta', 'Urgent');
         _s('hero-kpi-ruptures-delta', 'Urgent');
-        var alertEl = document.querySelector('.alert.alert-warning');
-        if (alertEl) alertEl.querySelector('strong').textContent = ruptures+' produit(s) en rupture';
+        _s('stock-alert-text', ruptures+' produit'+(ruptures>1?'s':'')+' en rupture');
+        if (banner) banner.style.display = '';
       } else {
-        _s('dash-stat-ruptures', '0');
-        _s('hero-kpi-ruptures', '0');
-        _s('hero-kpi-ruptures-delta', 'Aucune');
+        _s('dash-stat-pharmacie-delta', 'Stock OK');
+        _s('dash-stat-ruptures-delta', 'Aucune');
+        _s('hero-kpi-ruptures-delta', 'Stock OK');
+        if (banner) banner.style.display = 'none';
       }
     }
+
     if (aboR.status==='fulfilled' && aboR.value) {
       var aboItems = aboR.value.items || [];
-      var impayes  = aboItems.filter(function(a){ return a.statut==='impaye'; }).length;
+      var impayes = aboItems.filter(function(a){ return a.statut==='impaye'; }).length;
       _s('hero-kpi-impayes', impayes);
-      // Update hero subtitle
-      var adherents_actifs = statsR.status==='fulfilled' && statsR.value
-        ? (statsR.value.adherents_actifs || aboItems.length)
-        : aboItems.length;
-      var sub = document.querySelector('.dash-hero-sub');
-      if (sub) sub.textContent = 'Kolongono, RDC · ' + adherents_actifs + ' adhérents actifs';
     }
+
+    // Sous-titre héros — combinaison stats + abos
+    var nb_adherents = (statsR.status==='fulfilled' && statsR.value)
+      ? (statsR.value.adherents_actifs ?? statsR.value.par_role?.adherent ?? '?')
+      : '?';
+    var sub = document.getElementById('dash-hero-sub');
+    if (sub) sub.textContent = 'Kolongono, RDC · ' + nb_adherents + ' adhérent'+(nb_adherents>1?'s':'')+' actif'+(nb_adherents>1?'s':'');
   } catch(e) {}
 }
 
