@@ -7,10 +7,12 @@
 
 ## Dernière mise à jour
 
-**2026-05-27 · soir (UTC+2) · Session 12 (autonome)**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `7bf6419`
-**Builds #40-44 ✅ SUCCÈS** — APK v1.2.10 téléchargé et déployé (build #44, 54 MB).
-**En cours : build #45** — APK v1.2.11 (MedecinsAdminScreen câblé API).
+**2026-05-27 · nuit (UTC+2) · Session 13 (autonome)**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `e10f741`
+**Builds #45-50 ✅ SUCCÈS** — APK v1.2.11 déployé. Builds #51-53 🔄 EN COURS.
+**Session 13** : RapportsScreen, 5 écrans câblés API (CentreDashboard, Admission, Personnel,
+Réfectoire, MedecinsAdmin), fix PharmacieAdmin EAN list, fix DashboardScreen endpoint RDV,
+ajout GET /api/pharmacie/mouvements admin + GET /api/consultations/ordonnances/renouvelables.
 
 ---
 
@@ -443,7 +445,8 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 **Build #40** ✅ SUCCÈS — 6m49s — APK v1.2.8 — AuxiliaireHomeScreen + admin screens câblés
 **Builds #41-#43** ✅ SUCCÈS — APK v1.2.9-1.2.10 — catalogue ordonnance EAN + fixes
 **Build #44** ✅ SUCCÈS — APK v1.2.10 téléchargé (54 Mo) — déployé dans `apk-release/`
-**Build #45** 🔄 EN COURS — APK v1.2.11 — MedecinsAdminScreen câblé API
+**Build #45-50** ✅ SUCCÈS — APK v1.2.11 (RapportsScreen + 5 écrans centre câblés)
+**Builds #51-53** 🔄 EN COURS — APK v1.2.12-1.2.13
 
 **Commits session 12** :
 
@@ -467,6 +470,35 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 
 ---
 
+### Session 13 — 2026-05-27 · nuit (autonome, suite session 12)
+**Fix endpoints manquants + câblage screens restants**
+
+**Commits session 13** :
+
+| Commit | Résumé |
+|--------|--------|
+| `3a618cc` | Feat(mobile/admin): RapportsScreen + registration App.tsx (fix crash Rapports) |
+| `bde3717` | Feat(mobile/centre): CentreDashboard + AdmissionScreen câblés API |
+| `c6c81dd` | Feat(mobile/centre): PersonnelScreen câblé API |
+| `fc3f11f` | Feat(mobile/centre): RefectoireScreen câblé API |
+| `1a00171` | Fix(mobile/admin): PharmacieAdminScreen catalogue depuis EAN list (v1.2.12) |
+| `e10f741` | Feat(api+mobile): pharmacie mouvements admin + ordonnances renouvelables |
+| en cours | Fix(mobile): DashboardScreen appelle /rdv?patient_id (v1.2.13) |
+
+**Écrans câblés session 13** :
+- `RapportsScreen` (admin) : nouveau — charge `/api/admin/revenus`, `/api/admin/stats`, `/api/admin/consultations` en parallèle
+- `CentreDashboardScreen` : câblé `GET /api/centres/{id}/stats` avec mapping USD→FC (×2800)
+- `AdmissionScreen` : câblé GET + POST `/api/centres/{id}/admissions`
+- `PersonnelScreen` : câblé `GET /api/centres/{id}/personnel`
+- `RefectoireScreen` : câblé GET + POST `/api/centres/{id}/refectoire`
+- `PharmacieAdminScreen` : catalogue depuis `GET /api/pharmacie/ean/list?limit=500` + entrée/sortie via `/api/centres/{id}/stock/entree|sortie`
+
+**Endpoints API ajoutés session 13** :
+- `GET /api/pharmacie/mouvements` — vue admin globale (sync, join EAN)
+- `GET /api/consultations/ordonnances/renouvelables` — avec join User pour prenom/nom patient
+
+---
+
 ## Plan de développement complet — tous blocs
 
 ### BLOC 1 — CI/CD : APK Android
@@ -484,7 +516,8 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 - [x] **APK v1.2.7 (build #39) ✅** — + MedecinDashboard API wiring
 - [x] **APK v1.2.8 (build #40) ✅** — + AuxiliaireHomeScreen + admin screens câblés
 - [x] **APK v1.2.10 (build #44) ✅** — + catalogue ordonnance EAN + fixes admin types
-- 🔄 **APK v1.2.11 (build #45) EN COURS** — + MedecinsAdminScreen câblé API
+- [x] **APK v1.2.11 (builds #45-50) ✅** — + MedecinsAdminScreen, RapportsScreen, CentreDashboard, Admission, Personnel, Réfectoire câblés API
+- 🔄 **APK v1.2.12-13 (builds #51-53) EN COURS** — + PharmacieAdmin EAN fix, mouvements admin endpoint, DashboardScreen RDV fix, ordonnances/renouvelables API
 - [ ] **Distribuer APK v1.2.11 aux testeurs terrain via WhatsApp** (une fois build terminé)
 - [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
 

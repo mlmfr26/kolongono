@@ -174,7 +174,7 @@ function AdherentPlusScreen({ navigation }: any) {
           <Text style={plusStyles.logoutText}>Se déconnecter</Text>
         </View>
       </TouchableOpacity>
-      <Text style={plusStyles.version}>SantéDirect Kolongono v1.0 · 2026</Text>
+      <Text style={plusStyles.version}>SantéDirect Kolongono v1.2.12 · 2026</Text>
     </ScrollView>
   );
 }

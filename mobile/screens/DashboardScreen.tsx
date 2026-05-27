@@ -69,8 +69,14 @@ export default function DashboardScreen({ navigation }: any) {
       setAbonnement(abo);
     } catch {}
     try {
-      const r = await api.get<{ consultations: Rdv[] }>(`/api/consultations?patient_id=${user.id}`, token);
-      setRdvs(r.consultations ?? []);
+      const r = await api.get<{ rendez_vous: any[] }>(`/api/consultations/rdv?patient_id=${user.id}`, token);
+      setRdvs((r.rendez_vous ?? []).map(rv => ({
+        consultation_id: rv.id,
+        date_heure: rv.date && rv.heure_debut ? `${rv.date}T${rv.heure_debut}` : rv.date ?? '',
+        motif: rv.motif ?? '',
+        statut: rv.statut ?? 'planifie',
+        medecin: rv.medecin_nom ? { nom: rv.medecin_nom, prenom: '', specialite: rv.specialite ?? '' } : undefined,
+      })));
     } catch {}
     try {
       const role = (user as any).role ?? 'adherent';
