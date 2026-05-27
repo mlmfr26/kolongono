@@ -20,6 +20,7 @@ type RdvMedecin = {
   date: string;
   heure_debut: string;
   statut: string;
+  lien_medecin?: string;
 };
 
 export default function MedecinDashboardScreen({ navigation }: any) {
@@ -96,7 +97,7 @@ export default function MedecinDashboardScreen({ navigation }: any) {
             <TouchableOpacity
               key={rdv.id}
               style={[styles.rdvCard, urgent && styles.rdvCardUrgent]}
-              onPress={() => navigation.navigate('ConsultationEnCours', { consultation: { id: rdv.id, patient: { prenom: parts[0], nom: parts.slice(1).join(' '), age: '' }, motif: rdv.motif, statut: rdv.statut, signes_vitaux: null, pre_consultation_faite: false } })}
+              onPress={() => navigation.navigate('ConsultationEnCours', { consultation: { id: rdv.id, lien_medecin: rdv.lien_medecin, patient: { prenom: parts[0], nom: parts.slice(1).join(' '), age: '' }, motif: rdv.motif, statut: rdv.statut, signes_vitaux: null, pre_consultation_faite: false } })}
               activeOpacity={0.85}
             >
               {urgent && (

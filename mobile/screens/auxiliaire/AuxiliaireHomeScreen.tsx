@@ -32,6 +32,7 @@ type ConsAux = {
   heure_debut: string;
   statut: string;
   pre_consultation_faite: boolean;
+  lien_auxiliaire?: string;
 };
 
 const URGENCE_AUX = {
@@ -205,7 +206,7 @@ export default function AuxiliaireHomeScreen({ navigation }: any) {
           const urgent = minutesAvant <= 15 && minutesAvant >= 0;
           const parts = cons.patient_nom.split(' ');
           const initiales = parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}` : cons.patient_nom.substring(0, 2);
-          const navPayload = { id: cons.id, patient: { prenom: parts[0] || '', nom: parts.slice(1).join(' ') || '' }, motif: cons.motif, statut: cons.statut, signes_vitaux: null, pre_consultation_faite: cons.pre_consultation_faite };
+          const navPayload = { id: cons.id, lien_auxiliaire: cons.lien_auxiliaire, patient: { prenom: parts[0] || '', nom: parts.slice(1).join(' ') || '' }, motif: cons.motif, statut: cons.statut, signes_vitaux: null, pre_consultation_faite: cons.pre_consultation_faite };
           return (
             <View key={cons.id} style={[styles.consCard, urgent && styles.consCardUrgent]}>
               {urgent && (
