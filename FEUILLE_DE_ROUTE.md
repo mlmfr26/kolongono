@@ -571,12 +571,25 @@ Phase 'termine'   → Écran "Consultation terminée", bouton retour accueil
 | Commit | Résumé |
 |--------|--------|
 | `1934ccb` | feat(mobile): v1.2.15 — TeleconsultationScreen salle d'attente + polling statut RDV |
+| `caa13ef` | docs: session 15 — salle d'attente polling, décisions Jitsi public, Firebase étapes [ci skip] |
+| `370b92a` | fix(mobile/medecin): rejoindreVideo → TeleconsultationScreen in-app, role='medecin' |
+| `b4a58a6` | fix(mobile/auxiliaire): rejoindreConsultation → TeleconsultationScreen in-app, role='auxiliaire' |
+| `7c88e5b` | chore(apk): swap v1.2.14 → v1.2.15 (build #54 ✅) [ci skip] |
+| `66edbfd` | chore(mobile): bump v1.2.16 — Jitsi in-app médecin+auxiliaire (build #55/56) |
+| `88c2de3` | fix(api): livraisons depuis ordonnances DB réelles |
+| `ade0f0b` | feat(web/centre): dashboard KPIs live depuis GET /api/centres/{id}/stats [ci skip] |
+| `1f5946b` | feat(web/admin): pagination consultations 50/page [ci skip] |
+| `c7c566c` | chore(apk): swap v1.2.15 → v1.2.16 (build #56 ✅) [ci skip] |
+| `0ab060b` | fix(ci): Node.js 24 [ci skip] |
+| `0f73df9` | feat(web/reseau): hero stats live [ci skip] |
+| `928afc2` | feat(api): admin/stats → centres_partenaires [ci skip] |
 
 **Build CI** :
 
 | Run # | Version | Statut | Contenu |
 |-------|---------|--------|---------|
-| #54 | v1.2.15 | 🔄 En cours | TeleconsultationScreen polling + salle d'attente |
+| #54 | v1.2.15 | ✅ SUCCÈS | TeleconsultationScreen polling + salle d'attente |
+| #55/#56 | v1.2.16 | ✅ SUCCÈS | Jitsi in-app médecin + auxiliaire |
 
 ---
 
@@ -638,8 +651,9 @@ docker compose restart santesd-api
 - [x] **APK v1.2.11 (builds #45-50) ✅** — + MedecinsAdminScreen, RapportsScreen, CentreDashboard, Admission, Personnel, Réfectoire câblés API
 - [x] **APK v1.2.13 (builds #51-52) ✅** — + PharmacieAdmin EAN fix, mouvements admin endpoint, DashboardScreen RDV fix, ordonnances/renouvelables API
 - [x] **APK v1.2.14 (build #53 ✅)** — fix ApiClient crash PriseRDV + Triage
-- [ ] **APK v1.2.15 (build #54 🔄)** — TeleconsultationScreen salle d'attente + polling
-- [ ] **Distribuer APK v1.2.15 aux testeurs terrain via WhatsApp** (remplacer v1.2.14 dès build fini)
+- [x] **APK v1.2.15 (build #54 ✅)** — TeleconsultationScreen salle d'attente + polling
+- [x] **APK v1.2.16 (build #56 ✅)** — Jitsi in-app médecin + auxiliaire (ConsultationEnCours + SuiviPatient)
+- [ ] **Distribuer APK v1.2.16 aux testeurs terrain via WhatsApp**
 - [ ] Test golden path : login → triage → RDV → signes vitaux → Jitsi → ordonnance → pharmacie (quand déployé)
 - [ ] **DÉPLOIEMENT SERVEUR REQUIS** : SSH `cd "/var/www/santesd/SANTE DIRECT - KOLONGONO" && git pull && docker compose restart santesd-api` sur 5.75.149.155
 
