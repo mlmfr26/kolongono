@@ -2290,10 +2290,12 @@ async function loadConsultations() {
       return;
     }
     tbody.innerHTML = items.map(function(c) {
-      return '<tr style="cursor:pointer"><td class="font-bold">' + (c.patient_id||'—') + '</td>' +
-        '<td>' + (c.medecin_id||'—') + '</td>' +
-        '<td class="text-muted">—</td>' +
-        '<td class="text-muted">' + (c.date||'') + ' ' + (c.heure_debut||'') + '</td>' +
+      var patient = c.patient_nom || c.patient_id || '—';
+      var medecin = c.medecin_nom || c.medecin_id || '—';
+      return '<tr style="cursor:pointer"><td class="font-bold">' + patient + '</td>' +
+        '<td class="text-sm">' + medecin + '</td>' +
+        '<td class="text-sm text-muted">' + (c.motif||'—') + '</td>' +
+        '<td class="text-muted">' + (c.date||'') + (c.heure_debut?' '+c.heure_debut:'') + '</td>' +
         '<td>' + consultStatutBadge(c.statut) + '</td>' +
         '<td><span class="badge badge-accent">Jitsi</span></td></tr>';
     }).join('');
@@ -2307,13 +2309,13 @@ async function loadAbonnements() {
   var tbody = document.getElementById('abo-table');
   tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Chargement…</td></tr>';
   try {
-    var r = await fetch(_APISD + '/api/admin/users?role=adherent&limit=100',
+    var r = await fetch(_APISD + '/api/admin/abonnements?limit=100',
       { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     var d = await r.json();
     var items = (d.items || []).map(function(u) {
-      return { id:u.id, nom:u.nom+' '+u.prenom, plan:u.plan||'solidaire',
-               statut:u.statut, montant:u.prix_usd||0, renouv:'—' };
+      return { id:u.id, nom:u.nom, plan:u.plan||'solidaire',
+               statut:u.statut||'actif', montant:u.prix_usd||0, renouv:'—' };
     });
     if (!items.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Aucun abonnement</td></tr>';

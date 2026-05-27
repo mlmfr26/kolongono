@@ -898,6 +898,42 @@ async def list_users_admin(
     }
 
 
+@app.get("/api/admin/abonnements", tags=["Admin"])
+async def list_abonnements_admin(
+    plan: Optional[str] = Query(None),
+    statut: Optional[str] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, le=200),
+    db: AsyncSession = Depends(get_db),
+    current=Depends(get_current_user),
+):
+    from sqlalchemy import func as sqlfunc
+    q = select(User, Abonnement).outerjoin(Abonnement, Abonnement.patient_id == User.id).where(User.role == "adherent")
+    if plan:
+        q = q.where(Abonnement.plan == plan)
+    if statut == "actif":
+        q = q.where(Abonnement.statut == "actif")
+    elif statut == "impaye":
+        q = q.where(Abonnement.statut == "impaye")
+    total_q = select(sqlfunc.count()).select_from(User).where(User.role == "adherent")
+    total = (await db.execute(total_q)).scalar()
+    rows = (await db.execute(q.order_by(User.nom).offset(skip).limit(limit))).all()
+    items = []
+    for u, abo in rows:
+        pl = abo.plan if abo else (u.plan or "solidaire")
+        items.append({
+            "id": u.id,
+            "nom": f"{u.prenom} {u.nom}",
+            "email": u.email,
+            "plan": pl,
+            "prix_usd": PLANS_PRIX.get(pl, 0),
+            "statut": abo.statut if abo else ("actif" if u.actif else "inactif"),
+            "date_debut": abo.date_debut if abo else None,
+            "actif": u.actif,
+        })
+    return {"total": total, "items": items}
+
+
 @app.get("/api/admin/stats", tags=["Admin"])
 async def admin_stats(
     db: AsyncSession = Depends(get_db),
@@ -944,13 +980,27 @@ async def list_consultations_admin(
         cq = cq.where(RendezVous.medecin_id == medecin_id)
     total = (await db.execute(cq)).scalar()
     rows = (await db.execute(q.order_by(RendezVous.date.desc(), RendezVous.heure_debut.desc()).offset(skip).limit(limit))).scalars().all()
+
+    # batch-load patient names
+    pat_ids = {r.patient_id for r in rows if r.patient_id}
+    pat_map: dict = {}
+    if pat_ids:
+        res = await db.execute(select(User).where(User.id.in_(pat_ids)))
+        for u in res.scalars().all():
+            pat_map[u.id] = f"{u.prenom} {u.nom}"
+
+    from routers.consultations import MEDECINS as _MED_LIST
+    med_map = {m["id"]: f"Dr. {m['prenom']} {m['nom']}" for m in _MED_LIST}
+
     return {
         "total": total,
         "items": [
             {
                 "id": r.id,
                 "patient_id": r.patient_id,
+                "patient_nom": pat_map.get(r.patient_id, r.patient_id or "—"),
                 "medecin_id": r.medecin_id,
+                "medecin_nom": med_map.get(r.medecin_id, r.medecin_id or "—"),
                 "date": r.date,
                 "heure_debut": r.heure_debut,
                 "heure_fin": r.heure_fin,
