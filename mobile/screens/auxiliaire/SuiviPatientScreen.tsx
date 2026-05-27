@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Linking,
 } from 'react-native';
 import { useAuth } from '../../components/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../../components/theme';
