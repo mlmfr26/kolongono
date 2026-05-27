@@ -575,10 +575,10 @@
 <div class="page page-hidden" id="page-medecins">
   <div class="flex justify-end mb-lg"><button class="btn btn-primary">+ Médecin</button></div>
   <div class="stats-grid mb-lg">
-    <div class="stat-card stat-blue" onclick="openDrill('medecins','actifs')"><div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="20" rx="2"/><rect x="2" y="9" width="20" height="6" rx="2"/></svg></div><div><div class="stat-val" style="color:var(--color-primary)">12</div><div class="stat-label">Actifs</div></div></div>
-    <div class="stat-card stat-green" onclick="openDrill('medecins','disponibles')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="stat-val" style="color:var(--color-auxiliaire)">7</div><div class="stat-label">Disponibles</div></div></div>
-    <div class="stat-card stat-amber" onclick="openDrill('medecins','notes')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div><div class="stat-val" style="color:var(--color-abonnement)">4,7</div><div class="stat-label">Note moyenne</div></div></div>
-    <div class="stat-card stat-purple" onclick="openDrill('medecins','specialites')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></div><div><div class="stat-val" style="color:var(--color-dossier)">5</div><div class="stat-label">Spécialités</div></div></div>
+    <div class="stat-card stat-blue" onclick="openDrill('medecins','actifs')"><div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="20" rx="2"/><rect x="2" y="9" width="20" height="6" rx="2"/></svg></div><div><div class="stat-val" style="color:var(--color-primary)" id="med-stat-actifs">—</div><div class="stat-label">Actifs</div></div></div>
+    <div class="stat-card stat-green" onclick="openDrill('medecins','disponibles')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="stat-val" style="color:var(--color-auxiliaire)" id="med-stat-disponibles">—</div><div class="stat-label">Disponibles</div></div></div>
+    <div class="stat-card stat-amber" onclick="openDrill('medecins','notes')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div><div class="stat-val" style="color:var(--color-abonnement)" id="med-stat-note">—</div><div class="stat-label">Note moyenne</div></div></div>
+    <div class="stat-card stat-purple" onclick="openDrill('medecins','specialites')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></div><div><div class="stat-val" style="color:var(--color-dossier)" id="med-stat-specs">—</div><div class="stat-label">Spécialités</div></div></div>
   </div>
   <div class="card"><div class="table-wrap"><table><thead><tr><th>Médecin</th><th>Spécialité</th><th>Consultations</th><th>Note</th><th>Statut</th><th></th></tr></thead><tbody id="medecins-table"></tbody></table></div></div>
 </div>
@@ -2286,6 +2286,15 @@ async function loadMedecins() {
                consult:m.nb_consultations_via_sd||0, note:m.note||0,
                statut:m.disponible?'disponible':'conge' };
     });
+    var actifs = list.length;
+    var disponibles = list.filter(function(m){ return m.statut==='disponible'; }).length;
+    var avgNote = list.length ? (list.reduce(function(s,m){ return s+m.note; },0)/list.length) : 0;
+    var specs = new Set(list.map(function(m){ return m.spec; })).size;
+    var el = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+    el('med-stat-actifs', actifs);
+    el('med-stat-disponibles', disponibles);
+    el('med-stat-note', avgNote ? avgNote.toFixed(1) : '—');
+    el('med-stat-specs', specs || '—');
     renderMedecinsTable(list);
   } catch(e) {
     renderMedecinsTable(DATA.medecins);
