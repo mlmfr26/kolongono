@@ -1271,6 +1271,46 @@ async def get_ordonnances(
     return {"ordonnances": [_ordonnance_to_dict(o) for o in res.scalars().all()]}
 
 
+@router.get("/ordonnances/renouvelables", summary="Auxiliaire — ordonnances renouvelables en attente")
+async def get_ordonnances_renouvelables(
+    auxiliaire_id: Optional[str] = Query(None),
+    _: dict = Depends(_get_user),
+    db: AsyncSession = Depends(get_db),
+):
+    today = date.today().isoformat()
+    stmt = (
+        select(Ordonnance)
+        .where(
+            Ordonnance.renouvellement_autorise == True,
+            Ordonnance.nb_renouvellements_restants > 0,
+        )
+        .order_by(Ordonnance.date.desc())
+    )
+    res = await db.execute(stmt)
+    ordonnances_list = res.scalars().all()
+
+    patient_ids = list({o.patient_id for o in ordonnances_list if o.patient_id})
+    users_map: dict = {}
+    if patient_ids:
+        u_res = await db.execute(select(User).where(User.id.in_(patient_ids)))
+        for u in u_res.scalars().all():
+            users_map[u.id] = u
+
+    items = []
+    for o in ordonnances_list:
+        if o.date_expiration and o.date_expiration < today:
+            continue
+        d = _ordonnance_to_dict(o)
+        u = users_map.get(o.patient_id or "")
+        d["patient"] = {
+            "id": o.patient_id or "",
+            "prenom": u.prenom if u else "",
+            "nom": u.nom if u else "",
+        }
+        items.append(d)
+    return {"ordonnances": items, "total": len(items)}
+
+
 @router.post("/ordonnances/{ordonnance_id}/renouveler", summary="Auxiliaire — renouveler une ordonnance")
 async def renouveler_ordonnance(
     ordonnance_id: str,

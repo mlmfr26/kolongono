@@ -18,7 +18,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from database import get_db, AsyncSessionLocal
+from sqlalchemy.orm import Session
+from database import get_db, get_db_sync, AsyncSessionLocal
 from models import User, RendezVous, Ordonnance, Abonnement, Cotisation, Diagnostic, RevenuCentre, DepenseCentre, StockPharmacie, MouvementStock, MedicamentEAN
 
 load_dotenv()
@@ -1081,6 +1082,38 @@ async def admin_revenus(
             {"id": d.id, "centre_id": d.centre_id, "mois": d.mois, "categorie": d.categorie, "montant_usd": d.montant_usd}
             for d in depenses
         ],
+    }
+
+
+@app.get("/api/pharmacie/mouvements", tags=["Pharmacie"])
+def admin_pharmacie_mouvements(
+    limite: int = Query(100, le=500),
+    centre_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db_sync),
+):
+    from models import MouvementStock, MedicamentEAN
+    q = (
+        db.query(MouvementStock, MedicamentEAN)
+        .join(MedicamentEAN, MouvementStock.medicament_code == MedicamentEAN.code_interne, isouter=True)
+    )
+    if centre_id:
+        q = q.filter(MouvementStock.centre_id == centre_id)
+    rows = q.order_by(MouvementStock.horodatage.desc()).limit(limite).all()
+    return {
+        "mouvements": [
+            {
+                "id": mvt.id,
+                "produit_nom": med.nom if med else mvt.medicament_code,
+                "type_mouvement": mvt.type,
+                "quantite": mvt.quantite,
+                "motif": mvt.motif or "",
+                "utilisateur_nom": mvt.operateur or "",
+                "scan_qr": False,
+                "created_at": mvt.horodatage.isoformat() if mvt.horodatage else "",
+            }
+            for mvt, med in rows
+        ],
+        "total": len(rows),
     }
 
 

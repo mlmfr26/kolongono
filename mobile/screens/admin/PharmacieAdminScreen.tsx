@@ -183,21 +183,30 @@ export default function PharmacieAdminScreen({ route, navigation }: any) {
   const rupture  = produits.filter(p => p.stock === 0).length;
 
   async function enregistrerMouvement(data: { produit_id: number; type: string; quantite: number; motif: string; scan_qr: boolean }) {
+    const centreId = route?.params?.centreId ?? 'CTR-001';
+    const endpoint = data.type === 'entree'
+      ? `/api/centres/${centreId}/stock/entree`
+      : `/api/centres/${centreId}/stock/sortie`;
     try {
-      await api.post('/api/pharmacie/mouvements', {
-        produit_id: data.produit_id,
-        type_mouvement: data.type,
+      await api.post(endpoint, {
+        code_interne: String(data.produit_id),
         quantite: data.quantite,
         motif: data.motif,
-        scan_qr: data.scan_qr,
+        operateur_id: 'admin',
       }, token);
-      // Refresh data
-      const [p, m] = await Promise.all([
-        api.get<{ produits: Produit[] }>('/api/pharmacie/produits', token),
-        api.get<{ mouvements: Mouvement[] }>('/api/pharmacie/mouvements', token),
-      ]);
-      setProduits(p.produits ?? []);
-      setMouvements(m.mouvements ?? []);
+      // Refresh catalogue
+      const ean = await api.get<{ items: any[]; total: number }>('/api/pharmacie/ean/list?limit=500', token);
+      if (ean.items) {
+        setProduits(ean.items.map(e => ({
+          id:                e.code ?? e.ean ?? String(e.id),
+          nom:               e.nom + (e.dosage ? ` ${e.dosage}` : ''),
+          categorie:         e.categorie ?? 'Autre',
+          prix:              e.prix_usd ?? e.prix_unitaire_fc ?? 0,
+          stock:             e.stock_total ?? 0,
+          unite:             e.forme ?? 'unité',
+          ordonnance_requise:e.prescription ?? false,
+        })));
+      }
       Alert.alert('Enregistré', 'Mouvement de stock enregistré avec succès.');
     } catch {
       Alert.alert('Erreur', 'Impossible d\'enregistrer le mouvement.');
