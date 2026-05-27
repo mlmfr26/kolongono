@@ -600,8 +600,32 @@ DEMO_LIVRAISONS = [
 
 
 @app.get("/api/pharmacie/livraisons", tags=["Pharmacie"])
-async def get_livraisons(patient_id: str = Query(...)):
-    livraisons = [l for l in DEMO_LIVRAISONS if True]
+async def get_livraisons(patient_id: str = Query(...), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Ordonnance).where(Ordonnance.patient_id == patient_id).order_by(Ordonnance.date_emission.desc()).limit(20)
+    )
+    ords = result.scalars().all()
+    livraisons = []
+    for o in ords:
+        rdv = await db.get(RendezVous, o.rdv_id) if o.rdv_id else None
+        med_nom = "Médecin"
+        if rdv and rdv.medecin_id:
+            med = await db.get(User, rdv.medecin_id)
+            if med:
+                med_nom = f"Dr. {med.prenom} {med.nom}"
+        livraisons.append({
+            "id": f"LIV-{o.id[:8].upper()}",
+            "ordonnance_id": o.id,
+            "date_commande": o.created_at.isoformat() if o.created_at else o.date,
+            "statut": "livree" if o.statut == "dispensee" else "en_cours_livraison",
+            "medecin": med_nom,
+            "diagnostic": o.diagnostic or (rdv.motif if rdv else ""),
+            "produits": [{"nom": m.get("nom", ""), "quantite": m.get("quantite", 1), "posologie": m.get("posologie", "")} for m in (o.produits or [])],
+            "livreur": None,
+            "date_livraison": None,
+        })
+    if not livraisons:
+        return {"livraisons": DEMO_LIVRAISONS, "total": len(DEMO_LIVRAISONS), "source": "demo"}
     return {"livraisons": livraisons, "total": len(livraisons)}
 
 
