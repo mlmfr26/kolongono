@@ -7,11 +7,11 @@
 
 ## Dernière mise à jour
 
-**2026-05-27 · nuit (UTC+2) · Session 16 (autonome)**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `f424541`
-**Builds #58-60 🔄 En cours** — APK v1.2.18 (lien_auxiliaire mapping, Linking import fix).
-**Session 16** : Propagation complète des liens Jitsi lien_medecin+lien_auxiliaire, corrections
-de bugs (Linking non importé, mapping API → state), déploiement backend prod, APK v1.2.17 distribué.
+**2026-05-27 · matin (UTC+2) · Session 17 (autonome)**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : à venir (v1.2.19)
+**Session 17** : Suppression données demo hardcodées (ConsultationScreen, OrdonnanceScreen),
+version string ProfileScreen corrigée (v1.0 → v1.2.19), audit endpoints API vs. code mobile,
+vérification déploiement prod (santesd-api Up ✅). APK v1.2.19 en cours de build.
 
 ---
 
@@ -636,9 +636,11 @@ Build #57 terminé avec succès → APK téléchargé → `apk-release/SanteDire
 | Run # | Version | Commit | Statut | Contenu |
 |-------|---------|--------|--------|---------|
 | #57 | v1.2.17 | `a72eb60` | ✅ SUCCÈS | DashboardScreen rdv_id+url+medecin vers TeleconsultationScreen |
-| #58 | — | `ea6abe5` | 🔄 En cours | lien_medecin+lien_auxiliaire types + navPayload |
-| #59 | v1.2.18 | `ec94b27` | 🔄 En cours | Linking import fix + bump version |
-| #60 | — | `f424541` | ⏳ Queued | lien_auxiliaire mapping API → state |
+| #58 | — | `ea6abe5` | ✅ SUCCÈS | lien_medecin+lien_auxiliaire types + navPayload |
+| #59 | v1.2.18 | `ec94b27` | ✅ SUCCÈS | Linking import fix + bump version |
+| #60 | — | `f424541` | ✅ SUCCÈS | lien_auxiliaire mapping API → state |
+
+**APK finale** : `apk-release/SanteDirect-v1.2.18.apk` (build #60, 54 MB)
 
 #### État du flux de téléconsultation (après session 16)
 

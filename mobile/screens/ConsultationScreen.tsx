@@ -36,22 +36,10 @@ const STATUT_LABELS = {
   annule:     'Annulé',
 };
 
-const DEMO_DEMANDES: Demande[] = [
-  {
-    id: 'DEM-001',
-    motif: 'Fièvre persistante',
-    symptomes: 'Fièvre à 39°C depuis 3 jours, maux de tête, fatigue intense. Pas de toux.',
-    urgence: 'modere',
-    statut: 'en_cours',
-    created_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-    rdv: { date: '2026-05-25', heure: '10h00 – 10h30', medecin: 'Dr. Emmanuel LUKUSA' },
-  },
-];
-
 export default function ConsultationScreen({ navigation }: any) {
   const { user, token } = useAuth();
 
-  const [demandes,  setDemandes]  = useState<Demande[]>(DEMO_DEMANDES);
+  const [demandes,  setDemandes]  = useState<Demande[]>([]);
   const [loading,   setLoading]   = useState(false);
   const [showForm,  setShowForm]  = useState(false);
   const [sending,   setSending]   = useState(false);

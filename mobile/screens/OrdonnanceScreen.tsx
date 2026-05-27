@@ -34,39 +34,9 @@ const STATUT_CONFIG = {
   expiree:   { label: 'Expirée',   bg: '#FEE2E2',         text: '#B91C1C',          icon: 'x-circle'     as const },
 };
 
-const DEMO_ORDONNANCES: Ordonnance[] = [
-  {
-    id: 'ORD-2026-DEMO01',
-    date: '2026-04-15',
-    medecin: 'Dr. Emmanuel LUKUSA',
-    diagnostic: 'Paludisme simple',
-    produits: [
-      { nom: 'Artéméther/Luméfantrine 20/120mg', posologie: '4 cp matin et soir pendant 3 jours', quantite: 2 },
-      { nom: 'Paracétamol 500mg', posologie: '2 cp toutes les 6h si fièvre', quantite: 1 },
-    ],
-    recommandations: 'Repos au lit. Boire beaucoup d\'eau. Éviter le soleil. Revenir si fièvre persiste après 48h.',
-    statut: 'delivree',
-    renouvellement_autorise: false,
-  },
-  {
-    id: 'ORD-2026-DEMO02',
-    date: '2026-05-10',
-    medecin: 'Dr. Béatrice MWAMBA',
-    diagnostic: 'Hypertension artérielle',
-    produits: [
-      { nom: 'Amlodipine 5mg', posologie: '1 cp par jour le matin', quantite: 3 },
-    ],
-    recommandations: 'Contrôle tension chaque semaine. Régime pauvre en sel. Activité physique légère.',
-    statut: 'delivree',
-    renouvellement_autorise: true,
-    nb_renouvellements_restants: 2,
-    date_expiration: '2026-08-10',
-  },
-];
-
 export default function OrdonnanceScreen() {
   const { user, token } = useAuth();
-  const [ordonnances, setOrdonnances] = useState<Ordonnance[]>(DEMO_ORDONNANCES);
+  const [ordonnances, setOrdonnances] = useState<Ordonnance[]>([]);
   const [loading,     setLoading]     = useState(false);
   const [selected,    setSelected]    = useState<string | null>(null);
 

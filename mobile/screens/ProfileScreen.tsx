@@ -77,7 +77,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={styles.logoutText}>Se déconnecter</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>SantéDirect Kolongono v1.0 · 2026</Text>
+        <Text style={styles.version}>SantéDirect Kolongono v1.2.19 · 2026</Text>
         <Text style={styles.proverbe}>"Bidimu m'bupita buanga"</Text>
         <View style={{ height: 120 }} />
       </ScrollView>
