@@ -7,12 +7,12 @@
 
 ## Dernière mise à jour
 
-**2026-05-27 · après-midi (UTC+2) · Session 14 (autonome)**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `c56f979`
-**Build #53 ✅ SUCCÈS** — APK v1.2.14 déployé dans `apk-release/` (54 MB).
-**Session 14** : Fix critique `ApiClient` non-exporté (PriseRDVScreen, TriageScreen → toutes
-les API calls crashaient), admin.html câblé sur API réelle (KPIs dashboard live, filtre
-impayés, export CSV), review complète de tous les écrans mobile (29/35 câblés API ✅).
+**2026-05-27 · soir (UTC+2) · Session 15 (autonome)**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `1934ccb`
+**Build #54 🔄 En cours** — APK v1.2.15 (fix TeleconsultationScreen salle d'attente + polling).
+**Session 15** : TeleconsultationScreen réécrit avec salle d'attente + polling statut RDV toutes
+les 10s. Décisions utilisateur documentées : Jitsi public (meet.jit.si) pendant 2 semaines de
+test, déploiement prod cible aujourd'hui, Niveau 2 (blocs 6-10) à réaliser en 2 semaines.
 
 ---
 
@@ -532,6 +532,92 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 
 ---
 
+### Session 15 — 2026-05-27 · soir (autonome, suite session 14)
+**TeleconsultationScreen salle d'attente + polling + décisions utilisateur**
+
+#### Décisions utilisateur (à appliquer immédiatement)
+
+| Décision | Détail |
+|----------|--------|
+| **Jitsi : serveur public** | Utiliser `meet.jit.si` pour toute la période de test (2 semaines). Aucune action code requise — le backend génère déjà des URLs `meet.jit.si`. |
+| **Déploiement prod** | Cible : aujourd'hui même. Commande SSH : `cd "/var/www/santesd/SANTE DIRECT - KOLONGONO" && git pull && docker compose restart santesd-api` |
+| **Niveau 2 en 2 semaines** | Les blocs 6-10 (Jitsi self-hosted, Firebase, Mobile Money, Offline, Tests) estimés 4-8 semaines → objectif : réalisés en 2 semaines maximum. |
+| **Golden path** | Test complet quand l'app est déployée en production. Non bloquant maintenant. |
+| **Firebase : étapes pour débloquer** | Voir section BLOC 7 ci-dessous. |
+
+#### TeleconsultationScreen — réécriture complète
+
+**Avant (session 14)** : WebView simple avec params `{ lien, role, nomSalle }`, aucun état d'attente, aucun polling.
+
+**Après (session 15)** : Machine d'état à 3 phases.
+
+```
+Phase 'attente'   → polling GET /api/consultations/rdv/{rdv_id} toutes 10s
+                  → statut 'en_cours'  → Phase 'en_cours'
+                  → statut 'termine'   → Phase 'termine'
+                  → bouton manuel "Rejoindre maintenant" → Phase 'en_cours'
+Phase 'en_cours'  → WebView Jitsi (injectedJS masque boutons superflus)
+Phase 'termine'   → Écran "Consultation terminée", bouton retour accueil
+```
+
+**Rétrocompatibilité** : accepte `{ lien, role, nomSalle }` (ancien flux) ET `{ rdv_id, url, medecin, role }` (nouveau flux PriseRDVScreen).
+- `lienFinal = url ?? lien ?? ''`
+- Si `rdv_id` absent → démarre directement en phase `'en_cours'` (ancien flux inchangé)
+
+**Cleanup timer** : `clearInterval` dans `useEffect` cleanup + `terminerConsultation()` + `rejoindreQuandMeme()`.
+
+**Commits session 15** :
+
+| Commit | Résumé |
+|--------|--------|
+| `1934ccb` | feat(mobile): v1.2.15 — TeleconsultationScreen salle d'attente + polling statut RDV |
+
+**Build CI** :
+
+| Run # | Version | Statut | Contenu |
+|-------|---------|--------|---------|
+| #54 | v1.2.15 | 🔄 En cours | TeleconsultationScreen polling + salle d'attente |
+
+---
+
+#### Firebase FCM — Étapes complètes pour débloquer (BLOC 7)
+
+Le code `api/routers/notifications.py` est **déjà écrit**. Il ne manque que la clé.
+
+**Étape 1 — Créer un projet Firebase**
+1. Aller sur [console.firebase.google.com](https://console.firebase.google.com)
+2. Cliquer "Ajouter un projet" → nom : `SanteDirect-Kolongono`
+3. Désactiver Google Analytics (inutile pour FCM)
+
+**Étape 2 — Enregistrer l'app Android**
+1. Dans le projet Firebase → Paramètres → "Ajouter une appli" → Android
+2. Package name : `com.kolongono.santedirect` (voir `mobile/android/app/build.gradle`, ligne `applicationId`)
+3. Télécharger `google-services.json`
+4. Placer dans `mobile/android/app/google-services.json`
+
+**Étape 3 — Obtenir la clé serveur**
+1. Firebase Console → Paramètres du projet → Cloud Messaging
+2. Deux options :
+   - **Option A (Legacy — simple)** : "Clé du serveur" dans la section "API Cloud Messaging"
+   - **Option B (FCM v1 — recommandée)** : Créer un compte de service → télécharger JSON → encoder en base64
+3. Pour Option A : copier la clé (format `AAAA...`)
+
+**Étape 4 — Configurer sur le serveur**
+```bash
+# SSH sur 5.75.149.155
+cd "/var/www/santesd/SANTE DIRECT - KOLONGONO"
+echo "FIREBASE_SERVER_KEY=AAAA..." >> .env
+docker compose restart santesd-api
+```
+
+**Étape 5 — Ajouter au secret GitHub Actions**
+- GitHub → Settings → Secrets → `FIREBASE_SERVER_KEY`
+- Pour `google-services.json` : encoder en base64 → secret `GOOGLE_SERVICES_JSON` → décode dans le workflow CI
+
+**Résultat** : les 4 notifications (RDV confirmé, rappel 30 min, ordonnance, rupture stock) seront actives.
+
+---
+
 ## Plan de développement complet — tous blocs
 
 ### BLOC 1 — CI/CD : APK Android
@@ -552,9 +638,10 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 - [x] **APK v1.2.11 (builds #45-50) ✅** — + MedecinsAdminScreen, RapportsScreen, CentreDashboard, Admission, Personnel, Réfectoire câblés API
 - [x] **APK v1.2.13 (builds #51-52) ✅** — + PharmacieAdmin EAN fix, mouvements admin endpoint, DashboardScreen RDV fix, ordonnances/renouvelables API
 - [x] **APK v1.2.14 (build #53 ✅)** — fix ApiClient crash PriseRDV + Triage
-- [ ] **Distribuer APK v1.2.14 aux testeurs terrain via WhatsApp** (remplacer v1.2.13)
-- [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
-- [ ] **DÉPLOIEMENT REQUIS** : `git pull && docker compose restart santesd-api` sur 5.75.149.155
+- [ ] **APK v1.2.15 (build #54 🔄)** — TeleconsultationScreen salle d'attente + polling
+- [ ] **Distribuer APK v1.2.15 aux testeurs terrain via WhatsApp** (remplacer v1.2.14 dès build fini)
+- [ ] Test golden path : login → triage → RDV → signes vitaux → Jitsi → ordonnance → pharmacie (quand déployé)
+- [ ] **DÉPLOIEMENT SERVEUR REQUIS** : SSH `cd "/var/www/santesd/SANTE DIRECT - KOLONGONO" && git pull && docker compose restart santesd-api` sur 5.75.149.155
 
 ---
 
@@ -679,35 +766,47 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 - [x] Intercepteur dans `api.ts` : si 401 → POST /api/auth/refresh → retry ✅
 - [x] `AuthContext` enregistre callbacks onTokenRefreshed + onLogout ✅
 
-**5.5 Polling statut consultation**
-- [ ] `TeleconsultationScreen.tsx` : polling `GET /api/consultations/{id}` toutes les 10s (salle d'attente)
+**5.5 Polling statut consultation** ✅
+- [x] `TeleconsultationScreen.tsx` : salle d'attente + polling `GET /api/consultations/rdv/{rdv_id}` toutes les 10s → transition auto en_cours/termine (session 15) ✅
 
 ---
 
 ### BLOC 6 — Téléconsultation Jitsi Meet (🟡 semaine 2-3)
 
-**6.1 Provisionner 3e CX23 Hetzner** (~5 EUR/mois)
+**Décision utilisateur (2026-05-27)** : Utiliser `meet.jit.si` (serveur public gratuit) pour toute la période de test (2 semaines). Pas d'action code requise — le backend génère déjà des URLs `meet.jit.si`. Migration vers serveur dédié après validation terrain.
+
+**6.1 Phase test (maintenant → J+14)** ✅ ACTIF
+- [x] Backend génère URL `meet.jit.si/{room_id}` par consultation ✅
+- [x] `TeleconsultationScreen.tsx` charge l'URL dans WebView ✅
+- Limitation : rooms publiques, pas de JWT, pas de contrôle utilisateurs
+
+**6.2 Phase production (après J+14) — Provisionner 3e CX22 Hetzner** (~4 EUR/mois)
 Installer Docker + Jitsi Meet self-hosted, sous-domaine `jitsi.kolongono.org`.
 
-**6.2 Intégrer dans l'app mobile**
+**6.3 Intégrer URL dédiée dans l'app mobile**
 `TeleconsultationScreen.tsx` : URL `https://jitsi.kolongono.org/consultation-{rdv_id}`.
 
-**6.3 Sécuriser les rooms**
+**6.4 Sécuriser les rooms**
 API génère un JWT Jitsi par consultation, room expire après 2h.
 
 ---
 
-### BLOC 7 — Notifications push Firebase (🟡 semaine 3)
+### BLOC 7 — Notifications push Firebase (🟡 semaine 1-2, débloqué dès que clé obtenue)
 
-**7.1 Configurer Firebase FCM**
-- Créer projet Firebase, obtenir `FIREBASE_SERVER_KEY`
-- Ajouter dans `.env` serveur + secret GitHub Actions
-- `notifications.py` est déjà codé — il faut seulement la clé
+**Statut : `notifications.py` déjà codé. BLOQUÉ uniquement sur la clé FIREBASE_SERVER_KEY.**
+**→ Voir "Firebase FCM — Étapes complètes" dans Session 15 ci-dessus.**
 
-**7.2 Enregistrement device token**
+**7.1 Configurer Firebase FCM** (action utilisateur requise)
+- [ ] Créer projet Firebase sur console.firebase.google.com
+- [ ] Enregistrer app Android avec package `com.kolongono.santedirect`
+- [ ] Télécharger `google-services.json` → placer dans `mobile/android/app/`
+- [ ] Obtenir clé serveur FCM → ajouter dans `.env` serveur (`FIREBASE_SERVER_KEY=...`)
+- [ ] Ajouter `FIREBASE_SERVER_KEY` et `GOOGLE_SERVICES_JSON` aux secrets GitHub Actions
+
+**7.2 Enregistrement device token** (Claude Code — 30 min)
 Au login mobile : enregistrer FCM token via `POST /api/utilisateurs/{id}/fcm-token`.
 
-**7.3 Déclenchements**
+**7.3 Déclenchements** (déjà codés dans `notifications.py`)
 - RDV confirmé → notif patient
 - RDV dans 30 min → rappel patient + médecin
 - Ordonnance disponible → notif patient
