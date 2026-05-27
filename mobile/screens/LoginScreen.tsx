@@ -95,7 +95,7 @@ export default function LoginScreen() {
             }
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.forgotBtn}>
+          <TouchableOpacity style={styles.forgotBtn} onPress={() => Alert.alert('Mot de passe oublié', 'Contactez votre auxiliaire de santé ou le centre SantéDirect pour réinitialiser votre accès.')}>
             <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
           </TouchableOpacity>
         </View>
@@ -126,7 +126,7 @@ export default function LoginScreen() {
           <Text style={styles.urgenceNum}>SAMU 15  ·  Pompiers 18</Text>
         </View>
 
-        <Text style={styles.version}>SantéDirect Kolongono v1.0 · 2026</Text>
+        <Text style={styles.version}>SantéDirect Kolongono v1.2.19 · 2026</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
