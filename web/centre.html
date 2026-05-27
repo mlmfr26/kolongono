@@ -4361,6 +4361,68 @@ function quitterCentre() {
 renderTimeline();
 renderDossiers(DOSSIERS);
 detectSuperadminMode();
+
+// ── Live KPIs depuis API ──────────────────────────────────────────────────
+(async function loadCentreStats() {
+  var _APISD = (function() {
+    var h = window.location.hostname;
+    if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:8002';
+    return 'https://santedirect.kolongono.org';
+  })();
+  var tok = localStorage.getItem('sd_token');
+  if (!tok) return;
+  var h = { 'Authorization': 'Bearer ' + tok };
+  try {
+    var r = await fetch(_APISD + '/api/centres/' + CENTRE_ID + '/stats', { headers: h });
+    if (!r.ok) return;
+    var d = await r.json();
+    // Admissions du jour
+    if (d.admissions_jour != null) {
+      _setText('kpi-adm-val', d.admissions_jour);
+      _setText('stat-adm-jour', d.admissions_jour);
+      _setText('stat-adm-delta', d.admissions_jour + ' patient' + (d.admissions_jour !== 1 ? 's' : '') + ' · Voir →');
+    }
+    // Personnel présent
+    if (d.personnel_present != null) {
+      _setText('kpi-personnel-val', d.personnel_present);
+      _setText('stat-personnel-val', d.personnel_present);
+      _setText('db-pres-badge', d.personnel_present + ' présent(s)');
+    }
+    // Lits
+    if (d.lits_occupes != null && d.lits_total != null) {
+      var litsDispo = Math.max(0, d.lits_total - d.lits_occupes);
+      _setText('kpi-lits-val', d.lits_occupes + '/' + d.lits_total);
+      _setText('stat-lits-val', d.lits_occupes + '/' + d.lits_total);
+      _setText('stat-lits-delta', litsDispo + ' disponible' + (litsDispo !== 1 ? 's' : '') + ' · Dossiers →');
+      _setText('db-occ-occupes', d.lits_occupes);
+      _setText('db-occ-dispos', litsDispo);
+      _setText('db-occ-total', d.lits_total);
+      _setText('db-occ-badge', d.lits_occupes + '/' + d.lits_total + ' lits');
+      var pct = d.lits_total > 0 ? Math.round(d.lits_occupes / d.lits_total * 100) : 0;
+      _setText('db-occ-pct', pct + '%');
+      var ringEl = document.getElementById('db-occ-ring-fill');
+      if (ringEl) {
+        ringEl.style.strokeDashoffset = 232.5 - (232.5 * pct / 100);
+        ringEl.style.stroke = pct >= 90 ? '#EF4444' : pct >= 70 ? '#F59E0B' : 'var(--purple-deep)';
+      }
+    }
+    // Triage en attente
+    if (d.en_attente_triage != null) {
+      _setText('kpi-triage-val', d.en_attente_triage);
+      _setText('stat-attente-triage', d.en_attente_triage);
+      var alerteEl = document.getElementById('alerte-triage');
+      var alerteTxt = document.getElementById('alerte-triage-txt');
+      if (alerteEl && alerteTxt) {
+        if (d.en_attente_triage > 0) {
+          alerteEl.style.display = 'flex';
+          alerteTxt.textContent = d.en_attente_triage + ' patient' + (d.en_attente_triage !== 1 ? 's' : '') + ' en attente de triage';
+        } else {
+          alerteEl.style.display = 'none';
+        }
+      }
+    }
+  } catch(e) {}
+})();
 </script>
 
 <!-- ══ MODAL AUXILIAIRE — CATÉGORIE ══ -->
