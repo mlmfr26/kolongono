@@ -1406,7 +1406,7 @@ function openDrill(module, filtre) {
     consultations: { today:'Consultations du jour', encours:'Consultations en cours', mois:'Ce mois', jitsi:'Sessions Jitsi' },
     pharmacie: { tous:'Tout le stock', bas_stock:'Bas stock (<50)', ruptures:'Ruptures de stock', commandes:'Commandes récentes' },
     abonnements: { actifs:'Abonnements actifs', impayes:'Abonnements impayés', plans:'Répartition par plan', premium:'Plan Premium', famille:'Plan Famille', standard:'Plan Standard', solidaire:'Plan Solidaire', revenus:'Revenus abonnements' },
-    medecins: { actifs:'Médecins actifs', disponibles:'Disponibles maintenant', notes:'Classement par note', specialites:'Par spécialité' },
+    medecins: { actifs:'Médecins actifs (disponibles)', inactifs:'Non disponibles', specialites:'Par spécialité', qualifications:'Généralistes vs Spécialistes', notes:'Classement par note', tous:'Tous les partenaires' },
     revenus: { mensuel:'Revenus Mai 2026', impayes:'Paiements impayés', mobile_money:'Via Mobile Money', longonia_bridge:'Via Longonia bridge' },
     jitsi: { sessions:'Sessions vidéo', actives:'Sessions actives', qualite:'Qualité réseau', duree:'Durée des appels' },
     longonia: { verifications:'Vérifications adhérents', debits:'Débits réussis', echecs:'Débits échoués', volume:'Volume débité' },
@@ -1492,16 +1492,81 @@ function buildDrillBody(module, filtre) {
   }
 
   if (module === 'medecins') {
-    let list = DATA.medecins;
-    if (filtre === 'disponibles') list = list.filter(m => m.statut === 'disponible');
-    if (filtre === 'notes') list = [...list].sort((a,b) => b.note - a.note);
-    return `<div class="table-wrap"><table><thead><tr><th>Médecin</th><th>Spécialité</th><th>Consultations</th><th>Note</th><th>Statut</th></tr></thead><tbody>
-      ${list.map(m => `<tr style="cursor:pointer" onclick="openDetail('medecin','${m.id}')">
-        <td><div class="flex items-center gap-sm"><div class="avatar" style="background:#ABC4EB;color:#0369A1">${m.nom[4]}</div><div class="font-bold">${m.nom}</div></div></td>
-        <td class="text-sm text-muted">${m.spec}</td><td class="font-bold">${m.consult}</td>
+    var src = _medecinsList.length ? _medecinsList : DATA.medecins.map(function(m){
+      return { id:m.id, nom:m.nom, spec:m.spec||m.specialite, consult:m.consult||0, note:m.note||0,
+               statut:m.statut, pays:m.pays||'CD', ville:m.ville||'' };
+    });
+    var actifs   = src.filter(function(m){ return m.statut==='disponible'; });
+    var inactifs = src.filter(function(m){ return m.statut!=='disponible'; });
+
+    if (filtre === 'actifs')   { var list = actifs; }
+    else if (filtre === 'inactifs') { var list = inactifs; }
+    else if (filtre === 'notes') { var list = [...src].sort(function(a,b){ return (b.note||0)-(a.note||0); }); }
+    else { var list = src; } // tous + specialites + qualifications
+
+    if (filtre === 'specialites') {
+      var bySpec = {};
+      src.forEach(function(m){ bySpec[m.spec] = (bySpec[m.spec]||0)+1; });
+      var specs = Object.entries(bySpec).sort(function(a,b){ return b[1]-a[1]; });
+      var summary = `<div class="stats-grid mb-lg" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card stat-blue"><div><div class="stat-val" style="color:var(--blue-deep)">${src.length}</div><div class="stat-label">Total partenaires</div></div></div>
+        <div class="stat-card stat-green"><div><div class="stat-val" style="color:var(--green-deep)">${actifs.length}</div><div class="stat-label">Disponibles</div></div></div>
+        <div class="stat-card stat-purple"><div><div class="stat-val" style="color:var(--purple-deep)">${specs.length}</div><div class="stat-label">Spécialités</div></div></div>
+      </div>`;
+      return summary + `<div class="table-wrap"><table><thead><tr><th>Spécialité</th><th>Partenaires</th><th>Disponibles</th><th>%</th></tr></thead><tbody>
+        ${specs.map(function(e){
+          var sp=e[0], tot=e[1];
+          var dispo=src.filter(function(m){ return m.spec===sp && m.statut==='disponible'; }).length;
+          var pct=Math.round(dispo/tot*100);
+          return `<tr onclick="openDrillSpec('${sp.replace(/'/g,'\\')}')">
+            <td class="font-bold">${sp}</td>
+            <td>${tot}</td>
+            <td><span class="badge badge-success">${dispo}</span></td>
+            <td><div style="display:flex;align-items:center;gap:8px"><div class="stock-bar" style="width:80px"><div class="stock-fill" style="width:${pct}%;background:var(--green-deep)"></div></div><span class="text-sm">${pct}%</span></div></td>
+          </tr>`;
+        }).join('')}
+      </tbody></table></div>`;
+    }
+
+    if (filtre === 'qualifications') {
+      var gen   = src.filter(function(m){ return (m.spec||'').toLowerCase().includes('générale') || (m.spec||'').toLowerCase().includes('generale'); });
+      var specs = src.filter(function(m){ return !(m.spec||'').toLowerCase().includes('générale') && !(m.spec||'').toLowerCase().includes('generale'); });
+      var pays  = {};
+      src.forEach(function(m){ pays[m.pays||'CD'] = (pays[m.pays||'CD']||0)+1; });
+      return `<div class="stats-grid mb-lg" style="grid-template-columns:repeat(4,1fr)">
+        <div class="stat-card stat-blue"><div><div class="stat-val" style="color:var(--blue-deep)">${src.length}</div><div class="stat-label">Total</div></div></div>
+        <div class="stat-card stat-green"><div><div class="stat-val" style="color:var(--green-deep)">${gen.length}</div><div class="stat-label">Généralistes</div></div></div>
+        <div class="stat-card stat-purple"><div><div class="stat-val" style="color:var(--purple-deep)">${specs.length}</div><div class="stat-label">Spécialistes</div></div></div>
+        <div class="stat-card stat-amber"><div><div class="stat-val" style="color:var(--color-abonnement)">${Object.keys(pays).length}</div><div class="stat-label">Pays</div></div></div>
+      </div>
+      <div class="section-label mb-sm">GÉNÉRALISTES (${gen.length})</div>
+      <div class="table-wrap mb-lg"><table><thead><tr><th>Médecin</th><th>Ville</th><th>Consultations SD</th><th>Statut</th></tr></thead><tbody>
+        ${gen.map(function(m){ return `<tr onclick="openDetail('medecin','${m.id}')">
+          <td class="font-bold">${m.nom}</td><td class="text-sm text-muted">${m.ville||m.pays||'—'}</td>
+          <td>${m.consult}</td><td>${availBadge(m.statut)}</td></tr>`; }).join('')}
+      </tbody></table></div>
+      <div class="section-label mb-sm">SPÉCIALISTES (${specs.length})</div>
+      <div class="table-wrap"><table><thead><tr><th>Médecin</th><th>Spécialité</th><th>Consultations SD</th><th>Statut</th></tr></thead><tbody>
+        ${specs.map(function(m){ return `<tr onclick="openDetail('medecin','${m.id}')">
+          <td class="font-bold">${m.nom}</td><td class="text-sm text-muted">${m.spec}</td>
+          <td>${m.consult}</td><td>${availBadge(m.statut)}</td></tr>`; }).join('')}
+      </tbody></table></div>`;
+    }
+
+    var summary = `<div class="stats-grid mb-lg" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card stat-blue"><div><div class="stat-val" style="color:var(--blue-deep)">${src.length}</div><div class="stat-label">Total partenaires</div></div></div>
+      <div class="stat-card stat-green" style="cursor:pointer" onclick="openDrill('medecins','actifs')"><div><div class="stat-val" style="color:var(--green-deep)">${actifs.length}</div><div class="stat-label">Disponibles ▶</div></div></div>
+      <div class="stat-card stat-danger" style="cursor:pointer" onclick="openDrill('medecins','inactifs')"><div><div class="stat-val" style="color:var(--color-danger)">${inactifs.length}</div><div class="stat-label">Non disponibles ▶</div></div></div>
+    </div>`;
+    return summary + `<div class="table-wrap"><table><thead><tr><th>Médecin</th><th>Spécialité</th><th>Pays</th><th>Consult. SD</th><th>Note</th><th>Statut</th></tr></thead><tbody>
+      ${list.map(function(m){ return `<tr style="cursor:pointer" onclick="openDetail('medecin','${m.id}')">
+        <td><div class="flex items-center gap-sm"><div class="avatar" style="background:#ABC4EB;color:#0369A1">${(m.nom||'?')[4]||'?'}</div><span class="font-bold">${m.nom}</span></div></td>
+        <td class="text-sm text-muted">${m.spec||'—'}</td>
+        <td class="text-sm text-muted">${m.pays||'CD'}</td>
+        <td class="font-bold">${m.consult||0}</td>
         <td>${starRating(m.note)}</td>
         <td>${availBadge(m.statut)}</td>
-      </tr>`).join('')}
+      </tr>`; }).join('')}
     </tbody></table></div>`;
   }
 
@@ -2276,6 +2341,8 @@ async function loadAdherents() {
   }
 }
 
+var _medecinsList = [];
+
 async function loadMedecins() {
   var tok = localStorage.getItem('sd_token');
   var tbody = document.getElementById('medecins-table');
@@ -2290,14 +2357,15 @@ async function loadMedecins() {
     var list = items.map(function(m) {
       return { id:m.id, nom:m.nom, spec:m.specialite,
                consult:m.nb_consultations_via_sd||0, note:m.note||0,
+               pays:m.pays||'CD', ville:m.ville||'',
                statut:m.disponible?'disponible':'conge' };
     });
-    var actifs = list.length;
+    _medecinsList = list;
     var disponibles = list.filter(function(m){ return m.statut==='disponible'; }).length;
     var avgNote = list.length ? (list.reduce(function(s,m){ return s+m.note; },0)/list.length) : 0;
     var specs = new Set(list.map(function(m){ return m.spec; })).size;
     var el = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
-    el('med-stat-actifs', actifs);
+    el('med-stat-actifs', list.length);
     el('med-stat-disponibles', disponibles);
     el('med-stat-note', avgNote ? avgNote.toFixed(1) : '—');
     el('med-stat-specs', specs || '—');
