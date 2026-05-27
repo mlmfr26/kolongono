@@ -973,11 +973,16 @@ async def admin_stats(
         select(sqlfunc.count()).select_from(User)
         .where(User.role == "adherent", User.actif == True)
     )).scalar()
+    from models import Centre
+    centres_actifs = (await db.execute(
+        select(sqlfunc.count()).select_from(Centre).where(Centre.statut == "actif")
+    )).scalar()
     return {
         "par_role": par_role,
         "total": sum(par_role.values()),
         "adherents_actifs": adherents_actifs,
         "adherents_inactifs": par_role.get("adherent", 0) - adherents_actifs,
+        "centres_partenaires": centres_actifs,
     }
 
 
