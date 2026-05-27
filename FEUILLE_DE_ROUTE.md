@@ -7,12 +7,11 @@
 
 ## Dernière mise à jour
 
-**2026-05-27 · soir (UTC+2) · Session 15 (autonome)**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `1934ccb`
-**Build #54 🔄 En cours** — APK v1.2.15 (fix TeleconsultationScreen salle d'attente + polling).
-**Session 15** : TeleconsultationScreen réécrit avec salle d'attente + polling statut RDV toutes
-les 10s. Décisions utilisateur documentées : Jitsi public (meet.jit.si) pendant 2 semaines de
-test, déploiement prod cible aujourd'hui, Niveau 2 (blocs 6-10) à réaliser en 2 semaines.
+**2026-05-27 · nuit (UTC+2) · Session 16 (autonome)**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `f424541`
+**Builds #58-60 🔄 En cours** — APK v1.2.18 (lien_auxiliaire mapping, Linking import fix).
+**Session 16** : Propagation complète des liens Jitsi lien_medecin+lien_auxiliaire, corrections
+de bugs (Linking non importé, mapping API → state), déploiement backend prod, APK v1.2.17 distribué.
 
 ---
 
@@ -590,6 +589,70 @@ Phase 'termine'   → Écran "Consultation terminée", bouton retour accueil
 |-------|---------|--------|---------|
 | #54 | v1.2.15 | ✅ SUCCÈS | TeleconsultationScreen polling + salle d'attente |
 | #55/#56 | v1.2.16 | ✅ SUCCÈS | Jitsi in-app médecin + auxiliaire |
+
+---
+
+### Session 16 — 2026-05-27 · nuit (autonome, suite session 15)
+**Propagation Jitsi complète + bugs critiques corrigés + déploiement prod**
+
+#### Contexte de reprise
+Session 15 avait corrigé TeleconsultationScreen (polling) et ConsultationEnCoursScreen/SuiviPatientScreen
+(navigation interne au lieu d'ouvrir le navigateur). Deux fichiers restaient non commités.
+
+#### Travaux effectués
+
+**1. Commits des fichiers en attente depuis session 15**
+
+| Commit | Fichier | Fix |
+|--------|---------|-----|
+| `ea6abe5` | `MedecinDashboardScreen.tsx` | `lien_medecin?: string` dans le type + navPayload |
+| `ea6abe5` | `AuxiliaireHomeScreen.tsx` | `lien_auxiliaire?: string` dans le type + navPayload |
+
+**2. Déploiement backend production** (serveur 5.75.149.155)
+- `git pull` — 34 fichiers mis à jour (2987 lignes de code ajoutées)
+- `docker compose restart santesd-api` — API redémarrée ✅
+
+**3. Bug critique découvert et corrigé : mapping API → state incomplet**
+`AuxiliaireHomeScreen` effectuait un `.map(r => ({...}))` explicite sur la réponse API
+mais omettait `lien_auxiliaire: r.lien_auxiliaire`. Le champ était dans le type et dans le navPayload
+mais sa valeur était **toujours `undefined`** car jamais extrait de la réponse.
+
+| Commit | Fix |
+|--------|-----|
+| `f424541` | `lien_auxiliaire: r.lien_auxiliaire` ajouté dans le map |
+
+**4. Bug SuiviPatientScreen : `Linking` non importé**
+L'import `Linking` manquait alors qu'il était utilisé sur le bouton "SAMU 15" → crash runtime.
+
+| Commit | Fix |
+|--------|-----|
+| `ec94b27` | `Linking` ajouté à l'import react-native |
+
+**5. APK v1.2.17 téléchargé et remplacé**
+Build #57 terminé avec succès → APK téléchargé → `apk-release/SanteDirect-v1.2.16.apk` remplacé par `SanteDirect-v1.2.17.apk`.
+
+#### Builds CI session 16
+
+| Run # | Version | Commit | Statut | Contenu |
+|-------|---------|--------|--------|---------|
+| #57 | v1.2.17 | `a72eb60` | ✅ SUCCÈS | DashboardScreen rdv_id+url+medecin vers TeleconsultationScreen |
+| #58 | — | `ea6abe5` | 🔄 En cours | lien_medecin+lien_auxiliaire types + navPayload |
+| #59 | v1.2.18 | `ec94b27` | 🔄 En cours | Linking import fix + bump version |
+| #60 | — | `f424541` | ⏳ Queued | lien_auxiliaire mapping API → state |
+
+#### État du flux de téléconsultation (après session 16)
+
+```
+[Patient]        PriseRDVScreen → Teleconsultation(rdv_id, url=lien_patient, role='patient')  ✅
+[Patient]        DashboardScreen → Teleconsultation(rdv_id, url=lien_patient, role='patient')  ✅
+[Médecin]        MedecinDashboard → ConsultationEnCours(consultation.lien_medecin)             ✅
+[Médecin]        ConsultationEnCours.rejoindreVideo → Teleconsultation(url=lien_medecin)       ✅
+[Auxiliaire]     AuxiliaireHome → SuiviPatient(consultation.lien_auxiliaire)                  ✅ (f424541)
+[Auxiliaire]     SuiviPatient.rejoindreConsultation → Teleconsultation(url=lien_auxiliaire)    ✅
+[TeleconsScreen] Phase 'attente' → polling GET /rdv/{rdv_id} toutes 10s                        ✅
+[TeleconsScreen] statut 'en_cours' → WebView Jitsi meet.jit.si                                 ✅
+[TeleconsScreen] statut 'termine' → écran fin + popToTop                                       ✅
+```
 
 ---
 
