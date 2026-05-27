@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Linking,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert,
 } from 'react-native';
 import { useAuth } from '../../components/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../../components/theme';
@@ -14,12 +14,16 @@ export default function SuiviPatientScreen({ route, navigation }: Props) {
   const medecin = consultation?.medecin;
 
   function rejoindreConsultation() {
-    if (consultation?.lien_auxiliaire) {
-      Linking.openURL(consultation.lien_auxiliaire).catch(() =>
-        Alert.alert('Erreur', 'Impossible d\'ouvrir le lien vidéo.')
-      );
+    const lien = consultation?.lien_auxiliaire ?? consultation?.lien ?? consultation?.url;
+    if (lien) {
+      navigation.navigate('Teleconsultation', {
+        rdv_id: consultation?.id,
+        url: lien,
+        medecin: medecin ? `${medecin.prenom ?? ''} ${medecin.nom ?? ''}`.trim() : undefined,
+        role: 'auxiliaire',
+      });
     } else {
-      Alert.alert('Consultation', 'Lien vidéo non disponible. Vérifiez la connexion.');
+      Alert.alert('Consultation', 'Lien vidéo non disponible pour cette consultation.');
     }
   }
 
