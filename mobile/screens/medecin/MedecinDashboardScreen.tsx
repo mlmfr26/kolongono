@@ -1,41 +1,48 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch, ActivityIndicator,
 } from 'react-native';
 import dayjs from 'dayjs';
 import 'dayjs/locale/fr';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../components/AuthContext';
+import { api } from '../../components/api';
 import { colors, spacing, radius, fontSize, fontWeight, shadow, palette } from '../../components/theme';
 import { Icon, type IconName } from '../../components/Icons';
 
 dayjs.locale('fr');
 
-const DEMO_RDVS_MEDECIN = [
-  {
-    id: 'CONS-2026-AA1B2C',
-    patient: { prenom: 'Marie', nom: 'KABONGO', age: 34 },
-    motif: 'Fièvre et maux de tête depuis 2 jours',
-    date_heure: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-    statut: 'planifie',
-    signes_vitaux: { temperature: 38.7, tension: '130/85', pouls: 92, tdr: 'paludisme_positif' },
-    pre_consultation_faite: true,
-  },
-  {
-    id: 'CONS-2026-DD3E4F',
-    patient: { prenom: 'Joseph', nom: 'MUTOMBO', age: 8 },
-    motif: 'Consultation pédiatrique de suivi',
-    date_heure: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
-    statut: 'planifie',
-    signes_vitaux: null,
-    pre_consultation_faite: false,
-  },
-];
+type RdvMedecin = {
+  id: string;
+  patient_id: string;
+  patient_nom: string;
+  motif: string;
+  date: string;
+  heure_debut: string;
+  statut: string;
+};
 
 export default function MedecinDashboardScreen({ navigation }: any) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [disponible, setDisponible] = useState(true);
+  const [rdvs,       setRdvs]       = useState<RdvMedecin[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [terminees,  setTerminees]  = useState(0);
 
-  const prochains = DEMO_RDVS_MEDECIN.filter(r => r.statut === 'planifie');
+  useFocusEffect(useCallback(() => {
+    if (!user) { setLoading(false); return; }
+    const today = new Date().toISOString().split('T')[0];
+    setLoading(true);
+    api.get<{ rendez_vous: RdvMedecin[] }>(
+      `/api/consultations/rdv?medecin_id=${user.id}&date=${today}`, token
+    ).then(d => {
+      const list = d.rendez_vous || [];
+      setRdvs(list);
+      setTerminees(list.filter(r => r.statut === 'termine').length);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, [user, token]));
+
+  const prochains = rdvs.filter(r => r.statut === 'planifie' || r.statut === 'en_cours');
 
   return (
     <View style={styles.root}>
@@ -59,25 +66,37 @@ export default function MedecinDashboardScreen({ navigation }: any) {
           </View>
         </View>
         <View style={styles.headerStats}>
-          <StatItem val={prochains.length.toString()} lbl="consultations aujourd'hui" />
+          <StatItem val={loading ? '…' : prochains.length.toString()} lbl="à venir aujourd'hui" />
           <StatDivider />
-          <StatItem val={prochains.filter(r => r.pre_consultation_faite).length.toString()} lbl="fiches complètes" color="#4ADE80" />
+          <StatItem val={loading ? '…' : terminees.toString()} lbl="terminées" color="#4ADE80" />
           <StatDivider />
-          <StatItem val="0" lbl="urgences" />
+          <StatItem val={loading ? '…' : rdvs.length.toString()} lbl="total du jour" />
         </View>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={styles.secLabel}>CONSULTATIONS À VENIR</Text>
 
-        {prochains.map(rdv => {
-          const minutesAvant = Math.round((new Date(rdv.date_heure).getTime() - Date.now()) / 60000);
+        {loading && (
+          <View style={styles.emptyBox}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        )}
+
+        {!loading && prochains.map(rdv => {
+          const heureStr = rdv.heure_debut || '—';
+          const [h, m] = heureStr.split(':').map(Number);
+          const rdvTime = new Date();
+          rdvTime.setHours(h || 0, m || 0, 0, 0);
+          const minutesAvant = Math.round((rdvTime.getTime() - Date.now()) / 60000);
           const urgent = minutesAvant <= 15 && minutesAvant >= 0;
+          const parts = rdv.patient_nom.split(' ');
+          const initiales = parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}` : rdv.patient_nom.substring(0, 2);
           return (
             <TouchableOpacity
               key={rdv.id}
               style={[styles.rdvCard, urgent && styles.rdvCardUrgent]}
-              onPress={() => navigation.navigate('ConsultationEnCours', { consultation: rdv })}
+              onPress={() => navigation.navigate('ConsultationEnCours', { consultation: { id: rdv.id, patient: { prenom: parts[0], nom: parts.slice(1).join(' '), age: '' }, motif: rdv.motif, statut: rdv.statut, signes_vitaux: null, pre_consultation_faite: false } })}
               activeOpacity={0.85}
             >
               {urgent && (
@@ -87,50 +106,29 @@ export default function MedecinDashboardScreen({ navigation }: any) {
               )}
               <View style={styles.rdvHeader}>
                 <View style={styles.rdvAvatar}>
-                  <Text style={styles.rdvAvatarText}>{rdv.patient.prenom[0]}{rdv.patient.nom[0]}</Text>
+                  <Text style={styles.rdvAvatarText}>{initiales.toUpperCase()}</Text>
                 </View>
                 <View style={styles.rdvInfo}>
-                  <Text style={styles.rdvPatient}>{rdv.patient.prenom} {rdv.patient.nom}</Text>
-                  <Text style={styles.rdvAge}>{rdv.patient.age} ans</Text>
+                  <Text style={styles.rdvPatient}>{rdv.patient_nom}</Text>
                   <Text style={styles.rdvMotif} numberOfLines={1}>{rdv.motif}</Text>
                 </View>
                 <View style={styles.rdvTime}>
-                  <Text style={styles.rdvHeure}>{dayjs(rdv.date_heure).format('HH:mm')}</Text>
+                  <Text style={styles.rdvHeure}>{heureStr}</Text>
                 </View>
               </View>
-
-              {rdv.signes_vitaux ? (
-                <View style={styles.signesRow}>
-                  <SigneBadge iconName="thermometer" val={`${rdv.signes_vitaux.temperature}°C`} alert={rdv.signes_vitaux.temperature >= 38} />
-                  <SigneBadge iconName="heart-pulse" val={rdv.signes_vitaux.tension} />
-                  <SigneBadge iconName="heart"       val={`${rdv.signes_vitaux.pouls} bpm`} />
-                  {rdv.signes_vitaux.tdr && (
-                    <SigneBadge
-                      iconName="test-tube"
-                      val={rdv.signes_vitaux.tdr.replace('_', ' ')}
-                      alert={rdv.signes_vitaux.tdr.includes('positif')}
-                    />
-                  )}
-                </View>
-              ) : (
-                <View style={styles.noSignes}>
-                  <Text style={styles.noSignesText}>Pré-consultation non complétée</Text>
-                </View>
-              )}
-
               <View style={styles.rdvCta}>
-                <Text style={[styles.rdvCtaText, { color: rdv.pre_consultation_faite ? palette.greenDeep : colors.warning }]}>
-                  {rdv.pre_consultation_faite ? 'Prêt — Démarrer la consultation' : 'En attente de la pré-consultation'}
+                <Text style={[styles.rdvCtaText, { color: rdv.statut === 'en_cours' ? palette.greenDeep : colors.warning }]}>
+                  {rdv.statut === 'en_cours' ? 'En cours — Rejoindre' : 'Planifié — Démarrer'}
                 </Text>
               </View>
             </TouchableOpacity>
           );
         })}
 
-        {prochains.length === 0 && (
+        {!loading && prochains.length === 0 && (
           <View style={styles.emptyBox}>
             <Icon name="stethoscope" size={48} color={colors.textLight} strokeWidth={1.2} />
-            <Text style={styles.emptyText}>Aucune consultation planifiée</Text>
+            <Text style={styles.emptyText}>Aucune consultation planifiée aujourd'hui</Text>
           </View>
         )}
 
@@ -138,15 +136,14 @@ export default function MedecinDashboardScreen({ navigation }: any) {
         <Text style={styles.secLabel}>RÉSUMÉ JOURNÉE</Text>
         <View style={styles.resumeCard}>
           {([
-            { iconName: 'check-circle' as IconName, label: 'Consultations terminées', val: '3' },
-            { iconName: 'file-text'    as IconName, label: 'Ordonnances émises',      val: '3' },
-            { iconName: 'pill'         as IconName, label: 'Commandes pharmacie',     val: '2' },
-            { iconName: 'star-filled'  as IconName, label: 'Note moyenne patients',   val: '4.9' },
+            { iconName: 'check-circle' as IconName, label: 'Consultations terminées', val: terminees.toString() },
+            { iconName: 'calendar'     as IconName, label: 'Total planifiées',        val: rdvs.length.toString() },
+            { iconName: 'clock'        as IconName, label: 'En attente',              val: prochains.length.toString() },
           ]).map((s, i) => (
-            <View key={i} style={[styles.resumeRow, i < 3 && styles.resumeRowBorder]}>
+            <View key={i} style={[styles.resumeRow, i < 2 && styles.resumeRowBorder]}>
               <Icon name={s.iconName} size={18} color={colors.primary} />
               <Text style={styles.resumeLabel}>{s.label}</Text>
-              <Text style={styles.resumeVal}>{s.val}</Text>
+              <Text style={styles.resumeVal}>{loading ? '…' : s.val}</Text>
             </View>
           ))}
         </View>
@@ -214,7 +211,6 @@ const styles = StyleSheet.create({
   rdvAvatarText: { fontSize: fontSize.md, fontWeight: fontWeight.black, color: palette.blueDeep },
   rdvInfo:       { flex: 1 },
   rdvPatient:    { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.text },
-  rdvAge:        { fontSize: fontSize.xs, color: colors.textMuted },
   rdvMotif:      { fontSize: fontSize.sm, color: colors.textMuted, marginTop: 2 },
   rdvTime:       {},
   rdvHeure:      { fontSize: fontSize.lg, fontWeight: fontWeight.black, color: colors.text },
