@@ -22,6 +22,18 @@ type DemandeAux = {
   created_at: string;
 };
 
+type ConsAux = {
+  id: string;
+  patient_id: string;
+  patient_nom: string;
+  medecin_nom: string;
+  motif: string;
+  date: string;
+  heure_debut: string;
+  statut: string;
+  pre_consultation_faite: boolean;
+};
+
 const URGENCE_AUX = {
   faible: { bg: '#ECFDF5', text: '#065F46', label: 'Faible'   },
   modere: { bg: '#EFF6FF', text: '#1E40AF', label: 'Modérée'  },
@@ -47,41 +59,40 @@ const DEMO_DEMANDES_AUX: DemandeAux[] = [
   },
 ];
 
-const DEMO_CONSULTATIONS_AUX = [
-  {
-    id: 'CONS-2026-AA1B2C',
-    patient: { id: 'ADH-001', prenom: 'Marie', nom: 'KABONGO' },
-    medecin: { prenom: 'Emmanuel', nom: 'LUKUSA', specialite: 'Médecine générale' },
-    motif: 'Fièvre et maux de tête depuis 2 jours',
-    date_heure: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-    statut: 'planifie',
-    pre_consultation_faite: false,
-  },
-  {
-    id: 'CONS-2026-DD3E4F',
-    patient: { id: 'ADH-002', prenom: 'Joseph', nom: 'MUTOMBO' },
-    medecin: { prenom: 'Béatrice', nom: 'MWAMBA', specialite: 'Pédiatrie' },
-    motif: 'Consultation de suivi',
-    date_heure: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
-    statut: 'planifie',
-    pre_consultation_faite: false,
-  },
-];
 
 export default function AuxiliaireHomeScreen({ navigation }: any) {
   const { user, token } = useAuth();
-  const [consultations, setConsultations] = useState(DEMO_CONSULTATIONS_AUX);
+  const [consultations, setConsultations] = useState<ConsAux[]>([]);
   const [demandes,      setDemandes]      = useState<DemandeAux[]>(DEMO_DEMANDES_AUX);
-  const [loading,       setLoading]       = useState(false);
+  const [loading,       setLoading]       = useState(true);
   const [refreshing,    setRefreshing]    = useState(false);
 
-  useFocusEffect(useCallback(() => {
-    let cancelled = false;
-    api.get<{ demandes: DemandeAux[] }>('/api/consultations/demandes', token)
-      .then(d => { if (!cancelled && d.demandes) setDemandes(d.demandes); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [token]));
+  const loadData = useCallback((isRefresh = false) => {
+    if (!user) { setLoading(false); return; }
+    if (!isRefresh) setLoading(true);
+    const today = new Date().toISOString().split('T')[0];
+    Promise.all([
+      api.get<{ demandes: DemandeAux[] }>('/api/consultations/demandes', token).catch(() => null),
+      api.get<{ rendez_vous: any[] }>(`/api/consultations/rdv?auxiliaire_id=${user.id}&date=${today}`, token).catch(() => null),
+    ]).then(([dRes, rRes]) => {
+      if (dRes?.demandes) setDemandes(dRes.demandes);
+      if (rRes?.rendez_vous) {
+        setConsultations(rRes.rendez_vous.map(r => ({
+          id: r.id,
+          patient_id: r.patient_id || '',
+          patient_nom: r.patient_nom || r.patient_id || '—',
+          medecin_nom: r.medecin_nom || '',
+          motif: r.motif || '',
+          date: r.date || today,
+          heure_debut: r.heure_debut || '',
+          statut: r.statut || 'planifie',
+          pre_consultation_faite: r.pre_consultation_faite ?? false,
+        })));
+      }
+    }).finally(() => { setLoading(false); setRefreshing(false); });
+  }, [user, token]);
+
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   const prochaine = consultations.find(c => c.statut === 'planifie');
   const urgentes  = consultations.filter(c => !c.pre_consultation_faite && c.statut === 'planifie');
@@ -112,7 +123,7 @@ export default function AuxiliaireHomeScreen({ navigation }: any) {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(false)} colors={[palette.greenDeep]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(true); }} colors={[palette.greenDeep]} />}
       >
         {urgentes.length > 0 && (
           <View style={styles.alerteBanner}>
@@ -175,9 +186,26 @@ export default function AuxiliaireHomeScreen({ navigation }: any) {
 
         <Text style={styles.secLabel}>CONSULTATIONS DU JOUR</Text>
 
+        {loading && consultations.length === 0 && (
+          <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+            <ActivityIndicator size="large" color={palette.greenDeep} />
+          </View>
+        )}
+
+        {!loading && consultations.length === 0 && (
+          <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+            <Icon name="calendar" size={40} color={colors.textLight} strokeWidth={1.2} />
+            <Text style={{ color: colors.textMuted, marginTop: 8, fontSize: fontSize.md }}>Aucune consultation planifiée aujourd'hui</Text>
+          </View>
+        )}
+
         {consultations.map(cons => {
-          const minutesAvant = Math.round((new Date(cons.date_heure).getTime() - Date.now()) / 60000);
+          const dateHeure = cons.heure_debut ? `${cons.date}T${cons.heure_debut}` : cons.date;
+          const minutesAvant = Math.round((new Date(dateHeure).getTime() - Date.now()) / 60000);
           const urgent = minutesAvant <= 15 && minutesAvant >= 0;
+          const parts = cons.patient_nom.split(' ');
+          const initiales = parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}` : cons.patient_nom.substring(0, 2);
+          const navPayload = { id: cons.id, patient: { prenom: parts[0] || '', nom: parts.slice(1).join(' ') || '' }, motif: cons.motif, statut: cons.statut, signes_vitaux: null, pre_consultation_faite: cons.pre_consultation_faite };
           return (
             <View key={cons.id} style={[styles.consCard, urgent && styles.consCardUrgent]}>
               {urgent && (
@@ -188,16 +216,16 @@ export default function AuxiliaireHomeScreen({ navigation }: any) {
               <View style={styles.consHeader}>
                 <View style={styles.consPatient}>
                   <View style={styles.consAvatar}>
-                    <Text style={styles.consAvatarText}>{cons.patient.prenom[0]}{cons.patient.nom[0]}</Text>
+                    <Text style={styles.consAvatarText}>{initiales.toUpperCase()}</Text>
                   </View>
                   <View>
-                    <Text style={styles.consPatientNom}>{cons.patient.prenom} {cons.patient.nom}</Text>
-                    <Text style={styles.consMedecin}>Dr. {cons.medecin.prenom} {cons.medecin.nom}</Text>
+                    <Text style={styles.consPatientNom}>{cons.patient_nom}</Text>
+                    {cons.medecin_nom ? <Text style={styles.consMedecin}>Dr. {cons.medecin_nom}</Text> : null}
                   </View>
                 </View>
                 <View style={styles.consTime}>
-                  <Text style={styles.consHeure}>{dayjs(cons.date_heure).format('HH:mm')}</Text>
-                  <Text style={styles.consDate}>{dayjs(cons.date_heure).format('D MMM')}</Text>
+                  <Text style={styles.consHeure}>{cons.heure_debut || '—'}</Text>
+                  <Text style={styles.consDate}>{dayjs(cons.date).format('D MMM')}</Text>
                 </View>
               </View>
 
@@ -207,7 +235,7 @@ export default function AuxiliaireHomeScreen({ navigation }: any) {
                 <TouchableOpacity
                   style={[styles.preConsBtn, cons.pre_consultation_faite && styles.preConsBtnDone]}
                   activeOpacity={0.85}
-                  onPress={() => navigation.navigate('SaisieSignesVitaux', { consultation: cons })}
+                  onPress={() => navigation.navigate('SaisieSignesVitaux', { consultation: navPayload })}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     {cons.pre_consultation_faite && <Icon name="check" size={14} color={colors.primaryDark} />}
@@ -218,7 +246,7 @@ export default function AuxiliaireHomeScreen({ navigation }: any) {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.suiBtn}
-                  onPress={() => navigation.navigate('SuiviPatient', { consultation: cons })}
+                  onPress={() => navigation.navigate('SuiviPatient', { consultation: navPayload })}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <Text style={styles.suiBtnText}>Suivi</Text>
