@@ -72,6 +72,8 @@ export default function DashboardScreen({ navigation }: any) {
       const r = await api.get<{ rendez_vous: any[] }>(`/api/consultations/rdv?patient_id=${user.id}`, token);
       setRdvs((r.rendez_vous ?? []).map(rv => ({
         consultation_id: rv.id,
+        lien_patient: rv.lien_patient,
+        medecin_nom: rv.medecin_nom,
         date_heure: rv.date && rv.heure_debut ? `${rv.date}T${rv.heure_debut}` : rv.date ?? '',
         motif: rv.motif ?? '',
         statut: rv.statut ?? 'planifie',
@@ -245,7 +247,12 @@ export default function DashboardScreen({ navigation }: any) {
               </View>
               <TouchableOpacity
                 style={styles.rdvJoinBtn}
-                onPress={() => navigation.navigate('Teleconsultation', { consultation_id: prochainRdv.consultation_id })}
+                onPress={() => navigation.navigate('Teleconsultation', {
+                  rdv_id: prochainRdv.consultation_id,
+                  url: prochainRdv.lien_patient,
+                  medecin: prochainRdv.medecin_nom,
+                  role: 'patient',
+                })}
               >
                 <Icon name="arrow-right" size={16} color={palette.white} />
               </TouchableOpacity>
