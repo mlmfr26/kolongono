@@ -76,6 +76,19 @@ jobs:
             grep "app_name" "$STRINGS"
           fi
 
+      # ── 3.5 Désactiver Metro dev server (APK autonome, sans dev machine) ───────
+      - name: Disable Metro dev server in MainApplication.kt
+        run: |
+          # RN debug builds ont getUseDeveloperSupport()=BuildConfig.DEBUG=true
+          # → l'app cherche Metro au démarrage et affiche "Could not connect to dev server"
+          # Fix : retourner false pour charger le bundle embarqué directement
+          find mobile/android -name "MainApplication.kt" -print0 | \
+            xargs -0 -I{} sed -i \
+              's/getUseDeveloperSupport(): Boolean = BuildConfig\.DEBUG/getUseDeveloperSupport(): Boolean = false/' \
+              {}
+          echo "=== Vérification MainApplication.kt ==="
+          find mobile/android -name "MainApplication.kt" -exec grep -n "getUseDeveloperSupport" {} \; || echo "(fichier non trouvé)"
+
       # ── 4. AGP 8.6 + Gradle 8.7 + compileSdk 35 + JVM 17 ───────────────────────
       - name: Upgrade build config (AGP 8.6 · Gradle 8.7 · compileSdk 35)
         run: |
