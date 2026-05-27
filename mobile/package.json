@@ -1,6 +1,6 @@
 {
   "name": "sante-direct-kolongono",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "SantéDirect Kolongono — Application mobile de santé communautaire",
   "private": true,
   "scripts": {

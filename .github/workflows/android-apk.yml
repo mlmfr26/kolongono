@@ -223,41 +223,50 @@ jobs:
       - name: Generate app icon (cross médical sur fond sombre)
         run: |
           python3 - <<'PY'
-          import struct, zlib, base64, os
+          import struct, zlib, os
 
-          # Icône SVG → PNG via ImageMagick (disponible sur ubuntu-latest)
-          # Fond #1A1A2E (dark) + croix blanche — matching SplashScreen
-          svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-            <rect width="192" height="192" rx="42" fill="#1A1A2E"/>
-            <rect x="76" y="40" width="40" height="112" rx="10" fill="white"/>
-            <rect x="40" y="76" width="112" height="40" rx="10" fill="white"/>
-          </svg>"""
+          # Pure Python PNG generator — no external tools needed
+          # Dark #1A1A2E background + white medical cross
+          def make_icon_png(size):
+              bg = (0x1A, 0x1A, 0x2E, 255)
+              fg = (255, 255, 255, 255)
+              cx = cy = size // 2
+              arm_w = max(3, size // 6)
+              arm_l = max(6, int(size * 0.55))
+              rows = []
+              for y in range(size):
+                  row = bytearray()
+                  for x in range(size):
+                      in_h = abs(y - cy) <= arm_w and abs(x - cx) <= arm_l
+                      in_v = abs(x - cx) <= arm_w and abs(y - cy) <= arm_l
+                      r, g, b, a = fg if (in_h or in_v) else bg
+                      row += bytes([r, g, b, a])
+                  rows.append(bytes(row))
 
-          with open("/tmp/icon.svg", "w") as f:
-              f.write(svg)
+              def chunk(tag, data):
+                  c = tag + data
+                  return struct.pack('>I', len(data)) + c + struct.pack('>I', zlib.crc32(c) & 0xFFFFFFFF)
+
+              ihdr = chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 6, 0, 0, 0))
+              raw = b''.join(b'\x00' + r for r in rows)
+              idat = chunk(b'IDAT', zlib.compress(raw, 9))
+              iend = chunk(b'IEND', b'')
+              return b'\x89PNG\r\n\x1a\n' + ihdr + idat + iend
 
           sizes = {
-              "mipmap-mdpi":    48,
-              "mipmap-hdpi":    72,
-              "mipmap-xhdpi":   96,
-              "mipmap-xxhdpi":  144,
-              "mipmap-xxxhdpi": 192,
+              "mipmap-mdpi": 48, "mipmap-hdpi": 72, "mipmap-xhdpi": 96,
+              "mipmap-xxhdpi": 144, "mipmap-xxxhdpi": 192,
           }
-
-          import subprocess
           dest_base = "mobile/android/app/src/main/res"
           for folder, size in sizes.items():
               out_dir = f"{dest_base}/{folder}"
               os.makedirs(out_dir, exist_ok=True)
+              png = make_icon_png(size)
               for name in ("ic_launcher.png", "ic_launcher_round.png"):
-                  out_path = f"{out_dir}/{name}"
-                  subprocess.run([
-                      "convert", "-background", "none",
-                      "-resize", f"{size}x{size}",
-                      "/tmp/icon.svg", out_path
-                  ], check=True)
+                  with open(f"{out_dir}/{name}", "wb") as f:
+                      f.write(png)
               print(f"✓ {folder} → {size}x{size}")
-          print("=== Icônes générées ===")
+          print("=== Icônes générées (pure Python) ===")
           PY
 
       # ── 6. Permissions caméra ────────────────────────────────────────────────
