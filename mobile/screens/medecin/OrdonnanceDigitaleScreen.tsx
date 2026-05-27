@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TextInput,
   TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
@@ -8,21 +8,21 @@ import { api } from '../../components/api';
 import { colors, spacing, radius, fontSize, fontWeight, shadow, palette } from '../../components/theme';
 import { Icon } from '../../components/Icons';
 
-// ─── Catalogue médicaments ────────────────────────────────────────────────────
+type CatalogueItem = { id: string; nom: string; unite: string; categorie: string; ordonnance: boolean; stock?: number };
 
-const CATALOGUE = [
-  { id: 'PROD-001', nom: 'Paracétamol 500mg',                   unite: 'boîte 20 cp',  categorie: 'Analgésiques',   ordonnance: false },
-  { id: 'PROD-002', nom: 'Amoxicilline 500mg',                  unite: 'boîte 16 gél', categorie: 'Antibiotiques',  ordonnance: true  },
-  { id: 'PROD-003', nom: 'Artéméther/Luméfantrine 20/120mg',    unite: 'boîte 24 cp',  categorie: 'Antipaludéens',  ordonnance: true  },
-  { id: 'PROD-004', nom: 'Sérum de réhydratation orale',        unite: 'sachet',       categorie: 'Réhydratation',  ordonnance: false },
-  { id: 'PROD-005', nom: 'Ciprofloxacine 500mg',                unite: 'boîte 10 cp',  categorie: 'Antibiotiques',  ordonnance: true  },
-  { id: 'PROD-006', nom: 'Vitamine C 500mg',                    unite: 'boîte 20 cp',  categorie: 'Vitamines',      ordonnance: false },
-  { id: 'PROD-007', nom: 'Métronidazole 250mg',                 unite: 'boîte 20 cp',  categorie: 'Antibiotiques',  ordonnance: true  },
-  { id: 'PROD-008', nom: 'Ibuprofène 400mg',                    unite: 'boîte 20 cp',  categorie: 'Anti-inf.',      ordonnance: false },
-  { id: 'PROD-009', nom: 'Amlodipine 5mg',                      unite: 'boîte 30 cp',  categorie: 'Cardiologie',    ordonnance: true  },
-  { id: 'PROD-010', nom: 'Sulfate de zinc 20mg',                unite: 'boîte 10 cp',  categorie: 'Vitamines',      ordonnance: false },
-  { id: 'PROD-011', nom: 'Fer + Acide folique',                 unite: 'boîte 30 cp',  categorie: 'Vitamines',      ordonnance: false },
-  { id: 'PROD-012', nom: 'Albendazole 400mg',                   unite: 'comprimé',     categorie: 'Antiparasitaires',ordonnance: true },
+const CATALOGUE_FALLBACK: CatalogueItem[] = [
+  { id: 'PROD-001', nom: 'Paracétamol 500mg',                   unite: 'boîte 20 cp',  categorie: 'Analgésiques',    ordonnance: false },
+  { id: 'PROD-002', nom: 'Amoxicilline 500mg',                  unite: 'boîte 16 gél', categorie: 'Antibiotiques',   ordonnance: true  },
+  { id: 'PROD-003', nom: 'Artéméther/Luméfantrine 20/120mg',    unite: 'boîte 24 cp',  categorie: 'Antipaludéens',   ordonnance: true  },
+  { id: 'PROD-004', nom: 'Sérum de réhydratation orale',        unite: 'sachet',       categorie: 'Réhydratation',   ordonnance: false },
+  { id: 'PROD-005', nom: 'Ciprofloxacine 500mg',                unite: 'boîte 10 cp',  categorie: 'Antibiotiques',   ordonnance: true  },
+  { id: 'PROD-006', nom: 'Vitamine C 500mg',                    unite: 'boîte 20 cp',  categorie: 'Vitamines',       ordonnance: false },
+  { id: 'PROD-007', nom: 'Métronidazole 250mg',                 unite: 'boîte 20 cp',  categorie: 'Antibiotiques',   ordonnance: true  },
+  { id: 'PROD-008', nom: 'Ibuprofène 400mg',                    unite: 'boîte 20 cp',  categorie: 'Anti-inf.',       ordonnance: false },
+  { id: 'PROD-009', nom: 'Amlodipine 5mg',                      unite: 'boîte 30 cp',  categorie: 'Cardiologie',     ordonnance: true  },
+  { id: 'PROD-010', nom: 'Sulfate de zinc 20mg',                unite: 'boîte 10 cp',  categorie: 'Vitamines',       ordonnance: false },
+  { id: 'PROD-011', nom: 'Fer + Acide folique',                 unite: 'boîte 30 cp',  categorie: 'Vitamines',       ordonnance: false },
+  { id: 'PROD-012', nom: 'Albendazole 400mg',                   unite: 'comprimé',     categorie: 'Antiparasitaires',ordonnance: true  },
 ];
 
 type CartItem = {
@@ -48,6 +48,24 @@ export default function OrdonnanceDigitaleScreen({ route, navigation }: Props) {
   const [renouvAuth,      setRenouvAuth]      = useState(false);
   const [nbRenouvMax,     setNbRenouvMax]     = useState('1');
   const [loading,         setLoading]         = useState(false);
+  const [catalogue,       setCatalogue]       = useState<CatalogueItem[]>(CATALOGUE_FALLBACK);
+
+  useEffect(() => {
+    api.get<{ items: any[]; total: number }>('/api/pharmacie/ean/list?limit=200', token)
+      .then(d => {
+        if (d.items && d.items.length > 0) {
+          setCatalogue(d.items.map(m => ({
+            id: m.code || m.ean,
+            nom: m.nom + (m.dosage ? ` ${m.dosage}` : ''),
+            unite: m.forme || 'unité',
+            categorie: m.categorie || 'Autre',
+            ordonnance: m.prescription ?? true,
+            stock: m.stock_total ?? 0,
+          })));
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   // ── Panier helpers ──────────────────────────────────────────────────────────
 
@@ -55,7 +73,7 @@ export default function OrdonnanceDigitaleScreen({ route, navigation }: Props) {
     return panier.some(p => p.id === id);
   }
 
-  function ajouterAuPanier(med: typeof CATALOGUE[0]) {
+  function ajouterAuPanier(med: CatalogueItem) {
     if (estDansPanier(med.id)) return;
     setPanier(prev => [...prev, { id: med.id, nom: med.nom, unite: med.unite, quantite: 1, posologie: '' }]);
   }
@@ -136,9 +154,9 @@ export default function OrdonnanceDigitaleScreen({ route, navigation }: Props) {
 
   // ── Catalogue filtré ────────────────────────────────────────────────────────
 
-  const catalogue = recherche.trim()
-    ? CATALOGUE.filter(m => m.nom.toLowerCase().includes(recherche.toLowerCase()) || m.categorie.toLowerCase().includes(recherche.toLowerCase()))
-    : CATALOGUE;
+  const catalogueFiltré = recherche.trim()
+    ? catalogue.filter(m => m.nom.toLowerCase().includes(recherche.toLowerCase()) || m.categorie.toLowerCase().includes(recherche.toLowerCase()))
+    : catalogue;
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -197,7 +215,7 @@ export default function OrdonnanceDigitaleScreen({ route, navigation }: Props) {
           </View>
 
           {/* Liste du catalogue */}
-          {catalogue.map(med => {
+          {catalogueFiltré.map(med => {
             const inCart = estDansPanier(med.id);
             return (
               <View key={med.id} style={styles.medRow}>
@@ -210,7 +228,10 @@ export default function OrdonnanceDigitaleScreen({ route, navigation }: Props) {
                       </View>
                     )}
                   </View>
-                  <Text style={styles.medUnite}>{med.unite} · {med.categorie}</Text>
+                  <Text style={styles.medUnite}>
+                    {med.unite} · {med.categorie}
+                    {med.stock !== undefined ? ` · ${med.stock > 0 ? `Stock: ${med.stock}` : 'Rupture'}` : ''}
+                  </Text>
                 </View>
                 <TouchableOpacity
                   style={[styles.addBtn, inCart && styles.addBtnDone]}
