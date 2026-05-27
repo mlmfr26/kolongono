@@ -52,6 +52,12 @@ jobs:
           echo "=== android/ généré ==="
           ls "$DEST"
 
+      # ── 2.5 Injecter google-services.json ───────────────────────────────────
+      - name: Inject google-services.json
+        run: |
+          cp mobile/google-services.json mobile/android/app/google-services.json
+          echo "✓ google-services.json → android/app/"
+
       # ── 3. Corriger le package name + app name ───────────────────────────────
       - name: Fix package name → com.santesd.kolongono + app name → SantéDirect
         run: |
@@ -78,6 +84,18 @@ jobs:
             echo "✓ app_name → SantéDirect"
             grep "app_name" "$STRINGS"
           fi
+
+      # ── 3.3 Appliquer le plugin google-services dans app/build.gradle ──────────
+      - name: Apply google-services plugin in app/build.gradle
+        run: |
+          ABG="mobile/android/app/build.gradle"
+          if grep -q "com.google.gms.google-services" "$ABG"; then
+            echo "Plugin déjà présent"
+          else
+            sed -i '/^apply plugin: "com.android.application"/a apply plugin: "com.google.gms.google-services"' "$ABG"
+            echo "✓ com.google.gms.google-services appliqué"
+          fi
+          grep "gms" "$ABG" || echo "(plugin non trouvé — vérifier)"
 
       # ── 3.5 Désactiver Metro dev server (APK autonome, sans dev machine) ───────
       - name: Disable Metro dev server in MainApplication.kt
@@ -127,6 +145,7 @@ jobs:
               '        classpath("com.android.tools.build:gradle:8.6.0")\n'
               '        classpath("com.facebook.react:react-native-gradle-plugin")\n'
               '        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")\n'
+              '        classpath("com.google.gms:google-services:4.4.2")\n'
               '    }\n'
               '}\n'
               '\n'

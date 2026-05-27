@@ -1,6 +1,6 @@
 {
   "name": "sante-direct-kolongono",
-  "version": "1.2.20",
+  "version": "1.2.21",
   "description": "SantéDirect Kolongono — Application mobile de santé communautaire",
   "private": true,
   "scripts": {
@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.21.0",
+    "@react-native-firebase/app": "18.9.0",
+    "@react-native-firebase/messaging": "18.9.0",
     "@react-navigation/bottom-tabs": "^6.5.0",
     "@react-navigation/native": "^6.1.0",
     "@react-navigation/stack": "^6.3.0",

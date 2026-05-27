@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "847541701295",
+    "project_id": "kolongono-d6823",
+    "storage_bucket": "kolongono-d6823.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:847541701295:android:77a992914fabef53e4a25a",
+        "android_client_info": {
+          "package_name": "com.kolongono.santedirect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwhFH1OXV3MScjXNbpiY4uBgNIwGMmDtY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

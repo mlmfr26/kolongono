@@ -174,7 +174,7 @@ function AdherentPlusScreen({ navigation }: any) {
           <Text style={plusStyles.logoutText}>Se déconnecter</Text>
         </View>
       </TouchableOpacity>
-      <Text style={plusStyles.version}>SantéDirect Kolongono v1.2.20 · 2026</Text>
+      <Text style={plusStyles.version}>SantéDirect Kolongono v1.2.21 · 2026</Text>
     </ScrollView>
   );
 }
@@ -264,6 +264,12 @@ function SplashScreen() {
 
 function RootNavigator() {
   const { token, isLoading, user } = useAuth();
+
+  React.useEffect(() => {
+    if (token) {
+      import('./components/FirebaseService').then(m => m.initFirebase(token)).catch(() => {});
+    }
+  }, [token]);
 
   if (isLoading) return <SplashScreen />;
 

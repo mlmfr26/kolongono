@@ -126,7 +126,7 @@ export default function LoginScreen() {
           <Text style={styles.urgenceNum}>SAMU 15  ·  Pompiers 18</Text>
         </View>
 
-        <Text style={styles.version}>SantéDirect Kolongono v1.2.20 · 2026</Text>
+        <Text style={styles.version}>SantéDirect Kolongono v1.2.21 · 2026</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
