@@ -587,15 +587,15 @@
 <div class="page page-hidden" id="page-jitsi">
   <div class="stats-grid mb-lg">
     <div class="stat-card stat-blue" onclick="openDrill('jitsi','sessions')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><div><div class="stat-val" style="color:var(--color-primary)">47</div><div class="stat-label">Sessions aujourd'hui</div></div></div>
-    <div class="stat-card stat-green" onclick="openDrill('jitsi','actives')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><div class="stat-val" style="color:var(--color-auxiliaire)">1</div><div class="stat-label">Actives maintenant</div></div></div>
+    <div class="stat-card stat-green" onclick="openDrill('jitsi','actives')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><div class="stat-val" style="color:var(--color-auxiliaire)" id="jitsi-stat-actives">—</div><div class="stat-label">Actives maintenant</div></div></div>
     <div class="stat-card stat-purple" onclick="openDrill('jitsi','qualite')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></div><div><div class="stat-val" style="color:var(--color-primary)">92%</div><div class="stat-label">Qualité moyenne</div></div></div>
     <div class="stat-card stat-amber" onclick="openDrill('jitsi','duree')"><div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><div class="stat-val" style="color:var(--color-abonnement)">18 min</div><div class="stat-label">Durée moyenne</div></div></div>
   </div>
   <div class="grid-2">
     <div class="card card-body">
       <div class="section-label mb-md">Configuration serveur</div>
-      <div class="detail-row"><span class="detail-row-label">Domaine</span><span class="font-bold" style="color:var(--color-primary)">jitsi.santedirect-kolongono.cd</span></div>
-      <div class="detail-row"><span class="detail-row-label">Fallback public</span><span>meet.jit.si</span></div>
+      <div class="detail-row"><span class="detail-row-label">Domaine actif</span><span class="font-bold" style="color:var(--color-primary)" id="jitsi-domain-label">—</span></div>
+      <div class="detail-row"><span class="detail-row-label">Mode</span><span id="jitsi-mode-label">—</span></div>
       <div class="detail-row"><span class="detail-row-label">Services Docker</span><span class="badge badge-success">jitsi-web · prosody · jicofo · jvb</span></div>
       <div class="detail-row"><span class="detail-row-label">Port UDP (JVB)</span><span class="font-bold">10000/udp</span></div>
       <div class="detail-row"><span class="detail-row-label">Port TCP fallback</span><span class="font-bold">4443</span></div>
@@ -1375,6 +1375,7 @@ function showPage(id) {
   if (id === 'abonnements') loadAbonnements();
   if (id === 'consultations') loadConsultations();
   if (id === 'revenus') loadRevenus();
+  if (id === 'jitsi') loadJitsiStats();
   if (id === 'metrics')     renderMetrics();
   if (id === 'rh' && !_rhInited) { _rhInited = true; renderRH(); }
   if (id === 'centres' && !_centresInited) { _centresInited = true; renderPageCentres(); }
@@ -2515,6 +2516,36 @@ async function loadRevenus() {
       '</div>';
   } catch(e) {
     el.innerHTML = '<p class="text-muted text-sm" style="padding:16px">Données revenus indisponibles — API</p>';
+  }
+}
+
+async function loadJitsiStats() {
+  var tok = localStorage.getItem('sd_token');
+  // Mise à jour des labels domaine/mode
+  var domainEl = document.getElementById('jitsi-domain-label');
+  var modeEl   = document.getElementById('jitsi-mode-label');
+  if (domainEl) domainEl.textContent = 'meet.jit.si';
+  if (modeEl)   modeEl.textContent   = 'Public (phase test)';
+
+  // Nombre de sessions actives depuis l'API
+  var activesEl = document.getElementById('jitsi-stat-actives');
+  if (!activesEl) return;
+  try {
+    var r = await fetch(_APISD + '/api/admin/jitsi/actives',
+      { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var d = await r.json();
+    activesEl.textContent = d.actives != null ? d.actives : '—';
+  } catch(e) {
+    // Fallback : compter les RDV en cours via consultations
+    try {
+      var r2 = await fetch(_APISD + '/api/admin/consultations?statut=en_cours&limit=1',
+        { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
+      if (r2.ok) {
+        var d2 = await r2.json();
+        activesEl.textContent = d2.total != null ? d2.total : '—';
+      } else { activesEl.textContent = '—'; }
+    } catch(e2) { activesEl.textContent = '—'; }
   }
 }
 
