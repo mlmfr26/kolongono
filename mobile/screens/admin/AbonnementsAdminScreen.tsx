@@ -9,10 +9,10 @@ type Abonnement = {
   id: string;
   nom: string;
   plan: string | null;
-  montant_usd: number;
+  prix_usd: number;
   statut: string;
-  date_renouvellement: string | null;
-  nb_mois_impaye: number;
+  date_debut: string | null;
+  actif: boolean;
 };
 
 const PLAN_COLORS: Record<string, string> = { solidaire: '#16A34A', standard: '#0891B2', famille: '#7C3AED', premium: '#D97706' };
@@ -26,17 +26,17 @@ export default function AbonnementsAdminScreen() {
   useFocusEffect(useCallback(() => {
     let cancelled = false;
     setLoading(true);
-    api.get<{ abonnements: Abonnement[] }>('/api/admin/abonnements', token)
-      .then(d => { if (!cancelled && d.abonnements) setAbonnements(d.abonnements); })
+    api.get<{ items: Abonnement[]; total: number }>('/api/admin/abonnements', token)
+      .then(d => { if (!cancelled && d.items) setAbonnements(d.items); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [token]));
 
   const filtered  = abonnements.filter(a => filtre === 'tous' || a.statut === filtre);
-  const actifs    = abonnements.filter(a => a.statut === 'actif');
+  const actifs    = abonnements.filter(a => a.statut === 'actif' || a.actif);
   const impayes   = abonnements.filter(a => a.statut === 'impaye');
-  const totalFC   = actifs.reduce((s, a) => s + a.montant_usd * 2800, 0);
+  const totalFC   = actifs.reduce((s, a) => s + (a.prix_usd ?? 0) * 2800, 0);
 
   return (
     <View style={styles.root}>
@@ -81,7 +81,7 @@ export default function AbonnementsAdminScreen() {
         {filtered.map(a => {
           const planLabel = a.plan ? a.plan.charAt(0).toUpperCase() + a.plan.slice(1) : 'Sans plan';
           const planColor = PLAN_COLORS[a.plan ?? ''] ?? colors.primary;
-          const montantFC = a.montant_usd * 2800;
+          const montantFC = (a.prix_usd ?? 0) * 2800;
           return (
             <View key={a.id} style={styles.adhCard}>
               <View style={styles.adhHeader}>
@@ -111,11 +111,11 @@ export default function AbonnementsAdminScreen() {
                 {montantFC > 0 && (
                   <Text style={styles.adhMontant}>{montantFC.toLocaleString()} FC/mois</Text>
                 )}
-                {a.nb_mois_impaye > 0 && (
-                  <Text style={[styles.adhRenouv, { color: colors.warning }]}>{a.nb_mois_impaye} mois impayé{a.nb_mois_impaye > 1 ? 's' : ''}</Text>
+                {a.statut === 'impaye' && (
+                  <Text style={[styles.adhRenouv, { color: colors.warning }]}>Impayé</Text>
                 )}
-                {a.date_renouvellement && (
-                  <Text style={styles.adhRenouv}>Renouvellement : {a.date_renouvellement}</Text>
+                {a.date_debut && (
+                  <Text style={styles.adhRenouv}>Depuis : {a.date_debut}</Text>
                 )}
               </View>
             </View>
