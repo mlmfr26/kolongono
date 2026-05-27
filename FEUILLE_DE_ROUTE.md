@@ -8,8 +8,8 @@
 ## Dernière mise à jour
 
 **2026-05-27 · nuit (UTC+2) · Session 13 (autonome)**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `e10f741`
-**Builds #45-50 ✅ SUCCÈS** — APK v1.2.11 déployé. Builds #51-53 🔄 EN COURS.
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `717996f`
+**Builds #45-52 ✅ SUCCÈS** — APK v1.2.13 téléchargé et déployé (build #52, 54 MB).
 **Session 13** : RapportsScreen, 5 écrans câblés API (CentreDashboard, Admission, Personnel,
 Réfectoire, MedecinsAdmin), fix PharmacieAdmin EAN list, fix DashboardScreen endpoint RDV,
 ajout GET /api/pharmacie/mouvements admin + GET /api/consultations/ordonnances/renouvelables.
@@ -446,7 +446,7 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 **Builds #41-#43** ✅ SUCCÈS — APK v1.2.9-1.2.10 — catalogue ordonnance EAN + fixes
 **Build #44** ✅ SUCCÈS — APK v1.2.10 téléchargé (54 Mo) — déployé dans `apk-release/`
 **Build #45-50** ✅ SUCCÈS — APK v1.2.11 (RapportsScreen + 5 écrans centre câblés)
-**Builds #51-53** 🔄 EN COURS — APK v1.2.12-1.2.13
+**Builds #51-52** ✅ SUCCÈS — APK v1.2.13 déployé (build #52)
 
 **Commits session 12** :
 
@@ -517,8 +517,8 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 - [x] **APK v1.2.8 (build #40) ✅** — + AuxiliaireHomeScreen + admin screens câblés
 - [x] **APK v1.2.10 (build #44) ✅** — + catalogue ordonnance EAN + fixes admin types
 - [x] **APK v1.2.11 (builds #45-50) ✅** — + MedecinsAdminScreen, RapportsScreen, CentreDashboard, Admission, Personnel, Réfectoire câblés API
-- 🔄 **APK v1.2.12-13 (builds #51-53) EN COURS** — + PharmacieAdmin EAN fix, mouvements admin endpoint, DashboardScreen RDV fix, ordonnances/renouvelables API
-- [ ] **Distribuer APK v1.2.11 aux testeurs terrain via WhatsApp** (une fois build terminé)
+- [x] **APK v1.2.13 (builds #51-52) ✅** — + PharmacieAdmin EAN fix, mouvements admin endpoint, DashboardScreen RDV fix, ordonnances/renouvelables API
+- [ ] **Distribuer APK v1.2.13 aux testeurs terrain via WhatsApp**
 - [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
 
 ---
