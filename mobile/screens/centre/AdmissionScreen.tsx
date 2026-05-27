@@ -90,7 +90,8 @@ const ORIENTATIONS: { key: Orientation; label: string; icon: any; color: string 
 // ─── Composant principal ──────────────────────────────────────────────────────
 
 export default function AdmissionScreen({ navigation }: any) {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
+  const centreId = (user as any)?.centre_id as string | null;
 
   const [admissions, setAdmissions] = useState<Admission[]>(DEMO_ADMISSIONS);
   const [tabActif, setTabActif]     = useState<StatutAdmission>('en_attente');
@@ -101,11 +102,30 @@ export default function AdmissionScreen({ navigation }: any) {
   const [motif, setMotif]           = useState('');
   const [typeForm, setTypeForm]     = useState<TypeConsultation>('consultation');
 
-  useFocusEffect(
-    useCallback(() => {
-      // Fetch API quand disponible
-    }, [token]),
-  );
+  const loadAdmissions = useCallback(() => {
+    if (!centreId) return;
+    const today = new Date().toISOString().split('T')[0];
+    api.get<{ admissions: any[]; total: number }>(
+      `/api/centres/${centreId}/admissions?date=${today}`, token
+    ).then(d => {
+      if (d.admissions) {
+        setAdmissions(d.admissions.map(a => ({
+          id:          a.id,
+          nom_patient: a.patient_nom ?? a.nom_patient ?? '—',
+          motif:       a.motif ?? '',
+          type:        a.type ?? 'consultation',
+          heure:       a.heure_arrivee ?? a.heure ?? '--:--',
+          triage:      a.triage ?? null,
+          statut:      a.statut ?? 'en_attente',
+          orientation: a.orientation ?? null,
+        })));
+      }
+    }).catch(() => {});
+  }, [centreId, token]);
+
+  useFocusEffect(useCallback(() => {
+    loadAdmissions();
+  }, [loadAdmissions]));
 
   const filtered = admissions.filter(a => a.statut === tabActif);
   const counts: Record<StatutAdmission, number> = {
@@ -115,13 +135,14 @@ export default function AdmissionScreen({ navigation }: any) {
     sorti:      admissions.filter(a => a.statut === 'sorti').length,
   };
 
-  function enregistrer() {
+  async function enregistrer() {
     if (!nomPatient.trim() || !motif.trim()) {
       Alert.alert('Champs requis', 'Veuillez renseigner le nom du patient et le motif.');
       return;
     }
     const now = new Date();
     const heure = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const today = now.toISOString().split('T')[0];
     const newAdm: Admission = {
       id: `NEW-${Date.now()}`,
       nom_patient: nomPatient.trim(),
@@ -137,6 +158,19 @@ export default function AdmissionScreen({ navigation }: any) {
     setMotif('');
     setTypeForm('consultation');
     setSelectedId(newAdm.id);
+    if (centreId) {
+      try {
+        await api.post<any>(`/api/centres/${centreId}/admissions`, {
+          patient_nom: nomPatient.trim(),
+          motif: motif.trim(),
+          type: typeForm,
+          heure_arrivee: heure,
+          date: today,
+          statut: 'en_attente',
+        }, token);
+        loadAdmissions();
+      } catch (_) {}
+    }
   }
 
   function appliquerTriage(id: string, triage: Triage, orientation: Orientation) {

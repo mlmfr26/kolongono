@@ -56,15 +56,33 @@ const STATUT_LABELS: Record<string, string> = {
 // ─── Composant principal ──────────────────────────────────────────────────────
 
 export default function CentreDashboardScreen({ navigation }: any) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [stats, setStats] = useState(DEMO_STATS);
 
-  useFocusEffect(
-    useCallback(() => {
-      // Fetch API quand disponible — données démo en attendant
-      // api.get('/api/centre/stats', token).then(setStats).catch(() => setStats(DEMO_STATS));
-    }, []),
-  );
+  useFocusEffect(useCallback(() => {
+    const cid = (user as any)?.centre_id;
+    if (!cid) return;
+    let cancelled = false;
+    api.get<any>(`/api/centres/${cid}/stats`, token)
+      .then(d => {
+        if (cancelled) return;
+        setStats({
+          admissions_jour:       d.admissions_jour      ?? DEMO_STATS.admissions_jour,
+          en_attente_triage:     d.en_attente_triage    ?? DEMO_STATS.en_attente_triage,
+          personnel_present:     d.personnel_present    ?? DEMO_STATS.personnel_present,
+          personnel_total:       DEMO_STATS.personnel_total,
+          lits_occupes:          d.lits_occupes         ?? DEMO_STATS.lits_occupes,
+          lits_total:            d.lits_total           ?? DEMO_STATS.lits_total,
+          consultations_sd_mois: d.consultations_sd_mois ?? DEMO_STATS.consultations_sd_mois,
+          revenus_sd_mois_fc:    Math.round((d.revenus_sd_mois_usd ?? 0) * 2800),
+          auxiliaires_pretees_sd:d.auxiliaires_sd       ?? DEMO_STATS.auxiliaires_pretees_sd,
+          salles_pretees_sd:     d.salles_sd            ?? DEMO_STATS.salles_pretees_sd,
+          medecins_pretes_sd:    d.medecins_sd          ?? DEMO_STATS.medecins_pretes_sd,
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user, token]));
 
   const tauxLits = Math.round((stats.lits_occupes / stats.lits_total) * 100);
 
