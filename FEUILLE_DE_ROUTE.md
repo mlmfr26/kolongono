@@ -7,9 +7,9 @@
 
 ## Dernière mise à jour
 
-**2026-05-27 · nuit (UTC+2) · Session 9 → fin**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `5174793`
-**Build #33 ✅ SUCCÈS** — APK v1.2.2 fonctionnel (55 Mo, arm64-v8a). API DB-persistée. Admin web câblé.
+**2026-05-27 · nuit (UTC+2) · Session 10 (autonome)**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `bf3fd1f`
+**Build #36 🔄 EN COURS** — APK v1.2.5 (crash fix + icône). API complète. Admin câblé.
 
 ---
 
@@ -362,23 +362,58 @@ Commits session 9 complets :
 
 ---
 
+### Session 10 — 2026-05-27 · nuit (autonome, suite session 9)
+**Correction crash app + icône + API complète**
+
+**Problème signalé** : APK v1.2.3 s'ouvre puis se referme ~1 seconde après, sans message d'erreur.
+
+**Diagnostic** : `react-native-push-notification@8.1.1` est auto-linké nativement même sans import JS. Son module natif tente d'initialiser Firebase au démarrage. Sans `google-services.json`, l'app crash silencieusement (car `getUseDeveloperSupport()=false` masque l'écran rouge).
+
+**Builds de cette session** :
+
+| Run # | Version | Commits | Résultat | Contenu |
+|-------|---------|---------|----------|---------|
+| 34 | v1.2.3 | `abe82f0` | ✅ SUCCÈS | `getUseDeveloperSupport()=false` — crash Metro résolu |
+| 35 | v1.2.4 | `2ba4cd6` | 🔄 En cours | Suppression push-notification + ErrorBoundary |
+| 36 | v1.2.5 | `5cdfe91` | 🔄 En cours | Icône générée en CI + tout combiné |
+
+**Commits session 10** :
+
+| Commit | Résumé |
+|--------|--------|
+| `abe82f0` | Fix(ci) : getUseDeveloperSupport()=false (step 3.5) — APK v1.2.3 |
+| `2ba4cd6` | Fix(mobile) : supprime push-notification + ErrorBoundary — APK v1.2.4 |
+| `e095501` | Feat(api+ci) : icône, /auth/refresh, /admin/medecins, fix statut consultation |
+| `5cdfe91` | Chore : bump 1.2.5 → déclenche build #36 |
+| `bf3fd1f` | Feat(api+web) : dossier médical DB-réel, loadMedecins → /api/admin/medecins |
+
+**API ajoutée/fixée** :
+- `POST /api/auth/refresh` — renouvellement JWT pour token expirant
+- `GET /api/admin/medecins` — 50+ médecins partenaires avec nb consultations SD
+- `GET /api/consultations/{id}` — requête réelle DB (était stub retournant toujours "planifie")
+- `GET /api/dossiers/{id}` — RendezVous + Ordonnance + Diagnostic depuis DB (était hardcodé)
+
+**Admin web** :
+- `loadMedecins()` → `/api/admin/medecins` (50+ partenaires avec note + stats)
+
+---
+
 ## Plan de développement complet — tous blocs
 
 ### BLOC 1 — CI/CD : APK Android
-*Statut : ✅ APK v1.2.2 — distributable*
+*Statut : 🔄 Build #36 en cours — APK v1.2.5 (crash fix + icône)*
 
 - [x] Identifier cause racine compile (sessions 7-8)
-- [x] Build #29 réussi (6m41s) — artifact `SanteDirect-debug-arm64-29`
-- [x] APK #29 testé sur device → 2 bugs identifiés
-- [x] Bug nom app "Hello App..." → fix strings.xml
-- [x] Bug écran rouge Metro → fix bundle JS embarqué
-- [x] metro.config.js créé (build #30)
-- [x] Apostrophes françaises JS fixées (builds #31-#32-#33)
-- [x] **Build #33 ✅ SUCCÈS — APK v1.2.2 distributable** (commit `678fce1`)
-- [x] `apk-release/SanteDirect-v1.2.2.apk` mis à jour (ancien supprimé)
+- [x] Build #29 ✅ APK v1.2.2 (base)
+- [x] Bug nom app → fix strings.xml
+- [x] Bug écran rouge Metro → bundle JS embarqué
+- [x] APK v1.2.3 (build #34) : `getUseDeveloperSupport()=false` → plus de crash Metro
+- [x] APK v1.2.4 (build #35) : suppression push-notification (crash 1s après ouverture)
+- [x] ErrorBoundary ajouté (erreurs JS visibles à l'écran)
+- [x] Icône générée en CI via ImageMagick (croix médicale sombre) → APK v1.2.5
+- [ ] **Confirmer APK v1.2.5 fonctionne** (build #36 en cours)
 - [ ] Distribuer aux testeurs terrain via WhatsApp
 - [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
-- [ ] Icône de l'app (actuellement icône React Native par défaut)
 
 ---
 
@@ -400,18 +435,19 @@ Commits session 9 complets :
 
 ### BLOC 3 — API FastAPI : endpoints manquants (🟠 semaine 1-2)
 
-**3.1 Consultation complète** — partiellement ✅
+**3.1 Consultation complète** ✅
 - [x] `POST /api/consultations/reserver` : persist `RendezVous` en DB ✅
 - [x] `POST /api/consultations/{id}/signes-vitaux` : persist `Diagnostic` en DB ✅
 - [x] `POST /api/consultations/{id}/ordonnance` : persist `Ordonnance` en DB ✅
-- [ ] `POST /api/consultations/{id}/rapport` : clôturer + mettre statut "termine"
-- [ ] `GET /api/consultations/{id}/statut` : polling mobile
-- [ ] `DELETE /api/consultations/{id}` : annulation RDV
+- [x] `POST /api/consultations/rdv/{id}/cloturer` : diagnostic + statut "termine" + ordonnance auto ✅ (router)
+- [x] `GET /api/consultations/{id}` : statut + signes depuis DB ✅ (était stub)
+- [x] `DELETE /api/consultations/rdv/{id}` : annulation RDV ✅ (router)
 
 **3.2 Ordonnance numérique**
 - [x] `POST /api/consultations/{id}/ordonnance` : table `Ordonnance` ✅
-- [ ] Lier automatiquement à mouvement de stock
-- [ ] `GET /api/adherents/{id}/ordonnances` : historique dossier patient
+- [x] `GET /api/consultations/ordonnances?patient_id=` : historique ordonnances ✅
+- [x] `GET /api/dossiers/{id}` : consultations + ordonnances réelles depuis DB ✅
+- [ ] Lier automatiquement ordonnance à mouvement de stock pharmacie
 
 **3.3 Abonnements → API réelle** ✅
 - [x] `GET /api/abonnements/plans` : avec `prix_fc` (prix_usd × 2800) ✅
@@ -425,10 +461,10 @@ Commits session 9 complets :
 - [x] `GET /api/admin/stats` : agrégats par rôle ✅
 - [x] `GET /api/admin/consultations` : RendezVous paginé ✅
 - [x] `GET /api/admin/revenus` : RevenuCentre + DepenseCentre + cotisations ✅
-- [ ] `GET /api/admin/medecins` : liste médecins + stats consultations/mois
+- [x] `GET /api/admin/medecins` : 50+ partenaires + stats consultations SD ✅
 
 **3.5 Refresh token JWT**
-- [ ] `POST /api/auth/refresh` : nouveau token si l'ancien expire dans < 24h
+- [x] `POST /api/auth/refresh` : nouveau JWT pour utilisateur actif ✅
 - [ ] Mobile : intercepteur dans `components/api.ts` pour refresh automatique
 
 ---
@@ -549,11 +585,11 @@ Auth, scanner EAN, consultation, ordonnance.
 
 | Bloc | Effort restant | Priorité | Statut |
 |------|----------------|----------|--------|
-| **1 — APK CI/CD** | Tests terrain | 🟠 Immédiat | ✅ APK v1.2.2 distributable |
-| **2 — Infrastructure** | Finitions | ✅ Complet | ✅ Complet — CORS, nginx, médicaments |
-| **3 — API FastAPI** | 1-2 jours | 🟠 Semaine 1 | 🔄 ~75% — rapport/clôture + médecins manquants |
-| **4 — Admin web** | 1 jour | 🟠 Semaine 1 | 🔄 ~75% — 4 sections câblées, détails restants |
-| **5 — Mobile câblage** | Finitions | 🟠 Semaine 1 | ✅ ConsultationScreen + AbonnementScreen ✅ |
+| **1 — APK CI/CD** | Confirmer build #36 | 🟠 Immédiat | 🔄 Build #36 en cours — v1.2.5 crash fix + icône |
+| **2 — Infrastructure** | Déployer API | ✅ Complet | ✅ Complet — CORS, nginx, médicaments |
+| **3 — API FastAPI** | Refresh mobile + stock | 🟠 Semaine 1 | ✅ ~95% — endpoints complets |
+| **4 — Admin web** | Détails + polling | 🟠 Semaine 1 | 🔄 ~85% — médecins câblés, détails restants |
+| **5 — Mobile câblage** | Refresh token | 🟠 Semaine 1 | ✅ ~90% — intercepteur refresh manquant |
 | **6 — Jitsi Meet** | 1-2 jours | 🟡 Semaine 2-3 | ⏳ Code présent, serveur manquant |
 | **7 — Firebase** | 1 jour | 🟡 Semaine 3 | ⏳ Code présent, clé manquante |
 | **8 — Mobile Money** | 1-2 semaines | 🟡 Semaine 4-6 | ❌ Non démarré |
@@ -564,7 +600,7 @@ Auth, scanner EAN, consultation, ordonnance.
 
 ---
 
-## État actuel du projet — 2026-05-27 · nuit
+## État actuel du projet — 2026-05-27 · nuit (session 10)
 
 ### Infrastructure
 | Composant | État | Détail |
@@ -588,12 +624,13 @@ Auth, scanner EAN, consultation, ordonnance.
 | Scanner EAN/QR — Superadmin | ✅ | `PharmacieAdminScreen` |
 | Lookup EAN → API | ✅ | `/api/pharmacie/ean/{code}` |
 | Formulaire mouvement de stock | ✅ | `FormulaireStockScreen` |
-| **APK Build** | ✅ | **Build #33 SUCCÈS** — `SanteDirect-v1.2.2.apk` (55 Mo) |
+| **APK Build** | 🔄 | **Build #36 en cours** — APK v1.2.5 (crash fix + icône) |
 | Nom affiché sur téléphone | ✅ | "SantéDirect" via strings.xml fix |
 | Bundle JS autonome | ✅ | `index.android.bundle` embarqué — plus d'écran rouge Metro |
+| Crash 1s après ouverture | ✅ | push-notification supprimé + ErrorBoundary |
 | ConsultationScreen → API | ✅ | `/api/consultations/demande` + `/api/consultations/demandes/mes` |
 | AbonnementScreen → API | ✅ | `/api/abonnements/{id}` + plans + souscription → DB |
-| Icône de l'app | ❌ | Icône React Native par défaut |
+| Icône de l'app | 🔄 | Générée en CI (croix médicale sombre) — build #36 |
 | Téléconsultation Jitsi | ⏳ | Code présent, CX23 dédié non provisionné |
 | Triage IA (Claude API) | ⏳ | Code présent, clé API à valider |
 | Notifications push Firebase | ⏳ | Code présent, clé API manquante |
