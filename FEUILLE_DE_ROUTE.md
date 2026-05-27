@@ -7,12 +7,12 @@
 
 ## Dernière mise à jour
 
-**2026-05-27 · nuit (UTC+2) · Session 13 (autonome)**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `717996f`
-**Builds #45-52 ✅ SUCCÈS** — APK v1.2.13 téléchargé et déployé (build #52, 54 MB).
-**Session 13** : RapportsScreen, 5 écrans câblés API (CentreDashboard, Admission, Personnel,
-Réfectoire, MedecinsAdmin), fix PharmacieAdmin EAN list, fix DashboardScreen endpoint RDV,
-ajout GET /api/pharmacie/mouvements admin + GET /api/consultations/ordonnances/renouvelables.
+**2026-05-27 · après-midi (UTC+2) · Session 14 (autonome)**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `c56f979`
+**Build #53 ✅ SUCCÈS** — APK v1.2.14 déployé dans `apk-release/` (54 MB).
+**Session 14** : Fix critique `ApiClient` non-exporté (PriseRDVScreen, TriageScreen → toutes
+les API calls crashaient), admin.html câblé sur API réelle (KPIs dashboard live, filtre
+impayés, export CSV), review complète de tous les écrans mobile (29/35 câblés API ✅).
 
 ---
 
@@ -499,6 +499,39 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 
 ---
 
+### Session 14 — 2026-05-27 · après-midi (autonome, suite session 13)
+**Fix critique ApiClient + admin.html live API + review complète**
+
+**Commits session 14** :
+
+| Commit | Résumé |
+|--------|--------|
+| `50552af` | Fix(mobile): PriseRDVScreen + TriageScreen — import `api` instance au lieu de la classe ApiClient |
+| `b79727b` | Chore(mobile): bump version v1.2.13 → v1.2.14 — déclenche build APK CI |
+| `c56f979` | Feat(web/admin): dashboard stats live depuis API + filtre impayés + export CSV |
+
+**Bug critique corrigé session 14** :
+- `ApiClient` (la classe) était importée et utilisée comme singleton statique dans
+  `PriseRDVScreen` et `TriageScreen`. La classe n'est pas exportée → `undefined` →
+  `TypeError: Cannot read property 'get' of undefined` au runtime.
+  Fix : import de l'instance exportée `api` + `useAuth()` pour le token.
+
+**Admin.html câblé session 14** :
+- Dashboard KPI tiles câblés sur API réelle (`/api/admin/stats`, `/api/admin/consultations`,
+  `/api/pharmacie/ean/list`, `/api/admin/revenus`, `/api/admin/abonnements`)
+- Stat cards abonnements affichent compteurs réels (actifs / impayés / total)
+- Barre filtre "Tous | Actifs | Impayés | Inactifs" sur la page abonnements
+- Export CSV des abonnements (encodage UTF-8 avec BOM)
+- Dashboard se charge automatiquement au démarrage
+
+**Bilan review screens mobile session 14** :
+- 29 screens utilisent l'API réelle (`api.get/post` avec token)
+- 6 screens n'ont pas d'appels API (ProfileScreen, SuiviPatientScreen, TeleconsultationScreen,
+  ConsultationEnCoursScreen, OrdonnanceDigitaleScreen sur données params, LoginScreen)
+- Tous les screens ont un fallback gracieux vers données demo en cas d'erreur API
+
+---
+
 ## Plan de développement complet — tous blocs
 
 ### BLOC 1 — CI/CD : APK Android
@@ -518,8 +551,10 @@ Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon cr
 - [x] **APK v1.2.10 (build #44) ✅** — + catalogue ordonnance EAN + fixes admin types
 - [x] **APK v1.2.11 (builds #45-50) ✅** — + MedecinsAdminScreen, RapportsScreen, CentreDashboard, Admission, Personnel, Réfectoire câblés API
 - [x] **APK v1.2.13 (builds #51-52) ✅** — + PharmacieAdmin EAN fix, mouvements admin endpoint, DashboardScreen RDV fix, ordonnances/renouvelables API
-- [ ] **Distribuer APK v1.2.13 aux testeurs terrain via WhatsApp**
+- [x] **APK v1.2.14 (build #53 ✅)** — fix ApiClient crash PriseRDV + Triage
+- [ ] **Distribuer APK v1.2.14 aux testeurs terrain via WhatsApp** (remplacer v1.2.13)
 - [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
+- [ ] **DÉPLOIEMENT REQUIS** : `git pull && docker compose restart santesd-api` sur 5.75.149.155
 
 ---
 
