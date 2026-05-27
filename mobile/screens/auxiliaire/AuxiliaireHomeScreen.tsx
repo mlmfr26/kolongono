@@ -88,6 +88,7 @@ export default function AuxiliaireHomeScreen({ navigation }: any) {
           heure_debut: r.heure_debut || '',
           statut: r.statut || 'planifie',
           pre_consultation_faite: r.pre_consultation_faite ?? false,
+          lien_auxiliaire: r.lien_auxiliaire,
         })));
       }
     }).finally(() => { setLoading(false); setRefreshing(false); });
