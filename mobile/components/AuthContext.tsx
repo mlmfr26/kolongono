@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api } from './api';
+import { api, registerRefreshCallback } from './api';
 
 export type UserRole = 'adherent' | 'auxiliaire' | 'medecin' | 'admin' | 'livreur';
 
@@ -45,6 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setIsLoading(false);
     })();
+
+    registerRefreshCallback(
+      (newToken, newUser) => { setToken(newToken); setUser(newUser); },
+      () => { setToken(null); setUser(null); },
+    );
   }, []);
 
   async function login(email: string, password: string) {
