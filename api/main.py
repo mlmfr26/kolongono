@@ -663,25 +663,64 @@ async def get_abonnement(patient_id: str, db: AsyncSession = Depends(get_db)):
 # ── Dossiers médicaux ─────────────────────────────────────────────────────────
 
 @app.get("/api/dossiers/{patient_id}", tags=["Dossiers"])
-async def get_dossier(patient_id: str):
+async def get_dossier(patient_id: str, db: AsyncSession = Depends(get_db)):
+    from routers.consultations import MEDECINS as _MED_LIST
+    _med_map = {m["id"]: f"Dr. {m['prenom']} {m['nom']}" for m in _MED_LIST}
+
+    rdv_rows = (await db.execute(
+        select(RendezVous)
+        .where(RendezVous.patient_id == patient_id)
+        .order_by(RendezVous.date.desc())
+        .limit(20)
+    )).scalars().all()
+
+    diag_by_rdv: dict = {}
+    if rdv_rows:
+        rdv_ids = [r.id for r in rdv_rows]
+        diags = (await db.execute(
+            select(Diagnostic).where(Diagnostic.rdv_id.in_(rdv_ids))
+        )).scalars().all()
+        diag_by_rdv = {d.rdv_id: d for d in diags}
+
+    historique_consultations = [
+        {
+            "id": r.id,
+            "date": r.date,
+            "motif": r.motif,
+            "medecin": _med_map.get(r.medecin_id, r.medecin_id),
+            "diagnostic": diag_by_rdv[r.id].diagnostic if r.id in diag_by_rdv else None,
+            "statut": r.statut,
+        }
+        for r in rdv_rows
+    ]
+
+    ordonnances = (await db.execute(
+        select(Ordonnance)
+        .where(Ordonnance.patient_id == patient_id)
+        .order_by(Ordonnance.date.desc())
+        .limit(20)
+    )).scalars().all()
+
+    historique_ordonnances = [
+        {
+            "id": o.id,
+            "date": o.date,
+            "diagnostic": o.diagnostic,
+            "medecin": o.medecin or _med_map.get(o.medecin_id or "", ""),
+            "statut": o.statut,
+        }
+        for o in ordonnances
+    ]
+
     return {
         "patient_id": patient_id,
-        "groupe_sanguin": "O+",
+        "groupe_sanguin": None,
         "allergies": [],
         "traitements_en_cours": [],
         "antecedents": [],
         "vaccinations": [],
-        "historique_consultations": [
-            {
-                "id": "CONS-2026-DEMO01",
-                "date": "2026-04-15",
-                "motif": "Fièvre et maux de tête",
-                "medecin": "Dr. Emmanuel LUKUSA",
-                "diagnostic": "Paludisme simple",
-                "statut": "termine",
-            }
-        ],
-        "historique_ordonnances": [],
+        "historique_consultations": historique_consultations,
+        "historique_ordonnances": historique_ordonnances,
     }
 
 
