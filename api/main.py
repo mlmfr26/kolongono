@@ -19,7 +19,7 @@ from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db, AsyncSessionLocal
-from models import User, RendezVous, Ordonnance, Abonnement, Cotisation, Diagnostic, RevenuCentre, DepenseCentre
+from models import User, RendezVous, Ordonnance, Abonnement, Cotisation, Diagnostic, RevenuCentre, DepenseCentre, StockPharmacie, MouvementStock, MedicamentEAN
 
 load_dotenv()
 
@@ -446,6 +446,50 @@ async def saisir_signes_vitaux(consultation_id: str, data: SignesVitauxRequest, 
     }
 
 
+async def _debit_stock_ordonnance(ordonnance_id: str, patient_id: str, produits: list):
+    """Background task: decrements stock for each prescribed product (best-effort)."""
+    try:
+        async with AsyncSessionLocal() as db:
+            patient = await db.get(User, patient_id)
+            centre_id = patient.centre_id if patient else None
+            if not centre_id:
+                return
+            for p in produits:
+                nom = (p.get("nom") or "").strip()
+                qte = int(p.get("quantite") or 1)
+                if not nom:
+                    continue
+                # Find matching MedicamentEAN by name (case-insensitive)
+                res = await db.execute(
+                    select(MedicamentEAN).where(MedicamentEAN.nom.ilike(f"%{nom[:12]}%")).limit(1)
+                )
+                med = res.scalar_one_or_none()
+                if not med:
+                    continue
+                code = med.code_interne
+                stock = (await db.execute(
+                    select(StockPharmacie).where(
+                        StockPharmacie.centre_id == centre_id,
+                        StockPharmacie.medicament_code == code,
+                    )
+                )).scalar_one_or_none()
+                if not stock or stock.quantite <= 0:
+                    continue
+                stock.quantite = max(0, stock.quantite - qte)
+                stock.derniere_maj = datetime.utcnow()
+                db.add(MouvementStock(
+                    centre_id=centre_id,
+                    medicament_code=code,
+                    type="sortie",
+                    quantite=qte,
+                    motif=f"Ordonnance {ordonnance_id}",
+                    operateur=patient_id,
+                ))
+            await db.commit()
+    except Exception:
+        pass
+
+
 @app.post("/api/consultations/{consultation_id}/ordonnance", tags=["Consultations"])
 async def emettre_ordonnance(consultation_id: str, data: OrdonnanceRequest, db: AsyncSession = Depends(get_db)):
     ordonnance_id = f"ORD-{datetime.now().year}-{uuid.uuid4().hex[:6].upper()}"
@@ -463,6 +507,10 @@ async def emettre_ordonnance(consultation_id: str, data: OrdonnanceRequest, db: 
     )
     db.add(ord_obj)
     await db.commit()
+
+    import asyncio
+    asyncio.create_task(_debit_stock_ordonnance(ordonnance_id, data.patient_id, data.produits))
+
     return {
         "ordonnance_id": ordonnance_id,
         "consultation_id": consultation_id,
