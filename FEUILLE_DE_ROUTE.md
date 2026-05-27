@@ -7,11 +7,11 @@
 
 ## Dernière mise à jour
 
-**2026-05-27 · matin (UTC+2) · Session 17 (autonome)**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : à venir (v1.2.19)
-**Session 17** : Suppression données demo hardcodées (ConsultationScreen, OrdonnanceScreen),
-version string ProfileScreen corrigée (v1.0 → v1.2.19), audit endpoints API vs. code mobile,
-vérification déploiement prod (santesd-api Up ✅). APK v1.2.19 en cours de build.
+**2026-05-27 · soir (UTC+2) · Session 17-18 (autonome)**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `ebe60f8` (v1.2.20 en build CI #62)
+**Session 17-18** : Suppression complète données demo (6 écrans mobile + API backend), correction
+nginx.conf persistante, loadJitsiStats() câblé, endpoint /api/admin/jitsi/actives créé,
+fix statut "livree"→"livre" + sort by created_at dans livraisons, rebuild Docker image deployée.
 
 ---
 
@@ -658,6 +658,61 @@ Build #57 terminé avec succès → APK téléchargé → `apk-release/SanteDire
 
 ---
 
+---
+
+### Session 17-18 — 2026-05-27 · soir (UTC+2) · autonome
+**Nettoyage complet données demo + fixes infrastructure + déploiement API**
+
+#### Travaux effectués
+
+**1. nginx.conf serveur — fix persistant** ✅
+- Bloc `server { santedirect.kolongono.org }` était APRÈS la fermeture `}` du bloc `http{}`
+- Corrigé : bloc déplacé DANS `http{}`, ephémère `conf.d/santesd.conf` supprimé du container
+- `nginx -t` → OK, `nginx -s reload` → aucune erreur de conflit
+
+**2. Suppression données demo hardcodées — mobile (6 écrans)** ✅
+- `LoginScreen.tsx` : version v1.0 → v1.2.19, handler "Mot de passe oublié" (Alert)
+- `PharmacieScreen.tsx` : `useState<Livraison[]>(DEMO_LIVRAISONS)` → `[]`
+- `AuxiliaireHomeScreen.tsx` : `useState<DemandeAux[]>(DEMO_DEMANDES_AUX)` → `[]`
+- `FournituresScreen.tsx` : DEMO_FOURNITURES + DEMO_ORDONNANCES → `[]` (2 états)
+- `AdmissionScreen.tsx` : `useState<Admission[]>(DEMO_ADMISSIONS)` → `[]`
+
+**3. Suppression données demo — backend (api/main.py)** ✅
+- `DEMO_LIVRAISONS` constant + fallback supprimés de `get_livraisons()`
+- Fix `"livree"` → `"livre"` (statut attendu par l'app mobile)
+- Fix `.order_by(Ordonnance.date_emission.desc())` → `.order_by(Ordonnance.created_at.desc())`
+
+**4. Nouvel endpoint** ✅
+- `GET /api/admin/jitsi/actives` → count RDV statut `en_cours`, domaine, mode
+
+**5. Admin web — loadJitsiStats()** ✅
+- Fonction ajoutée, câblée sur `GET /api/admin/jitsi/actives`
+- Domaine `meet.jit.si`, mode `Public (phase test)` affichés dynamiquement
+- Fallback gracieux si endpoint échoue
+
+**6. Docker rebuild + déploiement prod** ✅
+- `docker compose build santesd-api` sur 5.75.149.155
+- `docker compose up -d santesd-api` → `Up X seconds`
+- Endpoint `/api/admin/jitsi/actives` → 401 Token manquant ✅ (attendu sans auth)
+
+**7. APK v1.2.19 → apk-release/** ✅
+- Build #61 téléchargé, `SanteDirect-v1.2.18.apk` remplacé par `SanteDirect-v1.2.19.apk`
+
+**8. APK v1.2.20 lancé (build #62)** — en cours
+- Intègre tous les [ci skip] de la session 17 : LoginScreen, PharmacieScreen, AuxiliaireHome, Fournitures, Admission
+
+#### Commits session 17-18
+
+| Commit | Résumé |
+|--------|--------|
+| `a8673c9` | fix(mobile): supprime toutes données demo 4 écrans [ci skip] |
+| `2f49778` | fix(mobile/login): version v1.0 → v1.2.19 + mot de passe oublié [ci skip] |
+| `5528772` | chore(apk): swap v1.2.18 → v1.2.19 (#61 ✅); loadJitsiStats() câblé [ci skip] |
+| `718942f` | feat(mobile): v1.2.20 — intègre tous les fix [ci skip] |
+| `ebe60f8` | fix(api): livraisons statut + sort + DEMO supprimé; /api/admin/jitsi/actives [ci skip] |
+
+---
+
 #### Firebase FCM — Étapes complètes pour débloquer (BLOC 7)
 
 Le code `api/routers/notifications.py` est **déjà écrit**. Il ne manque que la clé.
@@ -717,10 +772,12 @@ docker compose restart santesd-api
 - [x] **APK v1.2.13 (builds #51-52) ✅** — + PharmacieAdmin EAN fix, mouvements admin endpoint, DashboardScreen RDV fix, ordonnances/renouvelables API
 - [x] **APK v1.2.14 (build #53 ✅)** — fix ApiClient crash PriseRDV + Triage
 - [x] **APK v1.2.15 (build #54 ✅)** — TeleconsultationScreen salle d'attente + polling
-- [x] **APK v1.2.16 (build #56 ✅)** — Jitsi in-app médecin + auxiliaire (ConsultationEnCours + SuiviPatient)
-- [ ] **Distribuer APK v1.2.16 aux testeurs terrain via WhatsApp**
-- [ ] Test golden path : login → triage → RDV → signes vitaux → Jitsi → ordonnance → pharmacie (quand déployé)
-- [ ] **DÉPLOIEMENT SERVEUR REQUIS** : SSH `cd "/var/www/santesd/SANTE DIRECT - KOLONGONO" && git pull && docker compose restart santesd-api` sur 5.75.149.155
+- [x] **APK v1.2.16 (build #56 ✅)** — Jitsi in-app médecin + auxiliaire
+- [x] **APK v1.2.17-18 (builds #57-60 ✅)** — DashboardScreen rdv_id+url, Linking fix, lien_auxiliaire mapping fix
+- [x] **APK v1.2.19 (build #61 ✅)** — Suppression données demo (ConsultationScreen, OrdonnanceScreen, PharmacieScreen)
+- [ ] **APK v1.2.20 (build #62, en cours)** — Suppression demo LoginScreen/AuxiliaireHome/Fournitures/Admission, version strings
+- [ ] **Distribuer APK v1.2.20 aux testeurs terrain via WhatsApp**
+- [ ] Test golden path : login → triage → RDV → signes vitaux → Jitsi → ordonnance → pharmacie
 
 ---
 
@@ -802,6 +859,11 @@ docker compose restart santesd-api
 
 **4.5 Statut services** ✅
 - [x] Chips topbar : pings réels `/api/status` + `/api/longonia/verify-adherent/test-ping` ✅ (session 10)
+
+**4.7 Section Jitsi Meet → API réelle** ✅ (session 18)
+- [x] `loadJitsiStats()` câblé via `GET /api/admin/jitsi/actives` ✅
+- [x] Domaine `meet.jit.si`, mode `Public (phase test)` affichés dynamiquement ✅
+- [x] Fallback gracieux sur `/api/admin/consultations?statut=en_cours` si endpoint absent ✅
 
 **4.6 Pages médecin/auxiliaire/adhérent** ✅
 - [x] `medecin.html renderMedRDV()` : API réelle, filtre par date ✅
