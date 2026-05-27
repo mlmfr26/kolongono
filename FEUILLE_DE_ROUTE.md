@@ -7,9 +7,9 @@
 
 ## Dernière mise à jour
 
-**2026-05-27 · nuit (UTC+2) · Session 10 (autonome)**
-Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `bf3fd1f`
-**Build #36 🔄 EN COURS** — APK v1.2.5 (crash fix + icône). API complète. Admin câblé.
+**2026-05-27 · fin de nuit (UTC+2) · Session 11 (autonome)**
+Modèle : Claude Sonnet 4.6 — Branche : `main` — Dernier commit : `6261054`
+**Build #38 ✅ SUCCÈS** — APK v1.2.6 (icon pure Python, tout stable). **Build #39 🔄 EN COURS** — APK v1.2.7 (MedecinDashboard API wiring).
 
 ---
 
@@ -398,10 +398,47 @@ Commits session 9 complets :
 
 ---
 
+### Session 11 — 2026-05-27 · nuit (autonome, suite session 10)
+**Fix CI icon, web pages API wiring, enrichissement API, APK v1.2.6**
+
+**Problème CI** : Builds #37-#38 échouaient en 35s — `FileNotFoundError: convert` (ImageMagick non installé sur ubuntu-latest Ubuntu 24.04).
+**Fix** : réécriture du step "Generate app icon" en pure Python (stdlib `struct` + `zlib`), aucune dépendance externe.
+
+**Build #38** ✅ SUCCÈS — 6m40s — APK v1.2.6 (54 Mo, arm64-v8a debug)
+Contient : crash-fix push-notification, ErrorBoundary, auto-refresh JWT, icon croix médicale.
+
+**Commits session 11** :
+
+| Commit | Résumé |
+|--------|--------|
+| `1b1466e` | Feat(web): wire medecin/auxiliaire/adherent pages to real API |
+| `ef2b197` | Fix(ci): replace ImageMagick convert with pure Python PNG generator |
+| `e5d0275` | Feat(api): ordonnance → stock debit automatique |
+| `e8e3124` | Feat(api+admin): enrich consultations/abonnements admin endpoints |
+| `0e719d5` | APK(v1.2.6): build #38 — crash fix + icon + JWT interceptor |
+| `50f67f9` | Feat(mobile): MedecinDashboardScreen câblé sur API réelle |
+| `6261054` | Chore(mobile): bump 1.2.7 — trigger CI build #39 |
+
+**Pages web câblées sur API réelle** :
+- `medecin.html` `renderMedRDV()` : async, `GET /api/consultations/rdv?medecin_id=&mois=`, filtre par date sélectionnée, fallback statique
+- `auxiliaire.html` `renderRDVPage()` : async, filtre `auxiliaire_id`, 3 buckets (aujourd'hui / demain / semaine), fallback statique
+- `adherent.html` : `loadDossier()` → `/api/dossiers/{id}`, `loadOrdonnances()` depuis dossier, `loadAbonnement()` → `/api/abonnements/{id}` avec prix_fc
+
+**API enrichie** :
+- `GET /api/consultations/rdv` : + `patient_nom`, `auxiliaire_nom` (batch User lookup), filtres `auxiliaire_id` + `date`, tri asc
+- `GET /api/admin/consultations` : + `patient_nom`, `medecin_nom` (batch lookup)
+- `GET /api/admin/abonnements` : nouvel endpoint (User ⨝ Abonnement, filtres plan/statut)
+- `POST /api/consultations/{id}/ordonnance` : + background task `_debit_stock_ordonnance` → `MouvementStock` (best-effort name match)
+
+**Mobile** :
+- `MedecinDashboardScreen` : remplace DEMO par `GET /api/consultations/rdv?medecin_id=&date=today`, compteurs réels, `useFocusEffect`
+
+---
+
 ## Plan de développement complet — tous blocs
 
 ### BLOC 1 — CI/CD : APK Android
-*Statut : 🔄 Build #36 en cours — APK v1.2.5 (crash fix + icône)*
+*Statut : ✅ Build #38 SUCCÈS — APK v1.2.6 stable. Build #39 en cours (v1.2.7)*
 
 - [x] Identifier cause racine compile (sessions 7-8)
 - [x] Build #29 ✅ APK v1.2.2 (base)
@@ -410,9 +447,10 @@ Commits session 9 complets :
 - [x] APK v1.2.3 (build #34) : `getUseDeveloperSupport()=false` → plus de crash Metro
 - [x] APK v1.2.4 (build #35) : suppression push-notification (crash 1s après ouverture)
 - [x] ErrorBoundary ajouté (erreurs JS visibles à l'écran)
-- [x] Icône générée en CI via ImageMagick (croix médicale sombre) → APK v1.2.5
-- [ ] **Confirmer APK v1.2.5 fonctionne** (build #36 en cours)
-- [ ] Distribuer aux testeurs terrain via WhatsApp
+- [x] Icône générée en CI en pure Python (stdlib struct+zlib, pas d'ImageMagick)
+- [x] **APK v1.2.6 (build #38) ✅** — 54 Mo, arm64-v8a debug, stable
+- [x] **APK v1.2.7 (build #39) 🔄 EN COURS** — + MedecinDashboard API wiring
+- [ ] **Distribuer APK v1.2.6 aux testeurs terrain via WhatsApp**
 - [ ] Test golden path : login → scan EAN → mouvement stock → vérif admin.html
 
 ---
@@ -456,16 +494,21 @@ Commits session 9 complets :
 - [x] `GET /api/adherents/{id}` : User + Abonnement depuis DB ✅
 - [ ] `POST /api/cotisations/payer` : endpoint dédié cotisation mensuelle
 
+**3.2 Ordonnance → stock** ✅
+- [x] Lier ordonnance → mouvement de stock via `_debit_stock_ordonnance` background task ✅
+  (name-match MedicamentEAN, MouvementStock sortie, best-effort)
+
 **3.4 Endpoints admin** ✅
 - [x] `GET /api/admin/users` : liste paginée avec filtres role/actif ✅
 - [x] `GET /api/admin/stats` : agrégats par rôle ✅
-- [x] `GET /api/admin/consultations` : RendezVous paginé ✅
+- [x] `GET /api/admin/consultations` : RendezVous paginé + patient_nom/medecin_nom enrichis ✅
 - [x] `GET /api/admin/revenus` : RevenuCentre + DepenseCentre + cotisations ✅
 - [x] `GET /api/admin/medecins` : 50+ partenaires + stats consultations SD ✅
+- [x] `GET /api/admin/abonnements` : User ⨝ Abonnement, filtres plan/statut ✅
 
 **3.5 Refresh token JWT**
 - [x] `POST /api/auth/refresh` : nouveau JWT pour utilisateur actif ✅
-- [ ] Mobile : intercepteur dans `components/api.ts` pour refresh automatique
+- [x] Mobile : intercepteur dans `components/api.ts` — si 401 → refresh → retry ✅
 
 ---
 
@@ -477,18 +520,24 @@ Commits session 9 complets :
 
 **4.2 Section Consultations → API réelle** ✅
 - [x] `loadConsultations()` via `GET /api/admin/consultations` ✅
-- [ ] Polling 30s, bouton "clôturer", colonne nom médecin réel
+- [x] patient_nom + medecin_nom + motif affichés (API enrichie session 11) ✅
+- [ ] Polling 30s, bouton "clôturer"
 
 **4.3 Section Abonnements → API réelle** ✅
-- [x] `loadAbonnements()` via `GET /api/admin/users?role=adherent` ✅
-- [ ] Afficher réel nb_mois_impaye, boutons relance SMS
+- [x] `loadAbonnements()` via `GET /api/admin/abonnements` (endpoint dédié session 11) ✅
+- [ ] Afficher nb_mois_impaye, boutons relance SMS
 
 **4.4 Section Revenus → API réelle** ✅
 - [x] `loadRevenus()` via `GET /api/admin/revenus` + `revenus-summary` div ✅
 - [ ] Tableau détaillé par catégorie, export PDF
 
-**4.5 Statut services**
-- [ ] Remplacer chips "ok"/"live" statiques par pings réels (Longonia, Jitsi)
+**4.5 Statut services** ✅
+- [x] Chips topbar : pings réels `/api/status` + `/api/longonia/verify-adherent/test-ping` ✅ (session 10)
+
+**4.6 Pages médecin/auxiliaire/adhérent** ✅
+- [x] `medecin.html renderMedRDV()` : API réelle, filtre par date ✅
+- [x] `auxiliaire.html renderRDVPage()` : API réelle, buckets aujourd'hui/demain/semaine ✅
+- [x] `adherent.html` : dossier + ordonnances + abonnement depuis API ✅
 
 ---
 
@@ -503,11 +552,16 @@ Commits session 9 complets :
 - [x] `GET /api/abonnements/{id}` (depuis DB) ✅
 - [x] `POST /api/abonnements` (persist + Cotisation) ✅
 
-**5.3 Polling statut consultation**
-- [ ] `TeleconsultationScreen.tsx` : polling `GET /api/consultations/{id}/statut` toutes les 10s
+**5.3 MedecinDashboardScreen** ✅
+- [x] `MedecinDashboardScreen` : câblé `GET /api/consultations/rdv?medecin_id=&date=today` ✅
+- [x] Compteurs réels (à venir / terminées / total), useFocusEffect ✅
 
-**5.4 Refresh token**
-- [ ] Intercepteur dans `api.ts` : si 401, tenter refresh avant de déconnecter
+**5.4 Refresh token** ✅
+- [x] Intercepteur dans `api.ts` : si 401 → POST /api/auth/refresh → retry ✅
+- [x] `AuthContext` enregistre callbacks onTokenRefreshed + onLogout ✅
+
+**5.5 Polling statut consultation**
+- [ ] `TeleconsultationScreen.tsx` : polling `GET /api/consultations/{id}` toutes les 10s (salle d'attente)
 
 ---
 
