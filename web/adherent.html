@@ -252,10 +252,8 @@
         <div class="table-wrap">
           <table>
             <thead><tr><th>Date</th><th>Médecin</th><th>Diagnostic</th><th>Statut</th></tr></thead>
-            <tbody>
-              <tr><td class="text-sm text-muted">15/05/2026</td><td>Dr. MWAMBA</td><td>Paludisme simple</td><td><span class="badge badge-success">Guéri</span></td></tr>
-              <tr><td class="text-sm text-muted">02/04/2026</td><td>Dr. KASONGO</td><td>Rhinopharyngite</td><td><span class="badge badge-success">Guéri</span></td></tr>
-              <tr><td class="text-sm text-muted">18/02/2026</td><td>Dr. MWAMBA</td><td>Hypertension</td><td><span class="badge badge-warning">Suivi en cours</span></td></tr>
+            <tbody id="dossier-consult-tbody">
+              <tr><td colspan="4" class="text-muted text-center" style="padding:12px">Chargement…</td></tr>
             </tbody>
           </table>
         </div>
@@ -265,42 +263,16 @@
     <!-- PAGE ORDONNANCES -->
     <div class="page page-hidden" id="page-ordonnances">
       <div class="mb-xl"><div class="section-label">Santé</div><h1 class="text-lg font-black">Mes ordonnances</h1></div>
-      <div style="display:flex;flex-direction:column;gap:var(--space-md)">
-        <div class="card">
-          <div class="card-header">
-            <div><div class="font-bold">Ordonnance du 15 Mai 2026</div><div class="text-sm text-muted">Dr. Béatrice MWAMBA · Paludisme simple</div></div>
-            <span class="badge badge-success">Active</span>
-          </div>
-          <div class="card-body">
-            <div style="display:flex;flex-direction:column;gap:var(--space-sm)">
-              <div class="flex items-center gap-md" style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-md)">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--color-pharmacie)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg>
-                <div class="flex-1"><div class="font-bold text-sm">Artéméther-Luméfantrine</div><div class="text-xs text-muted">2 comprimés × 2/jour — 3 jours</div></div>
-                <button class="btn btn-primary btn-sm" onclick="alert('Commande ajoutée au panier !')">Commander</button>
-              </div>
-              <div class="flex items-center gap-md" style="background:var(--color-bg);border-radius:var(--radius-lg);padding:var(--space-md)">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--color-pharmacie)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m10.5 20.5-10-10a5 5 0 1 1 7.07-7.07l10 10a5 5 0 1 1-7.07 7.07z"/><line x1="8.5" y1="2.5" x2="21.5" y2="15.5"/></svg>
-                <div class="flex-1"><div class="font-bold text-sm">Paracétamol 1000mg</div><div class="text-xs text-muted">1 comprimé × 3/jour — 5 jours (si fièvre)</div></div>
-                <button class="btn btn-primary btn-sm" onclick="alert('Commande ajoutée au panier !')">Commander</button>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div id="ordonnances-list" style="display:flex;flex-direction:column;gap:var(--space-md)">
+        <div class="text-muted text-center" style="padding:var(--space-lg)">Chargement…</div>
       </div>
     </div>
 
     <!-- PAGE ABONNEMENT -->
     <div class="page page-hidden" id="page-abonnement">
       <div class="mb-xl"><div class="section-label">Mutuelle</div><h1 class="text-lg font-black">Mon abonnement</h1></div>
-      <div class="mutuelle-card mb-lg">
-        <div class="plan-badge">Plan Famille — Actif</div>
-        <div style="font-size:var(--font-xxl);font-weight:800">12 000 FC / mois</div>
-        <div style="color:rgba(255,255,255,.5);margin-top:4px;font-size:var(--font-sm)">Prochain prélèvement : 22 Juin 2026</div>
-        <div style="display:flex;gap:var(--space-md);margin-top:var(--space-lg);flex-wrap:wrap">
-          <div style="background:rgba(255,255,255,.1);border-radius:var(--radius-lg);padding:var(--space-md) var(--space-lg)"><div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Consultations</div><div style="color:#fff;font-weight:800">10/mois (famille)</div></div>
-          <div style="background:rgba(255,255,255,.1);border-radius:var(--radius-lg);padding:var(--space-md) var(--space-lg)"><div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Membres</div><div style="color:#fff;font-weight:800">4 membres</div></div>
-          <div style="background:rgba(255,255,255,.1);border-radius:var(--radius-lg);padding:var(--space-md) var(--space-lg)"><div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Paiement</div><div style="color:#FDE68A;font-weight:800">Longonia bridge</div></div>
-        </div>
+      <div id="mutuelle-card-wrap" class="mutuelle-card mb-lg">
+        <div class="text-center" style="color:rgba(255,255,255,.5);padding:var(--space-lg)">Chargement…</div>
       </div>
       <div class="section-label">Changer de plan</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-md)">
@@ -363,6 +335,11 @@
 <script>
 const titles = { accueil:'Accueil', consultation:'Prendre un RDV', pharmacie:'Pharmacie en ligne', dossier:'Mon dossier médical', ordonnances:'Mes ordonnances', abonnement:'Mon abonnement', profil:'Mon profil' };
 
+const _APISD = 'https://santedirect.kolongono.org';
+
+function _sdToken() { return localStorage.getItem('sd_token'); }
+function _sdUser()  { const r = localStorage.getItem('sd_user'); return r ? JSON.parse(r) : null; }
+
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.add('page-hidden'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -372,6 +349,102 @@ function showPage(id) {
   if (n) n.classList.add('active');
   document.getElementById('topbar-title').textContent = titles[id] || id;
   window.scrollTo(0,0);
+  if (id === 'dossier')     loadDossier();
+  if (id === 'ordonnances') loadOrdonnances();
+  if (id === 'abonnement')  loadAbonnement();
+}
+
+async function loadDossier() {
+  const user = _sdUser();
+  if (!user) return;
+  const tbody = document.getElementById('dossier-consult-tbody');
+  if (!tbody) return;
+  try {
+    const resp = await fetch(`${_APISD}/api/dossiers/${user.id}`, {
+      headers: { 'Authorization': `Bearer ${_sdToken()}` }
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const rows = data.historique_consultations || [];
+    const stCls = { termine:'badge-success', en_cours:'badge-warning', planifie:'badge-info', annule:'badge-muted' };
+    const stLbl = { termine:'Terminé', en_cours:'En cours', planifie:'Planifié', annule:'Annulé' };
+    tbody.innerHTML = rows.length ? rows.map(c => `
+      <tr>
+        <td class="text-sm text-muted">${c.date || '—'}</td>
+        <td>${c.medecin || '—'}</td>
+        <td>${c.diagnostic || c.motif || '—'}</td>
+        <td><span class="badge ${stCls[c.statut] || 'badge-muted'}">${stLbl[c.statut] || c.statut}</span></td>
+      </tr>`).join('') : '<tr><td colspan="4" class="text-muted text-center" style="padding:12px">Aucune consultation enregistrée</td></tr>';
+  } catch(e) {
+    console.warn('loadDossier:', e);
+    tbody.innerHTML = '<tr><td colspan="4" class="text-sm text-muted text-center" style="padding:12px">Données non disponibles</td></tr>';
+  }
+}
+
+async function loadOrdonnances() {
+  const user = _sdUser();
+  if (!user) return;
+  const el = document.getElementById('ordonnances-list');
+  if (!el) return;
+  try {
+    const resp = await fetch(`${_APISD}/api/dossiers/${user.id}`, {
+      headers: { 'Authorization': `Bearer ${_sdToken()}` }
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const ords = data.historique_ordonnances || [];
+    const stCls = { active:'badge-success', expire:'badge-muted', utilise:'badge-info' };
+    const stLbl = { active:'Active', expire:'Expirée', utilise:'Utilisée' };
+    el.innerHTML = ords.length ? ords.map(o => `
+      <div class="card">
+        <div class="card-header">
+          <div><div class="font-bold">Ordonnance du ${o.date || '—'}</div><div class="text-sm text-muted">${o.medecin || '—'} · ${o.diagnostic || '—'}</div></div>
+          <span class="badge ${stCls[o.statut] || 'badge-muted'}">${stLbl[o.statut] || o.statut || 'Inconnue'}</span>
+        </div>
+      </div>`).join('') : '<div class="text-muted text-center" style="padding:var(--space-lg)">Aucune ordonnance enregistrée</div>';
+  } catch(e) {
+    console.warn('loadOrdonnances:', e);
+    el.innerHTML = '<div class="text-muted text-center" style="padding:var(--space-lg)">Données non disponibles</div>';
+  }
+}
+
+async function loadAbonnement() {
+  const user = _sdUser();
+  if (!user) return;
+  const wrap = document.getElementById('mutuelle-card-wrap');
+  if (!wrap) return;
+  try {
+    const resp = await fetch(`${_APISD}/api/abonnements/${user.id}`, {
+      headers: { 'Authorization': `Bearer ${_sdToken()}` }
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const d = await resp.json();
+    if (!d.actif) {
+      wrap.innerHTML = `<div class="plan-badge">Aucun abonnement actif</div><div style="color:rgba(255,255,255,.5);margin-top:8px">Souscrivez un plan ci-dessous</div>`;
+    } else {
+      const plan = d.plan_info || {};
+      const prixFC = (d.prix_usd || 0) * 2800;
+      const renouv = d.prochain_renouvellement ? d.prochain_renouvellement.substring(0, 10) : '—';
+      wrap.innerHTML = `
+        <div class="plan-badge">Plan ${plan.nom || d.plan} — Actif</div>
+        <div style="font-size:var(--font-xxl);font-weight:800">${prixFC.toLocaleString()} FC / mois</div>
+        <div style="color:rgba(255,255,255,.5);margin-top:4px;font-size:var(--font-sm)">Prochain prélèvement : ${renouv}</div>
+        <div style="display:flex;gap:var(--space-md);margin-top:var(--space-lg);flex-wrap:wrap">
+          <div style="background:rgba(255,255,255,.1);border-radius:var(--radius-lg);padding:var(--space-md) var(--space-lg)">
+            <div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Consultations restantes</div>
+            <div style="color:#fff;font-weight:800">${d.consultations_restantes ?? '—'} ce mois</div>
+          </div>
+          <div style="background:rgba(255,255,255,.1);border-radius:var(--radius-lg);padding:var(--space-md) var(--space-lg)">
+            <div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Utilisées</div>
+            <div style="color:#fff;font-weight:800">${d.consultations_utilisees ?? 0}</div>
+          </div>
+          ${d.nb_mois_impaye > 0 ? `<div style="background:rgba(239,68,68,.15);border-radius:var(--radius-lg);padding:var(--space-md) var(--space-lg)"><div style="color:rgba(255,255,255,.5);font-size:var(--font-xs)">Impayés</div><div style="color:#FCA5A5;font-weight:800">${d.nb_mois_impaye} mois</div></div>` : ''}
+        </div>`;
+    }
+  } catch(e) {
+    console.warn('loadAbonnement:', e);
+    wrap.innerHTML = `<div style="color:rgba(255,255,255,.5);padding:var(--space-lg);text-align:center">Données non disponibles</div>`;
+  }
 }
 
 document.querySelectorAll('.nav-item').forEach(item => {

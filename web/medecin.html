@@ -1708,25 +1708,64 @@ const MED_RDV_DATA = [
   { heure:'18:30', patient:'Roger MBENZA',      code:'ADH-057', motif:'Fièvre + paludisme suspect',statut:'planifie',  type:'teleconsult', auxiliaire:'Jean BOLAMBA' },
 ];
 
-function renderMedRDV() {
+function _renderRDVItems(items) {
+  const el = document.getElementById('med-rdv-list');
+  if (!el) return;
+  const statusCls = { termine:'badge-muted', en_cours:'badge-warning', planifie:'badge-info', annule:'badge-muted' };
+  const statusLbl = { termine:'Terminée', en_cours:'En cours', planifie:'Planifié', annule:'Annulé' };
+  if (!items.length) {
+    el.innerHTML = '<div class="text-muted text-center" style="padding:var(--space-lg)">Aucun rendez-vous pour cette date</div>';
+    return;
+  }
+  el.innerHTML = items.map(r => {
+    const heure = r.heure_debut || r.heure || '—';
+    const patient = r.patient_nom || r.patient || '?';
+    const motif = r.motif || '—';
+    const aux = r.auxiliaire_nom || r.auxiliaire || '—';
+    const statut = r.statut || 'planifie';
+    return `
+    <div class="med-rdv-row${statut === 'termine' ? ' med-rdv-term' : ''}">
+      <div class="med-rdv-heure">${heure}</div>
+      <div class="med-rdv-sep"></div>
+      <div class="avatar">${patient[0]}</div>
+      <div style="flex:1;min-width:0">
+        <div class="font-bold" style="font-size:var(--font-sm)">${patient}</div>
+        <div class="text-xs text-muted">${motif} · Aux. ${aux}</div>
+      </div>
+      <span class="badge ${statusCls[statut] || 'badge-muted'}">${statusLbl[statut] || statut}</span>
+      ${statut === 'planifie' ? `<button class="btn btn-primary btn-sm" onclick="showPage('consultation')">Démarrer</button>` : `<button class="btn btn-outline btn-sm" onclick="showPage('historique')">Voir</button>`}
+    </div>`;
+  }).join('');
+}
+
+async function renderMedRDV() {
   const el = document.getElementById('med-rdv-list');
   if (!el) return;
   const dateInput = document.getElementById('med-rdv-date');
   if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
-  const statusCls  = { termine:'badge-muted', en_cours:'badge-warning', planifie:'badge-info' };
-  const statusLbl  = { termine:'Terminée', en_cours:'En cours', planifie:'Planifié' };
-  el.innerHTML = MED_RDV_DATA.map(r => `
-    <div class="med-rdv-row${r.statut === 'termine' ? ' med-rdv-term' : ''}">
-      <div class="med-rdv-heure">${r.heure}</div>
-      <div class="med-rdv-sep"></div>
-      <div class="avatar">${r.patient[0]}</div>
-      <div style="flex:1;min-width:0">
-        <div class="font-bold" style="font-size:var(--font-sm)">${r.patient} <span class="badge badge-muted" style="font-size:9px">${r.code}</span></div>
-        <div class="text-xs text-muted">${r.motif} · Aux. ${r.auxiliaire}</div>
-      </div>
-      <span class="badge ${statusCls[r.statut] || 'badge-muted'}">${statusLbl[r.statut] || r.statut}</span>
-      ${r.statut === 'planifie' ? `<button class="btn btn-primary btn-sm" onclick="showPage('consultation')">Démarrer</button>` : `<button class="btn btn-outline btn-sm" onclick="showPage('historique')">Voir</button>`}
-    </div>`).join('');
+  const selectedDate = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
+  const mois = selectedDate.substring(0, 7); // YYYY-MM
+
+  const _APISD = localStorage.getItem('_apisd') || 'https://santedirect.kolongono.org';
+  const token = localStorage.getItem('sd_token');
+  const userRaw = localStorage.getItem('sd_user');
+  const user = userRaw ? JSON.parse(userRaw) : null;
+
+  el.innerHTML = '<div class="text-muted text-center" style="padding:var(--space-lg)">Chargement…</div>';
+  try {
+    const params = new URLSearchParams({ mois });
+    if (user && user.id) params.append('medecin_id', user.id);
+    const resp = await fetch(`${_APISD}/api/consultations/rdv?${params}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const items = (data.rendez_vous || []).filter(r => r.date === selectedDate);
+    _renderRDVItems(items);
+  } catch (e) {
+    console.warn('renderMedRDV fallback:', e);
+    _renderRDVItems(MED_RDV_DATA);
+  }
 }
 
 /* ══════════════════════════════════════════════

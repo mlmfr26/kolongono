@@ -25,7 +25,7 @@ from notifications import notify_rdv_confirme, notify_consultation_cloturee, reg
 from database import get_db
 from models import (
     RendezVous, Abonnement, Cotisation, SoldePatient,
-    Diagnostic, Demande, Ordonnance,
+    Diagnostic, Demande, Ordonnance, User,
 )
 
 # ─── Longonia block-slot ──────────────────────────────────────────────────────
@@ -1071,7 +1071,9 @@ async def prendre_rdv(
 async def list_rdv(
     medecin_id: Optional[str] = Query(None),
     patient_id: Optional[str] = Query(None),
+    auxiliaire_id: Optional[str] = Query(None),
     mois: Optional[str] = Query(None),
+    date: Optional[str] = Query(None),
     statut: Optional[str] = Query(None),
     _: dict = Depends(_get_user),
     db: AsyncSession = Depends(get_db),
@@ -1081,19 +1083,40 @@ async def list_rdv(
         stmt = stmt.where(RendezVous.medecin_id == medecin_id)
     if patient_id:
         stmt = stmt.where(RendezVous.patient_id == patient_id)
-    if mois:
+    if auxiliaire_id:
+        stmt = stmt.where(RendezVous.auxiliaire_id == auxiliaire_id)
+    if date:
+        stmt = stmt.where(RendezVous.date == date)
+    elif mois:
         stmt = stmt.where(RendezVous.date.like(f"{mois}%"))
     if statut:
         stmt = stmt.where(RendezVous.statut == statut)
-    stmt = stmt.order_by(RendezVous.date.desc(), RendezVous.heure_debut.desc())
+    stmt = stmt.order_by(RendezVous.date.asc(), RendezVous.heure_debut.asc())
 
     res = await db.execute(stmt)
+    rows = res.scalars().all()
+
+    # batch-load all patient/auxiliaire IDs to avoid N+1
+    ids = set()
+    for r in rows:
+        if r.patient_id: ids.add(r.patient_id)
+        if r.auxiliaire_id: ids.add(r.auxiliaire_id)
+    user_map: dict[str, User] = {}
+    if ids:
+        u_res = await db.execute(select(User).where(User.id.in_(ids)))
+        for u in u_res.scalars().all():
+            user_map[u.id] = u
+
     enriched = []
-    for r in res.scalars().all():
+    for r in rows:
         med = _medecin_by_id(r.medecin_id)
         d = _rdv_to_dict(r)
         d["medecin_nom"] = f"Dr. {med['prenom']} {med['nom']}" if med else r.medecin_id
         d["specialite"] = med["specialite"] if med else ""
+        pat = user_map.get(r.patient_id)
+        d["patient_nom"] = f"{pat.prenom} {pat.nom}" if pat else r.patient_id or "—"
+        aux = user_map.get(r.auxiliaire_id) if r.auxiliaire_id else None
+        d["auxiliaire_nom"] = f"{aux.prenom} {aux.nom}" if aux else "—"
         enriched.append(d)
     return {"rendez_vous": enriched, "total": len(enriched)}
 

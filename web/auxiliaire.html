@@ -1035,30 +1035,67 @@ function commanderDepuisOrdoMed() {
 /* ══════════════════════════════════════════════
    PAGE RDV
 ══════════════════════════════════════════════ */
-function renderRDVPage() {
-  const todayEl    = document.getElementById('rdv-aujourd-hui');
-  const demainEl   = document.getElementById('rdv-demain');
-  const semaineEl  = document.getElementById('rdv-semaine');
+function _makeRDVRow(r, showDate) {
+  const isTC = (r.type || '') === 'teleconsult';
+  const patient = r.patient_nom || r.nom || '?';
+  const heure = r.heure_debut || r.heure || '—';
+  const dateLabel = showDate && r.date ? r.date.substring(5).replace('-', '/') : '';
+  const med = r.medecin_nom || r.medecin || '';
+  return `<div class="rdv-row">
+    <div class="rdv-heure">${heure}</div>
+    <div class="rdv-sep"></div>
+    <div class="flex-1">
+      <div style="font-weight:700;font-size:var(--font-sm)">${dateLabel ? `<span style="font-size:10px;font-weight:600;color:var(--color-text-muted);margin-right:6px">${dateLabel}</span>` : ''}${patient}</div>
+      <div class="text-xs text-muted">${r.motif || '—'}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <span class="consult-type ${isTC ? 'ct-tc' : 'ct-pre'}">${isTC ? 'Téléconsultation' : 'Pré-diagnostic'}</span>
+      ${med ? `<span style="font-size:10px;color:var(--color-text-muted)">${med}</span>` : ''}
+    </div>
+  </div>`;
+}
 
-  const makeRow = (r, showDate) => {
-    const isTC = r.type === 'teleconsult';
-    return `<div class="rdv-row" onclick="alert('Ouvrir fiche de ${r.nom}')">
-      <div class="rdv-heure">${r.heure}</div>
-      <div class="rdv-sep"></div>
-      <div class="flex-1">
-        <div style="font-weight:700;font-size:var(--font-sm)">${showDate ? '<span style="font-size:10px;font-weight:600;color:var(--color-text-muted);margin-right:6px">'+r.date+'</span>' : ''}${r.nom}</div>
-        <div class="text-xs text-muted">${r.code} · ${r.motif}</div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="consult-type ${isTC ? 'ct-tc' : 'ct-pre'}">${isTC ? 'Téléconsultation' : 'Pré-diagnostic'}</span>
-        ${r.medecin ? `<span style="font-size:10px;color:var(--color-text-muted)">${r.medecin}</span>` : ''}
-      </div>
-    </div>`;
-  };
+async function renderRDVPage() {
+  const todayEl   = document.getElementById('rdv-aujourd-hui');
+  const demainEl  = document.getElementById('rdv-demain');
+  const semaineEl = document.getElementById('rdv-semaine');
+  if (!todayEl) return;
 
-  todayEl.innerHTML  = CONSULT_FILE.filter(c => c.statut !== 'termine').map(c => makeRow({...c, date:'23/05'}, false)).join('') || '<div class="text-muted text-sm" style="padding:8px">Aucun RDV aujourd\'hui</div>';
-  demainEl.innerHTML = RDV_DEMAIN.map(r => makeRow(r, false)).join('');
-  semaineEl.innerHTML = RDV_SEMAINE.map(r => makeRow(r, true)).join('');
+  const _APISD = localStorage.getItem('_apisd') || 'https://santedirect.kolongono.org';
+  const token = localStorage.getItem('sd_token');
+  const userRaw = localStorage.getItem('sd_user');
+  const user = userRaw ? JSON.parse(userRaw) : null;
+
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+  const mois = today.substring(0, 7);
+
+  todayEl.innerHTML = '<div class="text-muted text-sm" style="padding:8px">Chargement…</div>';
+
+  try {
+    const params = new URLSearchParams({ mois });
+    if (user && user.id) params.append('auxiliaire_id', user.id);
+    const resp = await fetch(`${_APISD}/api/consultations/rdv?${params}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const rdvs = data.rendez_vous || [];
+
+    const todayRDV  = rdvs.filter(r => r.date === today && r.statut !== 'termine' && r.statut !== 'annule');
+    const demainRDV = rdvs.filter(r => r.date === tomorrow);
+    const semaineRDV = rdvs.filter(r => r.date > tomorrow && r.date <= weekEnd);
+
+    todayEl.innerHTML  = todayRDV.length  ? todayRDV.map(r => _makeRDVRow(r, false)).join('') : '<div class="text-muted text-sm" style="padding:8px">Aucun RDV aujourd\'hui</div>';
+    demainEl.innerHTML = demainRDV.length ? demainRDV.map(r => _makeRDVRow(r, false)).join('') : '<div class="text-muted text-sm" style="padding:8px">Aucun RDV demain</div>';
+    semaineEl.innerHTML = semaineRDV.length ? semaineRDV.map(r => _makeRDVRow(r, true)).join('') : '<div class="text-muted text-sm" style="padding:8px">Aucun RDV cette semaine</div>';
+  } catch (e) {
+    console.warn('renderRDVPage fallback:', e);
+    todayEl.innerHTML  = CONSULT_FILE.filter(c => c.statut !== 'termine').map(c => _makeRDVRow({...c, date: today}, false)).join('') || '<div class="text-muted text-sm" style="padding:8px">Aucun RDV aujourd\'hui</div>';
+    demainEl.innerHTML = RDV_DEMAIN.map(r => _makeRDVRow(r, false)).join('');
+    semaineEl.innerHTML = RDV_SEMAINE.map(r => _makeRDVRow(r, true)).join('');
+  }
 }
 
 function toggleFormRDV() {
