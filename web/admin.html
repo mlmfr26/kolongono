@@ -350,24 +350,24 @@
     <!-- Colonne droite : KPI cliquables compacts -->
     <div class="dash-hero-right">
       <div class="dash-kpi" onclick="openDrill('consultations','today')">
-        <div class="dash-kpi-val">7</div>
+        <div class="dash-kpi-val" id="hero-kpi-cons">—</div>
         <div class="dash-kpi-lbl">Aujourd'hui</div>
-        <div class="dash-kpi-delta live" style="display:flex;align-items:center;gap:4px"><span class="live-dot"></span>1 en cours</div>
+        <div class="dash-kpi-delta live" style="display:flex;align-items:center;gap:4px"><span class="live-dot"></span><span id="hero-kpi-cons-live">—</span></div>
       </div>
-      <div class="dash-kpi" onclick="openDrill('adherents','impayes')">
-        <div class="dash-kpi-val">31</div>
+      <div class="dash-kpi" onclick="filterAbo('impaye');showPage('abonnements')">
+        <div class="dash-kpi-val" id="hero-kpi-impayes">—</div>
         <div class="dash-kpi-lbl">Impayés</div>
         <div class="dash-kpi-delta dn">Action requise</div>
       </div>
       <div class="dash-kpi" onclick="openDrill('pharmacie','ruptures')">
-        <div class="dash-kpi-val">3</div>
+        <div class="dash-kpi-val" id="hero-kpi-ruptures">—</div>
         <div class="dash-kpi-lbl">Ruptures stock</div>
-        <div class="dash-kpi-delta dn">Urgent</div>
+        <div class="dash-kpi-delta dn" id="hero-kpi-ruptures-delta">Urgent</div>
       </div>
       <div class="dash-kpi" onclick="openDrill('revenus','mensuel')">
-        <div class="dash-kpi-val">$400</div>
+        <div class="dash-kpi-val" id="hero-kpi-revenus">—</div>
         <div class="dash-kpi-lbl">Revenus USD</div>
-        <div class="dash-kpi-delta up">↑ +5%</div>
+        <div class="dash-kpi-delta up"> </div>
       </div>
     </div>
 
@@ -383,27 +383,27 @@
   <div class="stats-grid mb-xl">
     <div class="stat-card stat-blue" onclick="openDrill('adherents','actifs')">
       <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-      <div><div class="stat-val" style="color:var(--blue-deep)">342</div><div class="stat-label">Adhérents actifs</div><div class="stat-delta up">↑ +12 ce mois</div></div>
+      <div><div class="stat-val" style="color:var(--blue-deep)" id="dash-stat-adherents">—</div><div class="stat-label">Adhérents actifs</div><div class="stat-delta up" id="dash-stat-adherents-delta"> </div></div>
     </div>
     <div class="stat-card stat-green" onclick="openDrill('consultations','mois')">
       <div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-      <div><div class="stat-val" style="color:var(--green-deep)">487</div><div class="stat-label">Consultations / mois</div><div class="stat-delta up">↑ +34</div></div>
+      <div><div class="stat-val" style="color:var(--green-deep)" id="dash-stat-consultations">—</div><div class="stat-label">Consultations / mois</div><div class="stat-delta up"> </div></div>
     </div>
     <div class="stat-card stat-purple" onclick="openDrill('pharmacie','commandes')">
       <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.5 20.5L3.5 13.5a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/></svg></div>
-      <div><div class="stat-val" style="color:var(--purple-deep)">213</div><div class="stat-label">Commandes pharmacie</div><div class="stat-delta up">↑ +8%</div></div>
+      <div><div class="stat-val" style="color:var(--purple-deep)" id="dash-stat-pharmacie">—</div><div class="stat-label">Produits pharmacie</div><div class="stat-delta up" id="dash-stat-pharmacie-delta"> </div></div>
     </div>
     <div class="stat-card stat-amber" onclick="openDrill('revenus','mensuel')">
       <div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
-      <div><div class="stat-val" style="color:var(--color-abonnement)">$400</div><div class="stat-label">Revenus ce mois</div><div class="stat-delta up">↑ +5%</div></div>
+      <div><div class="stat-val" style="color:var(--color-abonnement)" id="dash-stat-revenus">—</div><div class="stat-label">Revenus ce mois</div><div class="stat-delta up"> </div></div>
     </div>
     <div class="stat-card stat-blue" onclick="openDrill('medecins','actifs')">
       <div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="20" rx="2"/><rect x="2" y="9" width="20" height="6" rx="2"/></svg></div>
-      <div><div class="stat-val" style="color:var(--blue-deep)">12</div><div class="stat-label">Médecins actifs</div><div class="stat-delta down">↓ 1 en congé</div></div>
+      <div><div class="stat-val" style="color:var(--blue-deep)" id="dash-stat-medecins">—</div><div class="stat-label">Médecins actifs</div><div class="stat-delta up"> </div></div>
     </div>
     <div class="stat-card stat-danger" onclick="openDrill('pharmacie','ruptures')">
       <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-      <div><div class="stat-val" style="color:var(--color-danger)">3</div><div class="stat-label">Ruptures de stock</div><div class="stat-delta down">↑ urgent</div></div>
+      <div><div class="stat-val" style="color:var(--color-danger)" id="dash-stat-ruptures">—</div><div class="stat-label">Ruptures de stock</div><div class="stat-delta dn" id="dash-stat-ruptures-delta"> </div></div>
     </div>
   </div>
 
@@ -548,12 +548,26 @@
 <!-- ══ PAGE ABONNEMENTS ══ -->
 <div class="page page-hidden" id="page-abonnements">
   <div class="stats-grid mb-lg">
-    <div class="stat-card stat-green" onclick="openDrill('abonnements','actifs')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="stat-val" style="color:var(--color-primary)">298</div><div class="stat-label">Actifs</div></div></div>
-    <div class="stat-card stat-amber" onclick="openDrill('abonnements','impayes')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="stat-val" style="color:var(--color-warning)">31</div><div class="stat-label">Impayés</div></div></div>
-    <div class="stat-card stat-amber" onclick="openDrill('abonnements','revenus')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div><div class="stat-val" style="color:var(--color-abonnement)">$400</div><div class="stat-label">Revenus/mois</div></div></div>
-    <div class="stat-card stat-purple" onclick="openDrill('abonnements','plans')"><div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div><div class="stat-val" style="color:var(--color-pharmacie)">4</div><div class="stat-label">Plans actifs</div></div></div>
+    <div class="stat-card stat-green" onclick="filterAbo('actif')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="stat-val" style="color:var(--color-primary)" id="abo-stat-actifs">—</div><div class="stat-label">Actifs</div></div></div>
+    <div class="stat-card stat-amber" onclick="filterAbo('impaye')"><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="stat-val" style="color:var(--color-warning)" id="abo-stat-impayes">—</div><div class="stat-label">Impayés</div></div></div>
+    <div class="stat-card stat-amber" onclick="filterAbo('')"><div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div><div class="stat-val" style="color:var(--color-abonnement)" id="abo-stat-revenus">—</div><div class="stat-label">Revenus/mois</div></div></div>
+    <div class="stat-card stat-purple" onclick="filterAbo('')"><div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div><div class="stat-val" style="color:var(--color-pharmacie)" id="abo-stat-total">—</div><div class="stat-label">Total adhérents</div></div></div>
   </div>
-  <div class="card"><div class="table-wrap"><table><thead><tr><th>Adhérent</th><th>Plan</th><th>Montant</th><th>Statut</th><th>Renouvellement</th><th></th></tr></thead><tbody id="abo-table"></tbody></table></div></div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Mutuelle</span>
+      <div class="flex items-center gap-sm">
+        <div class="flex gap-sm" id="abo-filter-bar">
+          <button class="btn btn-sm btn-primary" onclick="filterAbo('')">Tous</button>
+          <button class="btn btn-sm btn-outline" onclick="filterAbo('actif')">Actifs</button>
+          <button class="btn btn-sm btn-outline" onclick="filterAbo('impaye')" style="border-color:var(--color-warning);color:var(--color-warning)">Impayés</button>
+          <button class="btn btn-sm btn-outline" onclick="filterAbo('inactif')">Inactifs</button>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="exportAboCSV()">↓ CSV</button>
+      </div>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Adhérent</th><th>Plan</th><th>Montant</th><th>Statut</th><th>Début</th><th></th></tr></thead><tbody id="abo-table"></tbody></table></div>
+  </div>
 </div>
 
 <!-- ══ PAGE MÉDECINS ══ -->
@@ -1353,6 +1367,7 @@ function showPage(id) {
   document.getElementById('topbar-title').textContent = PAGE_TITLES[id] || id;
   document.getElementById('breadcrumb').style.display = 'none';
   closeDrill(); window.scrollTo(0, 0);
+  if (id === 'dashboard')   loadDashboardStats();
   if (id === 'adherents')   loadAdherents();
   if (id === 'medecins')    loadMedecins();
   if (id === 'pharmacie')   loadPharmacie();
@@ -2304,27 +2319,139 @@ async function loadConsultations() {
   }
 }
 
+var _aboAllItems = [];
+var _aboFilter   = '';
+
 async function loadAbonnements() {
   var tok = localStorage.getItem('sd_token');
   var tbody = document.getElementById('abo-table');
   tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Chargement…</td></tr>';
   try {
-    var r = await fetch(_APISD + '/api/admin/abonnements?limit=100',
+    var r = await fetch(_APISD + '/api/admin/abonnements?limit=200',
       { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     var d = await r.json();
-    var items = (d.items || []).map(function(u) {
+    _aboAllItems = (d.items || []).map(function(u) {
       return { id:u.id, nom:u.nom, plan:u.plan||'solidaire',
-               statut:u.statut||'actif', montant:u.prix_usd||0, renouv:'—' };
+               statut:u.statut||'actif', montant:u.prix_usd||0,
+               renouv: u.date_debut || '—', email: u.email || '' };
     });
-    if (!items.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Aucun abonnement</td></tr>';
-      return;
-    }
-    renderAboTable(items);
+    _updateAboStats();
+    _applyAboFilter();
   } catch(e) {
-    renderAboTable(DATA.adherents);
+    _aboAllItems = DATA.adherents || [];
+    _applyAboFilter();
   }
+}
+
+function _updateAboStats() {
+  var actifs  = _aboAllItems.filter(function(a){ return a.statut==='actif'; }).length;
+  var impayes = _aboAllItems.filter(function(a){ return a.statut==='impaye'; }).length;
+  var revenus = _aboAllItems.filter(function(a){ return a.statut==='actif'; })
+                            .reduce(function(s,a){ return s+a.montant; }, 0);
+  var el = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+  el('abo-stat-actifs',  actifs);
+  el('abo-stat-impayes', impayes);
+  el('abo-stat-revenus', '$' + revenus.toFixed(0));
+  el('abo-stat-total',   _aboAllItems.length);
+}
+
+function filterAbo(statut) {
+  _aboFilter = statut;
+  var btns = document.querySelectorAll('#abo-filter-bar .btn');
+  btns.forEach(function(b){ b.classList.remove('btn-primary'); b.classList.add('btn-outline'); });
+  var idx = ['','actif','impaye','inactif'].indexOf(statut);
+  if (idx>=0 && btns[idx]) { btns[idx].classList.add('btn-primary'); btns[idx].classList.remove('btn-outline'); }
+  _applyAboFilter();
+}
+
+function _applyAboFilter() {
+  var list = _aboFilter
+    ? _aboAllItems.filter(function(a){ return a.statut===_aboFilter; })
+    : _aboAllItems;
+  if (!list.length) {
+    document.getElementById('abo-table').innerHTML =
+      '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Aucun résultat</td></tr>';
+    return;
+  }
+  renderAboTable(list);
+}
+
+function exportAboCSV() {
+  var list = _aboFilter
+    ? _aboAllItems.filter(function(a){ return a.statut===_aboFilter; })
+    : _aboAllItems;
+  var rows = [['ID','Nom','Email','Plan','Statut','Montant USD','Début']];
+  list.forEach(function(a){
+    rows.push([a.id, a.nom, a.email, a.plan, a.statut, a.montant.toFixed(2), a.renouv]);
+  });
+  var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(','); }).join('\r\n');
+  var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url; a.download = 'abonnements-santedirect.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function loadDashboardStats() {
+  var tok = localStorage.getItem('sd_token');
+  var h = tok ? {'Authorization':'Bearer '+tok} : {};
+  function _s(id, v) { var e=document.getElementById(id); if(e) e.textContent=v; }
+  try {
+    var [statsR, consR, revR, pharmaR, aboR] = await Promise.allSettled([
+      fetch(_APISD+'/api/admin/stats', {headers:h}).then(r=>r.ok?r.json():null),
+      fetch(_APISD+'/api/admin/consultations?limit=200', {headers:h}).then(r=>r.ok?r.json():null),
+      fetch(_APISD+'/api/admin/revenus', {headers:h}).then(r=>r.ok?r.json():null),
+      fetch(_APISD+'/api/pharmacie/ean/list?limit=500', {headers:h}).then(r=>r.ok?r.json():null),
+      fetch(_APISD+'/api/admin/abonnements?limit=200', {headers:h}).then(r=>r.ok?r.json():null),
+    ]);
+    if (statsR.status==='fulfilled' && statsR.value) {
+      var st = statsR.value;
+      _s('dash-stat-adherents', st.adherents_actifs || st.par_role?.adherent || '—');
+      _s('dash-stat-medecins', st.par_role?.medecin || '—');
+    }
+    if (consR.status==='fulfilled' && consR.value) {
+      var cons = consR.value.consultations || consR.value.items || [];
+      var enCours = cons.filter(function(c){ return c.statut==='en_cours'; }).length;
+      _s('dash-stat-consultations', cons.length);
+      _s('hero-kpi-cons', cons.length);
+      _s('hero-kpi-cons-live', enCours + ' en cours');
+    }
+    if (revR.status==='fulfilled' && revR.value) {
+      var rev = revR.value;
+      var revStr = '$' + Number(rev.total_revenus_usd||0).toFixed(0);
+      _s('dash-stat-revenus', revStr);
+      _s('hero-kpi-revenus', revStr);
+    }
+    if (pharmaR.status==='fulfilled' && pharmaR.value) {
+      var items = pharmaR.value.items || [];
+      var ruptures = items.filter(function(p){ return (p.stock_total||0)===0; }).length;
+      _s('dash-stat-pharmacie', items.length);
+      _s('dash-stat-ruptures', ruptures);
+      _s('hero-kpi-ruptures', ruptures);
+      if (ruptures > 0) {
+        _s('dash-stat-pharmacie-delta', ruptures+' ruptures ⚠');
+        _s('hero-kpi-ruptures-delta', 'Urgent');
+        var alertEl = document.querySelector('.alert.alert-warning');
+        if (alertEl) alertEl.querySelector('strong').textContent = ruptures+' produit(s) en rupture';
+      } else {
+        _s('dash-stat-ruptures', '0');
+        _s('hero-kpi-ruptures', '0');
+        _s('hero-kpi-ruptures-delta', 'Aucune');
+      }
+    }
+    if (aboR.status==='fulfilled' && aboR.value) {
+      var aboItems = aboR.value.items || [];
+      var impayes  = aboItems.filter(function(a){ return a.statut==='impaye'; }).length;
+      _s('hero-kpi-impayes', impayes);
+      // Update hero subtitle
+      var adherents_actifs = statsR.status==='fulfilled' && statsR.value
+        ? (statsR.value.adherents_actifs || aboItems.length)
+        : aboItems.length;
+      var sub = document.querySelector('.dash-hero-sub');
+      if (sub) sub.textContent = 'Kolongono, RDC · ' + adherents_actifs + ' adhérents actifs';
+    }
+  } catch(e) {}
 }
 
 async function loadRevenus() {
@@ -3306,10 +3433,12 @@ let _centresInited = false;
   const params = new URLSearchParams(window.location.search);
   const targetPage = params.get('page');
   if (targetPage) {
-    // Naviguer vers la page demandée après chargement DOM
     setTimeout(() => showPage(targetPage), 0);
   }
 })();
+
+/* ── Charger les stats du dashboard au démarrage ── */
+loadDashboardStats();
 
 /* ── Chips de statut topbar — pings réels ──────────────────────────────────── */
 (async function pingStatut() {
