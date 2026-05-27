@@ -150,14 +150,23 @@ export default function PharmacieAdminScreen({ route, navigation }: any) {
     let cancelled = false;
     setLoading(true);
     Promise.all([
-      api.get<{ produits: Produit[] }>('/api/pharmacie/produits', token),
-      api.get<{ mouvements: Mouvement[] }>('/api/pharmacie/mouvements', token),
+      api.get<{ items: any[]; total: number }>('/api/pharmacie/ean/list?limit=500', token),
+      api.get<{ mouvements: Mouvement[] }>('/api/pharmacie/mouvements', token).catch(() => ({ mouvements: [] })),
     ])
-      .then(([p, m]) => {
-        if (!cancelled) {
-          setProduits(p.produits ?? []);
-          setMouvements(m.mouvements ?? []);
+      .then(([ean, m]) => {
+        if (cancelled) return;
+        if (ean.items) {
+          setProduits(ean.items.map(e => ({
+            id:                e.code ?? e.ean ?? String(e.id),
+            nom:               e.nom + (e.dosage ? ` ${e.dosage}` : ''),
+            categorie:         e.categorie ?? 'Autre',
+            prix:              e.prix_usd ?? e.prix_unitaire_fc ?? 0,
+            stock:             e.stock_total ?? 0,
+            unite:             e.forme ?? 'unité',
+            ordonnance_requise:e.prescription ?? false,
+          })));
         }
+        setMouvements(m.mouvements ?? []);
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
