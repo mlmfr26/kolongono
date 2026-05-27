@@ -518,6 +518,7 @@
       <table><thead><tr><th>Patient</th><th>Médecin</th><th>Auxiliaire</th><th>Heure</th><th>Statut</th><th>Jitsi</th></tr></thead>
       <tbody id="consultations-table"></tbody></table>
     </div>
+    <div id="cons-pagination-footer" style="display:none;justify-content:space-between;align-items:center;padding:var(--space-md) var(--space-lg);border-top:1px solid var(--color-border)"></div>
   </div>
 </div>
 
@@ -2290,21 +2291,31 @@ async function loadMedecins() {
     renderMedecinsTable(DATA.medecins);
   }
 }
-async function loadConsultations() {
+var _consOffset = 0;
+var _consLimit  = 50;
+var _consTotal  = 0;
+
+async function loadConsultations(append) {
   var tok = localStorage.getItem('sd_token');
   var tbody = document.getElementById('consultations-table');
-  tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Chargement…</td></tr>';
+  var footerEl = document.getElementById('cons-pagination-footer');
+  if (!append) {
+    _consOffset = 0;
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Chargement…</td></tr>';
+  }
   try {
-    var r = await fetch(_APISD + '/api/admin/consultations?limit=100',
-      { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
+    var url = _APISD + '/api/admin/consultations?limit=' + _consLimit + '&skip=' + _consOffset;
+    var r = await fetch(url, { headers: tok ? {'Authorization':'Bearer '+tok} : {} });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     var d = await r.json();
     var items = d.items || [];
-    if (!items.length) {
+    _consTotal = d.total || items.length;
+    if (!items.length && !append) {
       tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">Aucune consultation enregistrée</td></tr>';
+      if (footerEl) footerEl.style.display = 'none';
       return;
     }
-    tbody.innerHTML = items.map(function(c) {
+    var rows = items.map(function(c) {
       var patient = c.patient_nom || c.patient_id || '—';
       var medecin = c.medecin_nom || c.medecin_id || '—';
       return '<tr style="cursor:pointer"><td class="font-bold">' + patient + '</td>' +
@@ -2314,6 +2325,23 @@ async function loadConsultations() {
         '<td>' + consultStatutBadge(c.statut) + '</td>' +
         '<td><span class="badge badge-accent">Jitsi</span></td></tr>';
     }).join('');
+    if (append) {
+      tbody.innerHTML += rows;
+    } else {
+      tbody.innerHTML = rows;
+    }
+    _consOffset += items.length;
+    if (footerEl) {
+      var remaining = _consTotal - _consOffset;
+      if (remaining > 0) {
+        footerEl.style.display = 'flex';
+        footerEl.innerHTML = '<span class="text-muted text-sm">' + _consOffset + ' / ' + _consTotal + ' consultations</span>' +
+          '<button class="btn btn-outline btn-sm" onclick="loadConsultations(true)">Charger ' + Math.min(_consLimit, remaining) + ' de plus</button>';
+      } else {
+        footerEl.innerHTML = '<span class="text-muted text-sm">' + _consTotal + ' consultation' + (_consTotal !== 1 ? 's' : '') + ' au total</span>';
+        footerEl.style.display = 'flex';
+      }
+    }
   } catch(e) {
     renderConsultTable(DATA.consultations);
   }
