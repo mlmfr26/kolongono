@@ -71,15 +71,29 @@ const CHIPS: { key: FiltreChip; label: string }[] = [
 
 export default function PersonnelScreen({ navigation }: any) {
   const { user, token } = useAuth();
+  const centreId = (user as any)?.centre_id as string | null;
   const [personnel, setPersonnel] = useState<Personnel[]>(DEMO_PERSONNEL);
   const [filtre, setFiltre] = useState<FiltreChip>('tous');
 
-  useFocusEffect(
-    useCallback(() => {
-      // Fetch API quand disponible — données démo en attendant
-      // api.get('/api/centre/personnel', token).then(setPersonnel).catch(() => setPersonnel(DEMO_PERSONNEL));
-    }, [token]),
-  );
+  useFocusEffect(useCallback(() => {
+    if (!centreId) return;
+    let cancelled = false;
+    api.get<{ personnel: any[]; total: number }>(`/api/centres/${centreId}/personnel`, token)
+      .then(d => {
+        if (cancelled || !d.personnel) return;
+        setPersonnel(d.personnel.map(p => ({
+          id:                      p.id,
+          prenom:                  p.prenom ?? '',
+          nom:                     p.nom ?? '',
+          fonction:                p.fonction ?? 'administratif',
+          statut:                  p.statut ?? 'actif',
+          affecte_sd:              p.affecte_sd ?? false,
+          nb_consultations_sd_mois: p.consultations_sd_mois ?? 0,
+        })));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [centreId, token]));
 
   const filtered = filtre === 'tous' ? personnel : personnel.filter(p => p.fonction === filtre);
   const nbTotal  = personnel.length;
