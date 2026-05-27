@@ -71,7 +71,8 @@ function groupByDate(repas: Repas[]): { date: string; items: Repas[] }[] {
 // ─── Composant principal ──────────────────────────────────────────────────────
 
 export default function RefectoireScreen({ navigation }: any) {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
+  const centreId = (user as any)?.centre_id as string | null;
   const [repas, setRepas] = useState<Repas[]>(DEMO_REPAS);
 
   // Formulaire
@@ -82,18 +83,20 @@ export default function RefectoireScreen({ navigation }: any) {
   const [menu, setMenu]                     = useState('');
   const [cout, setCout]                     = useState('');
 
-  useFocusEffect(
-    useCallback(() => {
-      // Fetch API quand disponible
-      // api.get('/api/centre/refectoire', token).then(setRepas).catch(() => setRepas(DEMO_REPAS));
-    }, [token]),
-  );
+  useFocusEffect(useCallback(() => {
+    if (!centreId) return;
+    let cancelled = false;
+    api.get<{ repas: Repas[] }>(`/api/centres/${centreId}/refectoire`, token)
+      .then(d => { if (!cancelled && d.repas) setRepas(d.repas); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [centreId, token]));
 
   // Stats semaine
   const totalServis = repas.reduce((sum, r) => sum + r.nb_personnel + r.nb_patients + r.nb_accompagnants, 0);
   const totalCout   = repas.reduce((sum, r) => sum + r.cout_fc, 0);
 
-  function enregistrer() {
+  async function enregistrer() {
     const np = parseInt(nbPersonnel, 10) || 0;
     const npat = parseInt(nbPatients, 10) || 0;
     const nacc = parseInt(nbAccompagnants, 10) || 0;
@@ -120,6 +123,19 @@ export default function RefectoireScreen({ navigation }: any) {
     setNbAccompagnants('');
     setMenu('');
     setCout('');
+    if (centreId) {
+      try {
+        await api.post<any>(`/api/centres/${centreId}/refectoire`, {
+          type_repas: typeForm,
+          nb_personnel: np,
+          nb_patients: npat,
+          nb_accompagnants: nacc,
+          menu: menu.trim(),
+          cout_fc: cfc,
+          date: dateStr(0),
+        }, token);
+      } catch (_) {}
+    }
   }
 
   const groups = groupByDate(repas);
