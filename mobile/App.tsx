@@ -84,6 +84,7 @@ import FormulaireStockScreen      from './screens/pharmacie/FormulaireStockScree
 import AbonnementsAdminScreen     from './screens/admin/AbonnementsAdminScreen';
 import UnitesSanitairesScreen     from './screens/admin/UnitesSanitairesScreen';
 import UniteDetailScreen          from './screens/admin/UniteDetailScreen';
+import RapportsScreen             from './screens/admin/RapportsScreen';
 import QRScannerScreen            from './screens/QRScannerScreen';
 import TriageScreen               from './screens/TriageScreen';
 import PriseRDVScreen             from './screens/PriseRDVScreen';
@@ -312,6 +313,8 @@ function RootNavigator() {
               options={{ headerShown: false }} />
             <Stack.Screen name="UniteForm"       component={UnitesSanitairesScreen}
               options={{ ...TAB_SCREEN_OPTS, headerShown: true, title: 'Nouvelle unité' }} />
+            <Stack.Screen name="Rapports"        component={RapportsScreen}
+              options={{ ...TAB_SCREEN_OPTS, headerShown: true, title: 'Rapports' }} />
 
             {/* ── QR Scanner (partagé tous rôles) ── */}
             <Stack.Screen name="QRScanner"       component={QRScannerScreen}
