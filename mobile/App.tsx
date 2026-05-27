@@ -17,6 +17,22 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Platform,
 } from 'react-native';
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: string | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(e: Error) { return { error: e.message || String(e) }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#111', justifyContent: 'center', padding: 32 }}>
+          <Text style={{ color: '#ff4444', fontSize: 16, fontWeight: 'bold', marginBottom: 16 }}>Erreur JS</Text>
+          <Text style={{ color: '#fff', fontSize: 13, lineHeight: 20 }}>{this.state.error}</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { GestureHandlerRootView }     from 'react-native-gesture-handler';
 import { NavigationContainer }        from '@react-navigation/native';
 import { createBottomTabNavigator }   from '@react-navigation/bottom-tabs';
@@ -329,13 +345,15 @@ function RootNavigator() {
 
 export default function App(): JSX.Element {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <AuthProvider>
-          <RootNavigator />
-        </AuthProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <AuthProvider>
+            <RootNavigator />
+          </AuthProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 
