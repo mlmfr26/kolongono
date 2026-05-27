@@ -1,6 +1,6 @@
 ﻿import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking, Alert,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert,
 } from 'react-native';
 import { useAuth } from '../../components/AuthContext';
 import { colors, spacing, radius, fontSize, fontWeight, shadow } from '../../components/theme';
@@ -15,13 +15,16 @@ export default function ConsultationEnCoursScreen({ route, navigation }: Props) 
   const [phase, setPhase] = useState<'preparation' | 'consultation' | 'cloture'>('preparation');
 
   function rejoindreVideo() {
-    if (consultation?.lien_medecin) {
-      Linking.openURL(consultation.lien_medecin).catch(() =>
-        Alert.alert('Erreur', 'Impossible d\'ouvrir la vidéoconférence.')
-      );
+    const lien = consultation?.lien_medecin ?? consultation?.lien ?? consultation?.url;
+    if (lien) {
+      navigation.navigate('Teleconsultation', {
+        rdv_id: consultation?.id,
+        url: lien,
+        medecin: patient ? `${patient.prenom} ${patient.nom}` : undefined,
+        role: 'medecin',
+      });
     } else {
-      Alert.alert('Vidéo', 'Lien non disponible. Mode simulation actif.');
-      setPhase('consultation');
+      Alert.alert('Vidéo', 'Lien non disponible pour cette consultation.');
     }
   }
 
